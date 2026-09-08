@@ -4,3 +4,5 @@ resources:
   - occm
   - cinder-csi-provider
   - cnpg-operator
+  - cert-manager
+  - nordhost-webhook

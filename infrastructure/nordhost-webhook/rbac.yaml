@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nordhost-webhook
+  namespace: "default"
+  labels:
+    app: nordhost-webhook
+    chart: nordhost-webhook-0.1.0
+    release: nordhost-webhook
+    heritage: Helm
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nordhost-webhook:domain-solver
+  labels:
+    app: nordhost-webhook
+    chart: nordhost-webhook-0.1.0
+    release: nordhost-webhook
+    heritage: Helm
+rules:
+  - apiGroups:
+      - nordhost-integrator
+    resources:
+      - '*'
+    verbs:
+      - 'create'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nordhost-webhook:auth-delegator
+  labels:
+    app: nordhost-webhook
+    chart: nordhost-webhook-0.1.0
+    release: nordhost-webhook
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: nordhost-webhook
+    namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nordhost-webhook:domain-solver
+  labels:
+    app: nordhost-webhook
+    chart: nordhost-webhook-0.1.0
+    release: nordhost-webhook
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nordhost-webhook:domain-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nordhost-webhook:webhook-authentication-reader
+  namespace: kube-system
+  labels:
+    app: nordhost-webhook
+    chart: nordhost-webhook-0.1.0
+    release: nordhost-webhook
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: nordhost-webhook
+    namespace: default
+

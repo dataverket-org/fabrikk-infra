@@ -1,0 +1,19 @@
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.nordhost-integrator
+  labels:
+    app: nordhost-webhook
+    chart: nordhost-webhook-0.1.0
+    release: nordhost-webhook
+    heritage: Helm
+  annotations:
+    cert-manager.io/inject-ca-from: "default/nordhost-webhook-webhook-tls"
+spec:
+  group: nordhost-integrator
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: nordhost-webhook
+    namespace: default
+  version: v1alpha1

@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nordhost-webhook
+  namespace: "default"
+  labels:
+    app: nordhost-webhook
+    chart: nordhost-webhook-0.1.0
+    release: nordhost-webhook
+    heritage: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nordhost-webhook
+      release: nordhost-webhook
+  template:
+    metadata:
+      labels:
+        app: nordhost-webhook
+        release: nordhost-webhook
+    spec:
+      serviceAccountName: nordhost-webhook
+      containers:
+        - name: nordhost-webhook
+          image: "docker.io/eskpil/nordhost-webhook:latest"
+          imagePullPolicy: IfNotPresent
+          args:
+            - --tls-cert-file=/tls/tls.crt
+            - --tls-private-key-file=/tls/tls.key
+          env:
+            - name: GROUP_NAME
+              value: "nordhost-integrator"
+            - name: CONFIG
+              value: /etc/nordhost/config.json
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          volumeMounts:
+            - name: certs
+              mountPath: /tls
+              readOnly: true
+            - name: config
+              mountPath: /etc/nordhost
+              readOnly: true
+          resources:
+            {}
+      volumes:
+        - name: certs
+          secret:
+            secretName: nordhost-webhook-webhook-tls
+        - name: config
+          secret:
+            secretName: 1234

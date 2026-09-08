@@ -1,0 +1,6 @@
+resources:
+  - pki.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - apiservice.yaml
+  - service.yaml
