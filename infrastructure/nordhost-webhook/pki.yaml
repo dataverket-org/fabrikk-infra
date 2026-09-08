@@ -2,12 +2,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: nordhost-webhook-ca
-  namespace: "default"
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
+  namespace: cert-manager
 spec:
   secretName: nordhost-webhook-ca
   duration: 43800h # 5y
@@ -20,12 +15,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: nordhost-webhook-webhook-tls
-  namespace: "default"
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
+  namespace: cert-manager
 spec:
   secretName: nordhost-webhook-webhook-tls
   duration: 8760h # 1y
@@ -33,20 +23,15 @@ spec:
     name: nordhost-webhook-ca
   dnsNames:
   - nordhost-webhook
-  - nordhost-webhook.default
-  - nordhost-webhook.default.svc
+  - nordhost-webhook.cert-manager
+  - nordhost-webhook.cert-manager.svc
 
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: nordhost-webhook-selfsign
-  namespace: "default"
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
+  namespace: cert-manager
 spec:
   selfSigned: {}
 ---
@@ -54,12 +39,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: nordhost-webhook-ca
-  namespace: "default"
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
+  namespace: cert-manager
 spec:
   ca:
     secretName: nordhost-webhook-ca

@@ -2,22 +2,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: nordhost-webhook
-  namespace: "default"
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
+  namespace: cert-manager
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: nordhost-webhook:domain-solver
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
 rules:
   - apiGroups:
       - nordhost-integrator
@@ -30,11 +20,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: nordhost-webhook:auth-delegator
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -43,17 +28,12 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: nordhost-webhook
-    namespace: default
+    namespace: cert-manager
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: nordhost-webhook:domain-solver
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -70,11 +50,6 @@ kind: RoleBinding
 metadata:
   name: nordhost-webhook:webhook-authentication-reader
   namespace: kube-system
-  labels:
-    app: nordhost-webhook
-    chart: nordhost-webhook-0.1.0
-    release: nordhost-webhook
-    heritage: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -83,5 +58,5 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: nordhost-webhook
-    namespace: default
+    namespace: cert-manager
 

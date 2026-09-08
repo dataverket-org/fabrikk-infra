@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nordhost-webhook
-  namespace: "default"
+  namespace: cert-manager
   labels:
     app: nordhost-webhook
     chart: nordhost-webhook-0.1.0
@@ -62,4 +62,4 @@ spec:
             secretName: nordhost-webhook-webhook-tls
         - name: config
           secret:
-            secretName: 1234
+            secretName: nordhost-config
