@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - occm
   - cinder-csi-provider
+  - cnpg-operator
