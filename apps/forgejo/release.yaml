@@ -24,8 +24,10 @@ spec:
           NAME: forgejo
           USER: forgejo
         service:
-          ENABLE_PASSWORD_SIGNIN_FORM: false
+          ENABLE_INTERNAL_SIGNIN: false
           ENABLE_BASIC_AUTHENTICATION: false
+          DISABLE_REGISTRATION: true
+          SHOW_REGISTRATION_BUTTON: false
       additionalConfigFromEnvs:
         - name: FORGEJO__DATABASE__PASSWD
           valueFrom:
