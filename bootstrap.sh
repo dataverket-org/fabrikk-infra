@@ -6,4 +6,5 @@ flux bootstrap gitea \
   --repository="flux-bootstrap" \
   --branch main \
   --path=./clusters/production \
-  --personal
+  --personal \
+  --token-auth
