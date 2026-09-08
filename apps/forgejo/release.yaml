@@ -23,6 +23,9 @@ spec:
           HOST: forgejo-postgres-rw:5432
           NAME: forgejo
           USER: forgejo
+        service:
+          ENABLE_PASSWORD_SIGNIN_FORM: false
+          ENABLE_BASIC_AUTHENTICATION: false
       additionalConfigFromEnvs:
         - name: FORGEJO__DATABASE__PASSWD
           valueFrom:
