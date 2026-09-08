@@ -30,7 +30,7 @@ spec:
               UserName: "admin"
               Email: "admin@dataverket.org"
               Password: "nixdev-ziPrip-2tommo"
-              PasswordChangeRequired: false
+              PasswordChangeRequired: true
       masterkeySecretName: zitadel-masterkey
     env:
       - name: ZITADEL_DATABASE_POSTGRES_DSN
