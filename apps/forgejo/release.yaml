@@ -1,0 +1,38 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: forgejo
+  namespace: forgejo
+spec:
+  interval: 1h
+  releaseName: forgejo
+  targetNamespace: forgejo
+  chartRef:
+    kind: OCIRepository
+    name: forgejo-helm
+    namespace: flux-system
+  values:
+    gitea:
+      admin:
+        existingSecret: forgejo-admin
+      config:
+        database:
+          DB_TYPE: postgres
+          HOST: forgejo-postgres-rw:5432
+          NAME: forgejo
+          USER: forgejo
+      additionalConfigFromEnvs:
+        - name: FORGEJO__DATABASE__PASSWD
+          valueFrom:
+            secretKeyRef:
+              name: forgejo-postgres-app
+              key: password
+    httpRoute:
+      enabled: true
+      parentRefs:
+        - name: envoy-gateway
+          namespace: envoy-system
+          sectionName: https
+      hostnames:
+        - git.dataverket.org
+      port: 3000

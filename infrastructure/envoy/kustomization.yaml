@@ -2,3 +2,5 @@ resources:
   - namespace.yaml
   - repo.yaml
   - release.yaml
+  - gatewayclass.yaml
+  - gateway.yaml

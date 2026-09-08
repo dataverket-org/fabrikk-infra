@@ -7,4 +7,5 @@ resources:
   - envoy
   - cert-manager
   - nordhost-webhook
+  - clusterissuer
   - external-dns
