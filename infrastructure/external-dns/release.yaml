@@ -1,0 +1,42 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-dns
+  namespace: cert-manager
+spec:
+  chart:
+    spec:
+      chart: external-dns
+      version: 1.21.1
+      sourceRef:
+        kind: HelmRepository
+        name: external-dns
+        namespace: flux-system
+  interval: 1h
+  releaseName: external-dns
+  targetNamespace: cert-manager
+  values:
+    sources:
+      - service
+      - gateway-httproute
+    provider:
+      name: webhook
+      webhook:
+        image:
+          # Temporary public image pushed for early testing - swap this once
+          # there's a permanent home for it.
+          repository: docker.io/eskpil/nordhost-externaldns-webhook
+          tag: latest
+        env:
+          - name: CONFIG
+            value: /etc/nordhost/config.json
+        extraVolumeMounts:
+          - name: nordhost-config
+            mountPath: /etc/nordhost
+            readOnly: true
+    # Reuses the DirectAdmin credentials Secret already created for
+    # nordhost-webhook in this namespace.
+    extraVolumes:
+      - name: nordhost-config
+        secret:
+          secretName: nordhost-config
