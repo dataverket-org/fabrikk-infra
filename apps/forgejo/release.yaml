@@ -13,6 +13,8 @@ spec:
     namespace: flux-system
   values:
     gitea:
+      persistence:
+        enabled: true
       admin:
         existingSecret: forgejo-admin
       config:
@@ -27,6 +29,15 @@ spec:
             secretKeyRef:
               name: forgejo-postgres-app
               key: password
+    tcpRoute:
+      enabled: true
+      parentRefs:
+        - name: envoy-gateway
+          namespace: envoy-system
+          sectionName: ssh
+      hostnames:
+        - git.dataverket.org
+      port: 22
     httpRoute:
       enabled: true
       parentRefs:
