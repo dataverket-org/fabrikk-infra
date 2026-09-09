@@ -23,11 +23,6 @@ spec:
           HOST: forgejo-postgres-rw:5432
           NAME: forgejo
           USER: forgejo
-        oauth:
-          - name: Zitadel
-            provider: "openidConnect"
-            autoDiscoverUrl: "https://zitadel.dataverket.org/.well-known/openid-configuration"
-            existingSecret: forgejo-zitadel-oauth-secret
         mailer:
           enabled: true
           from: noreply@dataverket.org
@@ -39,6 +34,12 @@ spec:
           ENABLE_BASIC_AUTHENTICATION: true
           DISABLE_REGISTRATION: true
           SHOW_REGISTRATION_BUTTON: true
+        gitea:
+          oauth:
+            - name: Zitadel
+              provider: "openidConnect"
+              autoDiscoverUrl: "https://zitadel.dataverket.org/.well-known/openid-configuration"
+              existingSecret: forgejo-zitadel-oauth-secret
       additionalConfigFromEnvs:
         - name: FORGEJO__DATABASE__PASSWD
           valueFrom:
