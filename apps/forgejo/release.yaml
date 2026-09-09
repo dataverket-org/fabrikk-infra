@@ -23,6 +23,17 @@ spec:
           HOST: forgejo-postgres-rw:5432
           NAME: forgejo
           USER: forgejo
+        oauth:
+          - name: Zitadel
+            provider: "openidConnect"
+            autoDiscoverUrl: "https://zitadel.dataverket.org/.well-known/openid-configuration"
+            existingSecret: forgejo-zitadel-oauth-secret
+        mailer:
+          enabled: true
+          from: noreply@dataverket.org
+          protocol: smtps
+          smtp_addr: mail.nordhost.no
+          smtp_port: 465
         service:
           ENABLE_INTERNAL_SIGNIN: true
           ENABLE_BASIC_AUTHENTICATION: true
@@ -33,6 +44,16 @@ spec:
           valueFrom:
             secretKeyRef:
               name: forgejo-postgres-app
+              key: password
+        - name: FORGEJO__MAILER__USER
+          valueFrom:
+            secretKeyRef:
+              name: forgejo-mailer
+              key: username
+        - name: FORGEJO__MAILER__PASSWD
+          valueFrom:
+            secretKeyRef:
+              name: forgejo-mailer
               key: password
     tcpRoute:
       enabled: true
