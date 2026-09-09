@@ -1,0 +1,3 @@
+resources:
+  - repo.yaml
+  - org-dataverket-runner

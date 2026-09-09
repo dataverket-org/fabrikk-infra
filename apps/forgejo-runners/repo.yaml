@@ -1,0 +1,10 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: forgejo-runner-helm
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: oci://code.forgejo.org/forgejo-helm/forgejo/forgejo-runner
+  ref:
+    tag: "0.7.5"

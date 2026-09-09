@@ -4,3 +4,4 @@ create-forgejo-secret.sh
 create-forgejo-mailer-secret.sh
 create-forgejo-zitadel-oauth-secret.sh
 create-zitadel-master-key.sh
+*.example.yaml
