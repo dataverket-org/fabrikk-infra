@@ -34,6 +34,7 @@ spec:
           protocol: smtps
           smtp_addr: mail.nordhost.no
           smtp_port: 465
+          enable_notify_mail: true
         service:
           ENABLE_INTERNAL_SIGNIN: false
           ENABLE_BASIC_AUTHENTICATION: false
