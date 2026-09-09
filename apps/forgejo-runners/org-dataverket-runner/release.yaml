@@ -19,6 +19,18 @@ spec:
       config:
         instance: https://git.dataverket.org
         existingSecret: org-dataverket-runner-secret
+    # Running under runtimeClassName: kata means the dind sidecar's writable
+    # layer sits on the Kata guest's virtiofs-backed rootfs, which can't
+    # host a nested overlay2 mount (dockerd fails with "invalid argument"
+    # even with index=off). Give it a tmpfs-backed /var/lib/docker instead
+    # so overlay2 has a filesystem that actually supports nesting.
+    volumes:
+      - name: docker-lib
+        emptyDir:
+          medium: Memory
+    volumeMounts:
+      - name: docker-lib
+        mountPath: /var/lib/docker
   postRenderers:
     - kustomize:
         patches:
