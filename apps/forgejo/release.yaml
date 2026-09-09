@@ -17,6 +17,11 @@ spec:
         enabled: true
       admin:
         existingSecret: forgejo-admin
+      oauth:
+        - name: Zitadel
+          provider: "openidConnect"
+          autoDiscoverUrl: "https://zitadel.dataverket.org/.well-known/openid-configuration"
+          existingSecret: forgejo-zitadel-oauth-secret
       config:
         database:
           DB_TYPE: postgres
@@ -34,12 +39,6 @@ spec:
           ENABLE_BASIC_AUTHENTICATION: true
           DISABLE_REGISTRATION: true
           SHOW_REGISTRATION_BUTTON: true
-        gitea:
-          oauth:
-            - name: Zitadel
-              provider: "openidConnect"
-              autoDiscoverUrl: "https://zitadel.dataverket.org/.well-known/openid-configuration"
-              existingSecret: forgejo-zitadel-oauth-secret
       additionalConfigFromEnvs:
         - name: FORGEJO__DATABASE__PASSWD
           valueFrom:
