@@ -35,10 +35,10 @@ spec:
           smtp_addr: mail.nordhost.no
           smtp_port: 465
         service:
-          ENABLE_INTERNAL_SIGNIN: true
-          ENABLE_BASIC_AUTHENTICATION: true
+          ENABLE_INTERNAL_SIGNIN: false
+          ENABLE_BASIC_AUTHENTICATION: false
           DISABLE_REGISTRATION: true
-          SHOW_REGISTRATION_BUTTON: true
+          SHOW_REGISTRATION_BUTTON: false
       additionalConfigFromEnvs:
         - name: FORGEJO__DATABASE__PASSWD
           valueFrom:
