@@ -7,10 +7,13 @@ spec:
   interval: 1h
   releaseName: org-dataverket-runner
   targetNamespace: forgejo-runners
-  chartRef:
-    kind: OCIRepository
-    name: forgejo-runner-helm
-    namespace: flux-system
+  chart:
+    spec:
+      chart: .
+      sourceRef:
+        kind: GitRepository
+        name: forgejo-runner-helm
+        namespace: flux-system
   values:
     runner:
       config:
