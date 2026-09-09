@@ -9,3 +9,4 @@ resources:
   - nordhost-webhook
   - clusterissuer
   - external-dns
+  - kata-containers
