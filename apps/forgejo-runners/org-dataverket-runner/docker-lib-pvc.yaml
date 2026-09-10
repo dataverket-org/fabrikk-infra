@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: org-dataverket-runner-docker-lib
+  namespace: forgejo-runners
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-cinder-sc-delete
+  resources:
+    requests:
+      storage: 20Gi

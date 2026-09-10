@@ -1,2 +1,3 @@
 resources:
   - release.yaml
+  - docker-lib-pvc.yaml

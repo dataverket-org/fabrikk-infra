@@ -31,12 +31,16 @@ spec:
         instance: https://git.dataverket.org
         existingSecret: org-dataverket-runner-secret
     # dind's default /var/lib/docker sits directly on the Kata guest's own
-    # rootfs. Give it its own emptyDir instead - not memory-backed, since
-    # tmpfs usage counts against dind's memory limit above and
-    # catthehacker/ubuntu:act-latest is a large image.
+    # ephemeral rootfs, which gets wiped on every pod restart - meaning
+    # every crash forced a full re-pull of the multi-GB
+    # catthehacker/ubuntu:act-latest image, likely failing outright if the
+    # guest's ephemeral disk was too small to hold it. A Cinder-backed PVC
+    # (docker-lib-pvc.yaml) survives restarts and gives dind a real block
+    # device instead.
     volumes:
       - name: docker-lib
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: org-dataverket-runner-docker-lib
     volumeMounts:
       - name: docker-lib
         mountPath: /var/lib/docker
