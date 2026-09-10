@@ -59,3 +59,11 @@ spec:
                 template:
                   spec:
                     runtimeClassName: kata
+                    containers:
+                      # overlay2 fails with EINVAL in this Kata guest (likely
+                      # no true block passthrough for volumes, so overlayfs's
+                      # xattr-dependent features don't work) - vfs doesn't
+                      # need any of that, just slower (no layer CoW sharing).
+                      - name: dind
+                        args:
+                          - --storage-driver=vfs
