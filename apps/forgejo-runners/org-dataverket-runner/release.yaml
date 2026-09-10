@@ -15,19 +15,28 @@ spec:
         name: forgejo-runner-helm
         namespace: flux-system
   values:
+    dind:
+      resources:
+        requests:
+          cpu: "1"
+          memory: 2Gi
+        limits:
+          memory: 4Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
     runner:
       config:
         instance: https://git.dataverket.org
         existingSecret: org-dataverket-runner-secret
-    # Running under runtimeClassName: kata means the dind sidecar's writable
-    # layer sits on the Kata guest's virtiofs-backed rootfs, which can't
-    # host a nested overlay2 mount (dockerd fails with "invalid argument"
-    # even with index=off). Give it a tmpfs-backed /var/lib/docker instead
-    # so overlay2 has a filesystem that actually supports nesting.
+    # dind's default /var/lib/docker sits directly on the Kata guest's own
+    # rootfs. Give it its own emptyDir instead - not memory-backed, since
+    # tmpfs usage counts against dind's memory limit above and
+    # catthehacker/ubuntu:act-latest is a large image.
     volumes:
       - name: docker-lib
-        emptyDir:
-          medium: Memory
+        emptyDir: {}
     volumeMounts:
       - name: docker-lib
         mountPath: /var/lib/docker
