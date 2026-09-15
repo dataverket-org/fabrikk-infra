@@ -37,7 +37,7 @@ spec:
         service:
           ENABLE_INTERNAL_SIGNIN: false
           ENABLE_BASIC_AUTHENTICATION: false
-          DISABLE_REGISTRATION: true
+          DISABLE_REGISTRATION: false
           SHOW_REGISTRATION_BUTTON: false
           ENABLE_NOTIFY_MAIL: true 
       additionalConfigFromEnvs:
