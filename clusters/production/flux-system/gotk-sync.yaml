@@ -9,11 +9,11 @@ spec:
   interval: 1m0s
   ref:
     branch: main
-  # git.dataverket.org is the source of record; codeberg.org/dataverket/flux-bootstrap is a push mirror of it.
+  # git.dataverket.org is the source of record; codeberg.org/dataverket/fabrikk-infra is a push mirror of it.
   # The repository is public and Flux only reads, so no secretRef: the flux-system secret holds Codeberg
   # credentials, which the forge would reject. Add a forge token to that secret and restore secretRef if the
   # repository ever becomes private.
-  url: https://git.dataverket.org/dataverket/flux-bootstrap.git
+  url: https://git.dataverket.org/dataverket/fabrikk-infra.git
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

@@ -1,9 +1,11 @@
-# flux-bootstrap
+# fabrikk-infra
 
-Platform configuration (L0) for the `dataverket-prod` cluster, applied by Flux. This is the environment line's
-platform config: storage, gateway, certificates, DNS, the forge and its runners, identity, and the registry.
-Application overlays (L2) live in `miljo`; product manifests (L1) live next to the code in `fabrikk`. No product is
-deployed from here.
+The infrastructure needed to stand up a fabrikk: the forge and its runners, identity, the registry, and the platform
+under them (storage, gateway, certificates, DNS) on the `dataverket-prod` cluster, applied by Flux. This is the
+platform baseline (L0) for the cluster that hosts the software factory. Application overlays (L2) live in `miljo`;
+product manifests (L1) live next to the code in `fabrikk`. No product is deployed from here.
+
+This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the old name until it is reused.
 
 ## Layout
 
