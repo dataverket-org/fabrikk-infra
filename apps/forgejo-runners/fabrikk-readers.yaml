@@ -1,0 +1,17 @@
+# Read-only view of the runner namespace for fabrikk, Dataverket's software factory.
+# The factory's kubeconfig is minted by Omni as a service account in group fabrikk-readers
+# (omnictl kubeconfig --service-account --user fabrikk --groups fabrikk-readers); this binding
+# is the only right that group has. Nothing here can change the runner or read its secrets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fabrikk-readers
+  namespace: forgejo-runners
+subjects:
+  - kind: Group
+    name: fabrikk-readers
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
