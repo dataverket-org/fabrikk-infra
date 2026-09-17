@@ -1,0 +1,13 @@
+# Recipients for encrypted files in this repository. Public keys only; safe to commit.
+# Flux decrypts with the cluster's own key (Secret flux-system/sops-age, generated in-cluster by
+# bootstrap/sops-age-keygen.yaml); humans encrypt with a YubiKey. Only data/stringData are encrypted, so kind, name
+# and namespace stay readable and diffs stay meaningful.
+#
+# - age1yubikey1...  beddari, YubiKey serial 19668198 (PIN once, touch always)
+# - age1g3x9w...      dataverket-prod, Secret flux-system/sops-age, generated in-cluster 2026-09-17
+creation_rules:
+  - path_regex: ^(artifacts|apps|infrastructure)/.*\.enc\.ya?ml$
+    encrypted_regex: ^(data|stringData)$
+    age: >-
+      age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,
+      age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
