@@ -2,6 +2,10 @@
 # pushed by artifacts/zot/push.sh) that zot hosts itself. Before zot exists, and if a bad artifact ever breaks it,
 # bootstrap/zot-from-git.yaml applies the same directory from git; nothing outside this cluster and this repository
 # is needed to bring the registry back.
+#
+# The cluster fetches through the Service, not registry.dataverket.org: its own registry's config must not depend on
+# external DNS, the LoadBalancer, or the certificate. Pushes use the public name; the content is the same. Plain HTTP
+# inside the cluster network until zot gets an internal certificate.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
@@ -9,7 +13,8 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  url: oci://registry.dataverket.org/platform/zot-config
+  url: oci://zot.zot.svc.cluster.local:5000/platform/zot-config
+  insecure: true
   ref:
     tag: current
   # TODO verify.provider: cosign with the platform signing key once it exists; until then only fabrikk-ci can push.

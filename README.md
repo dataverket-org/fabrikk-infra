@@ -38,8 +38,9 @@ token, and `cloud.conf` are still created by hand (see `apps/forgejo/*.example.y
 
 ## Gitless delivery
 
-`apps/zot/source.yaml` is the pattern: an `OCIRepository` on the registry and a Kustomization that applies whatever
-the artifact holds, decrypting with the cluster key. `artifacts/zot/` is the artifact's source, plain manifests with
+`apps/zot/source.yaml` is the pattern: an `OCIRepository` on the registry (through its Service, so the cluster's own
+fetches need no external DNS, LoadBalancer, or certificate) and a Kustomization that applies whatever the artifact
+holds, decrypting with the cluster key. `artifacts/zot/` is the artifact's source, plain manifests with
 the image pinned by digest; `push.sh` pushes the directory as it is, tagged with the commit and `current`.
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
