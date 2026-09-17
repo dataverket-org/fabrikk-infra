@@ -18,7 +18,7 @@ if k -n flux-system get kustomization flux-system >/dev/null 2>&1; then
   echo "flux-system exists; skipping. To rotate the forge token, rerun the flux bootstrap line by hand."
 else
   flux --context "$ctx" bootstrap gitea \
-    --hostname=https://git.dataverket.org --owner=dataverket --repository=flux-bootstrap \
+    --hostname=https://git.dataverket.org --owner=dataverket --repository=fabrikk-infra \
     --branch main --path=./clusters/production --personal --token-auth
 fi
 
