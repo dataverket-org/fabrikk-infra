@@ -1,0 +1,114 @@
+# The cluster's SOPS age key, generated inside the cluster, once.
+#
+# Applied by hand from bootstrap.sh; Flux never reads this directory. The private key is written straight into
+# Secret flux-system/sops-age and exists nowhere else: not on a laptop, not in a backup. The recipient (public key)
+# is published in ConfigMap flux-system/sops-age-recipient, and goes into .sops.yaml. Re-running is a no-op while
+# the Secret exists. Losing the cluster loses the key; every encrypted file also lists the attesters' YubiKeys as
+# recipients, so a new cluster gets a new key and `sops updatekeys` re-encrypts for it.
+#
+#   kubectl --context dataverket-prod-admin apply -f bootstrap/sops-age-keygen.yaml
+#   kubectl --context dataverket-prod-admin -n flux-system wait --for=condition=complete job/sops-age-keygen
+#   kubectl --context dataverket-prod-admin -n flux-system get configmap sops-age-recipient -o jsonpath='{.data.recipient}'
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sops-age-keygen
+  namespace: flux-system
+---
+# create cannot be limited by name; get is limited to the two objects the Job writes, so this account can read no
+# other Secret in flux-system.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sops-age-keygen
+  namespace: flux-system
+rules:
+  - apiGroups: [""]
+    resources: [secrets, configmaps]
+    verbs: [create]
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [sops-age]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [sops-age-recipient]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sops-age-keygen
+  namespace: flux-system
+subjects:
+  - kind: ServiceAccount
+    name: sops-age-keygen
+    namespace: flux-system
+roleRef:
+  kind: Role
+  name: sops-age-keygen
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sops-age-keygen
+  namespace: flux-system
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      serviceAccountName: sops-age-keygen
+      restartPolicy: Never
+      # flux-system warns at the restricted Pod Security level; this pod meets it. age and kubectl are release
+      # binaries fetched by pinned version and verified by sha256, so nothing here needs root or a package manager.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: keygen
+          image: docker.io/library/alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: AGE_VERSION
+              value: v1.2.1
+            - name: AGE_SHA256
+              value: 7df45a6cc87d4da11cc03a539a7470c15b1041ab2b396af088fe9990f7c79d50
+            - name: KUBECTL_VERSION
+              value: v1.36.4
+            - name: KUBECTL_SHA256
+              value: 8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
+          command:
+            - sh
+            - -euc
+            - |
+              cd /work
+              wget -q "https://github.com/FiloSottile/age/releases/download/$AGE_VERSION/age-$AGE_VERSION-linux-amd64.tar.gz" -O age.tgz
+              wget -q "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl" -O kubectl
+              printf '%s  age.tgz\n%s  kubectl\n' "$AGE_SHA256" "$KUBECTL_SHA256" | sha256sum -c -
+              tar -xzf age.tgz && chmod +x kubectl
+              export PATH="/work/age:/work:$PATH"
+              if kubectl -n flux-system get secret sops-age >/dev/null 2>&1; then
+                echo "flux-system/sops-age exists; nothing to do"
+                exit 0
+              fi
+              age-keygen -o /work/age.agekey 2>/dev/null
+              recipient=$(age-keygen -y /work/age.agekey)
+              kubectl -n flux-system create secret generic sops-age --from-file=age.agekey=/work/age.agekey
+              kubectl -n flux-system create configmap sops-age-recipient --from-literal=recipient="$recipient"
+              echo "recipient: $recipient"
+          volumeMounts:
+            - name: work
+              mountPath: /work
+      volumes:
+        - name: work
+          emptyDir:
+            medium: Memory

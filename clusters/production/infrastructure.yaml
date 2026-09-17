@@ -10,3 +10,8 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
+  # Secrets are committed encrypted (*.enc.yaml, see .sops.yaml) and decrypted here with the cluster's own key.
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
