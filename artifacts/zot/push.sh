@@ -7,6 +7,10 @@
 set -eu
 cd "$(dirname "$0")"
 
+for tool in flux sops git; do
+  command -v "$tool" >/dev/null || { echo "$tool not on PATH (fabrikk pins flux under _tools/bin: PATH=\$HOME/kode/fabrikk/_tools/bin:\$PATH)" >&2; exit 1; }
+done
+
 repo=oci://registry.dataverket.org/platform/zot-config
 rev=$(git rev-parse HEAD)
 source=$(git remote get-url origin | sed 's#^ssh://git@#https://#')
