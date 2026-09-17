@@ -1,4 +1,5 @@
 resources:
   - repo.yaml
   - namespace.yaml
+  - fabrikk-readers.yaml
   - org-dataverket-runner
