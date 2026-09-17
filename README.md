@@ -13,15 +13,22 @@ deployed from here.
 | `infrastructure/` | Kustomization `infrastructure` | OpenStack cloud controller and Cinder CSI, CNPG, Envoy Gateway, cert-manager and the wildcard certificate, external-dns, Kata. |
 | `apps/` | Kustomization `apps` (after `infrastructure`) | Forgejo, its runners, Zitadel, and the pointer to zot. |
 | `artifacts/<name>/` | Nobody, from git | Sources of OCI config artifacts. Pushed with `artifacts/<name>/push.sh`, pulled by an `OCIRepository` declared under `apps/`. |
-| `bootstrap/` | A human, once | What must exist before the rest can be applied: the cluster's SOPS key, and zot from git until zot serves its own config. |
+| `bootstrap/` | `bootstrap.sh` | What must exist before the rest can be applied: the cluster's SOPS key, and zot from git until zot serves its own config. |
 
-## Bootstrap
+## Bootstrap and recovery
 
-`bootstrap.sh`: `flux bootstrap` against `git.dataverket.org/dataverket/flux-bootstrap` (codeberg.org is a push
-mirror), then `bootstrap/sops-age-keygen.yaml`, a Job that generates the cluster's age key inside the cluster and
-prints the recipient. The private key exists only in Secret `flux-system/sops-age`. It is never backed up: if the
-cluster is lost, the attesters' YubiKeys are recipients of every encrypted file, so a new cluster gets a new key and
-`sops updatekeys` re-encrypts for it.
+`bootstrap.sh`. Every step checks state and skips what is done, so it is the fresh-cluster path, the recovery path,
+and the record of both. It stops once on a new cluster, when the freshly generated SOPS recipient must be put in
+`.sops.yaml` and every `*.enc.yaml` re-encrypted with a YubiKey. It needs kubectl, flux, sops, git, and a YubiKey.
+The reasons behind each step are in `docs/decisions/`.
+
+## Names
+
+| Name | Used by | Why |
+|---|---|---|
+| `registry.dataverket.org` | Everything that pushes or pulls artifacts: CI, developers, other clusters, cosign | The registry's identity (TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
+| `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 004) |
+| `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to codeberg.org | The source of record |
 
 ## Secrets
 
@@ -38,18 +45,21 @@ token, and `cloud.conf` are still created by hand (see `apps/forgejo/*.example.y
 
 ## Gitless delivery
 
-`apps/zot/source.yaml` is the pattern: an `OCIRepository` on the registry (through its Service, so the cluster's own
-fetches need no external DNS, LoadBalancer, or certificate) and a Kustomization that applies whatever the artifact
-holds, decrypting with the cluster key. `artifacts/zot/` is the artifact's source, plain manifests with
+`apps/zot/source.yaml` is the pattern: an `OCIRepository` on the registry and a Kustomization that applies whatever
+the artifact holds, decrypting with the cluster key. `artifacts/zot/` is the artifact's source, plain manifests with
 the image pinned by digest; `push.sh` pushes the directory as it is, tagged with the commit and `current`.
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
 directory straight from the repository, without prune, until zot serves its first artifact, and again whenever a bad
-artifact leaves zot unable to serve. Nothing outside this cluster and this repository is needed to recreate the
-registry. Verification with cosign is a TODO until the platform signing key exists.
+artifact leaves zot unable to serve (decisions 003 and 004). Nothing outside this cluster and this repository is
+needed to recreate the registry. Verification with cosign is a TODO until the platform signing key exists.
 
 ## The registry
 
 zot at `registry.dataverket.org`: anonymous pull, push for `fabrikk-ci` (`artifacts/zot/zot-htpasswd.enc.yaml`; the
 plaintext is `zot-ci-credentials.enc.yaml`, the source the factory's vault copies from). One replica on a retained
 Cinder volume; the zot image itself comes from ghcr.io, pinned by digest.
+
+## Decisions
+
+`docs/decisions/`: one numbered record per decision, why and with what consequences. New shape, new record.

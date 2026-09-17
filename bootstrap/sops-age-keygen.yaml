@@ -1,14 +1,7 @@
-# The cluster's SOPS age key, generated inside the cluster, once.
-#
-# Applied by hand from bootstrap.sh; Flux never reads this directory. The private key is written straight into
-# Secret flux-system/sops-age and exists nowhere else: not on a laptop, not in a backup. The recipient (public key)
-# is published in ConfigMap flux-system/sops-age-recipient, and goes into .sops.yaml. Re-running is a no-op while
-# the Secret exists. Losing the cluster loses the key; every encrypted file also lists the attesters' YubiKeys as
-# recipients, so a new cluster gets a new key and `sops updatekeys` re-encrypts for it.
-#
-#   kubectl --context dataverket-prod-admin apply -f bootstrap/sops-age-keygen.yaml
-#   kubectl --context dataverket-prod-admin -n flux-system wait --for=condition=complete job/sops-age-keygen
-#   kubectl --context dataverket-prod-admin -n flux-system get configmap sops-age-recipient -o jsonpath='{.data.recipient}'
+# The cluster's SOPS age key, generated inside the cluster, once. Applied by bootstrap.sh; Flux never reads this
+# directory. The private key is written straight into Secret flux-system/sops-age and exists nowhere else; the
+# recipient (public key) is published in ConfigMap flux-system/sops-age-recipient for .sops.yaml. A rerun while the
+# Secret exists is a no-op. See docs/decisions/001-sops-key-generated-in-cluster.md.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

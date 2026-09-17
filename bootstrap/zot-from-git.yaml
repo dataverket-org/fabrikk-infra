@@ -1,14 +1,8 @@
-# zot from git, for bootstrap and recovery only.
+# zot from git, for bootstrap and recovery only. Applied and later removed by bootstrap.sh.
 #
 # In steady state zot's config comes from zot itself (apps/zot/source.yaml). Before zot exists, and whenever a bad
 # artifact leaves it unable to serve, this Kustomization applies the same directory straight from git. It has no
-# prune, so deleting it leaves zot running; the `zot` Kustomization from the registry takes over the same objects.
-#
-#   kubectl --context dataverket-prod-admin apply -f bootstrap/zot-from-git.yaml
-#   kubectl --context dataverket-prod-admin -n flux-system wait --for=condition=ready --timeout=10m kustomization/zot-bootstrap
-#   artifacts/zot/push.sh                                            # first artifact into the running zot
-#   kubectl --context dataverket-prod-admin -n flux-system wait --for=condition=ready kustomization/zot
-#   kubectl --context dataverket-prod-admin -n flux-system delete kustomization zot-bootstrap
+# prune, so deleting it leaves zot running. See docs/decisions/003-zot-config-self-hosted-git-fallback.md.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
