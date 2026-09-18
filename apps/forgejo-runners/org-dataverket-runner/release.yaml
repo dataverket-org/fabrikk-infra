@@ -15,12 +15,27 @@ spec:
         name: forgejo-runner-helm
         namespace: flux-system
   values:
+    # Every volume in a Kata guest is a virtiofs share, and Talos starts virtiofsd
+    # without --xattr (its configuration.toml: virtio_fs_extra_args =
+    # ["--thread-pool-size=1", "--announce-submounts"]). Without xattrs, docker
+    # cannot register image layers that carry file capabilities
+    # (lsetxattr security.capability: operation not supported), so every job
+    # failed while pulling its image. Talos allows virtio_fs_extra_args as a pod
+    # annotation (enable_annotations); the value is a JSON array appended to the
+    # defaults. Verified 2026-09-18 with a test pod: user.* and
+    # security.capability xattrs stick on the Cinder volume with this set.
+    podAnnotations:
+      io.katacontainers.config.hypervisor.virtio_fs_extra_args: '["--xattr"]'
     dind:
       resources:
         requests:
           cpu: "1"
           memory: 2Gi
         limits:
+          # Kata sizes the guest from limits: default_vcpus (1) + cpu limits,
+          # default_memory (2Gi) + memory limits. Without a cpu limit the VM
+          # had one vCPU.
+          cpu: "1"
           memory: 4Gi
     resources:
       requests:
@@ -60,10 +75,11 @@ spec:
                   spec:
                     runtimeClassName: kata
                     containers:
-                      # overlay2 fails with EINVAL in this Kata guest (likely
-                      # no true block passthrough for volumes, so overlayfs's
-                      # xattr-dependent features don't work) - vfs doesn't
-                      # need any of that, just slower (no layer CoW sharing).
+                      # overlay2 needs trusted.overlay.* xattrs, which virtiofsd
+                      # cannot set on the host without CAP_SYS_ADMIN (it keeps
+                      # only CAP_SETFCAP and friends), so overlay2 fails with
+                      # EINVAL (seen before --xattr; not retested with it). vfs
+                      # needs none of that, just slower (no layer CoW sharing).
                       - name: dind
                         args:
                           - --storage-driver=vfs
