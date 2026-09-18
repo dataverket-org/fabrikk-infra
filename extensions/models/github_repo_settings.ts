@@ -1,0 +1,262 @@
+/**
+ * Adds to `@goodcraft/github` the repository settings its `ensureRepo` does
+ * not cover: the branches a repository has, and converging its default
+ * branch. Both are needed by the forge-to-GitHub mirroring workflow: a push
+ * mirror from a repository whose default branch is not `main` is rejected
+ * by GitHub as long as GitHub's default branch is one the mirror does not
+ * carry ("refusing to delete the current branch").
+ *
+ * Talks to the GitHub REST API directly with the model's token; the token is
+ * never recorded. Find-or-converge: `default_branch_ensure` reports
+ * unchanged when the default already matches, and refuses to point at a
+ * branch the repository does not have.
+ *
+ * @module
+ */
+import { z } from "npm:zod@4";
+
+/** One REST request against the GitHub API. */
+export interface ApiCall {
+  method: "GET" | "PATCH";
+  path: string;
+  body?: unknown;
+}
+
+/** Status plus parsed JSON body (`{}` when empty, an array for lists). */
+export interface ApiResult {
+  status: number;
+  body: unknown;
+}
+
+/** The authenticated-call seam; swapped for a fake in tests. */
+export type Caller = (call: ApiCall) => Promise<ApiResult>;
+
+/** The @goodcraft/github global arguments this extension reads. */
+export interface GlobalArgs {
+  token: string;
+  owner: string;
+  baseUrl?: string;
+}
+
+/** A {@link Caller} over `fetch` against api.github.com (or `baseUrl`). */
+export function fetchCaller(g: GlobalArgs, signal?: AbortSignal): Caller {
+  const base = (g.baseUrl ?? "https://api.github.com").replace(/\/+$/, "");
+  return async (c) => {
+    const res = await fetch(`${base}${c.path}`, {
+      method: c.method,
+      headers: {
+        authorization: `Bearer ${g.token}`,
+        accept: "application/vnd.github+json",
+        "x-github-api-version": "2022-11-28",
+        ...(c.body !== undefined ? { "content-type": "application/json" } : {}),
+      },
+      body: c.body !== undefined ? JSON.stringify(c.body) : undefined,
+      signal,
+    });
+    const text = await res.text();
+    let body: unknown = {};
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = { raw: text };
+      }
+    }
+    return { status: res.status, body };
+  };
+}
+
+async function call(api: Caller, c: ApiCall): Promise<ApiResult> {
+  const r = await api(c);
+  if (r.status >= 400) {
+    const b = (r.body ?? {}) as Record<string, unknown>;
+    const msg = typeof b.message === "string" ? b.message : JSON.stringify(b);
+    throw new Error(
+      `GitHub API ${c.method} ${c.path} -> HTTP ${r.status}: ${msg}`,
+    );
+  }
+  return r;
+}
+
+const enc = encodeURIComponent;
+const repoPath = (owner: string, repo: string) =>
+  `/repos/${enc(owner)}/${enc(repo)}`;
+const safeName = (s: string) => s.replace(/[\\/]/g, ":");
+
+const BranchesInfo = z.object({
+  owner: z.string(),
+  repo: z.string(),
+  defaultBranch: z.string().describe("Empty for a repository with no commits"),
+  branches: z.array(z.string()),
+  timestamp: z.string(),
+});
+const DefaultBranchInfo = z.object({
+  owner: z.string(),
+  repo: z.string(),
+  defaultBranch: z.string(),
+  action: z.enum(["updated", "unchanged"]),
+  timestamp: z.string(),
+});
+
+const BranchesArgs = z.object({
+  name: z.string().min(1).describe("Repository name under the model's owner."),
+});
+const DefaultBranchArgs = z.object({
+  name: z.string().min(1).describe("Repository name under the model's owner."),
+  defaultBranch: z.string().min(1).describe(
+    "Branch that should be the default.",
+  ),
+});
+
+/** Every branch of a repository (first 100) and its current default. */
+export async function branchesList(
+  api: Caller,
+  owner: string,
+  a: z.infer<typeof BranchesArgs>,
+): Promise<z.infer<typeof BranchesInfo>> {
+  const repo =
+    (await call(api, { method: "GET", path: repoPath(owner, a.name) }))
+      .body as Record<string, unknown>;
+  const list = (await call(api, {
+    method: "GET",
+    path: `${repoPath(owner, a.name)}/branches?per_page=100`,
+  })).body;
+  const branches = Array.isArray(list)
+    ? (list as Record<string, unknown>[]).map((b) => String(b.name ?? ""))
+      .filter((n) => n.length > 0)
+    : [];
+  return {
+    owner,
+    repo: a.name,
+    defaultBranch: branches.length ? String(repo.default_branch ?? "") : "",
+    branches,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Make `defaultBranch` the repository's default. Unchanged when it already
+ * is; refuses when the repository has no branch of that name.
+ */
+export async function defaultBranchEnsure(
+  api: Caller,
+  owner: string,
+  a: z.infer<typeof DefaultBranchArgs>,
+): Promise<z.infer<typeof DefaultBranchInfo>> {
+  const current = await branchesList(api, owner, { name: a.name });
+  const timestamp = new Date().toISOString();
+  if (current.defaultBranch === a.defaultBranch) {
+    return {
+      owner,
+      repo: a.name,
+      defaultBranch: a.defaultBranch,
+      action: "unchanged",
+      timestamp,
+    };
+  }
+  if (!current.branches.includes(a.defaultBranch)) {
+    throw new Error(
+      `${owner}/${a.name} has no branch ${a.defaultBranch} (has: ${
+        current.branches.join(", ") || "none"
+      }); ` +
+        "push the mirror first",
+    );
+  }
+  await call(api, {
+    method: "PATCH",
+    path: repoPath(owner, a.name),
+    body: { default_branch: a.defaultBranch },
+  });
+  return {
+    owner,
+    repo: a.name,
+    defaultBranch: a.defaultBranch,
+    action: "updated",
+    timestamp,
+  };
+}
+
+interface Ctx {
+  globalArgs: GlobalArgs;
+  signal?: AbortSignal;
+  logger: { info(msg: string, props?: Record<string, unknown>): void };
+  writeResource(
+    spec: string,
+    name: string,
+    data: Record<string, unknown>,
+  ): Promise<{ name: string }>;
+}
+
+/** Extension adding branch listing and default-branch convergence to @goodcraft/github. */
+export const extension = {
+  type: "@goodcraft/github",
+  resources: {
+    branches: {
+      description: "A repository's branches and its default branch.",
+      schema: BranchesInfo,
+      lifetime: "infinite" as const,
+      garbageCollection: 10,
+    },
+    defaultBranch: {
+      description:
+        "A default-branch convergence: which branch is now the default and whether it changed.",
+      schema: DefaultBranchInfo,
+      lifetime: "infinite" as const,
+      garbageCollection: 10,
+    },
+  },
+  methods: [{
+    branches_list: {
+      description:
+        "List a repository's branches and its default branch. Read-only.",
+      arguments: BranchesArgs,
+      execute: async (args: z.infer<typeof BranchesArgs>, context: Ctx) => {
+        const a = BranchesArgs.parse(args);
+        const info = await branchesList(
+          fetchCaller(context.globalArgs, context.signal),
+          context.globalArgs.owner,
+          a,
+        );
+        context.logger.info("{repo}: {count} branch(es), default {default}", {
+          repo: `${info.owner}/${info.repo}`,
+          count: info.branches.length,
+          default: info.defaultBranch || "(none)",
+        });
+        const handle = await context.writeResource(
+          "branches",
+          safeName(`${info.owner}:${info.repo}:branches`),
+          info,
+        );
+        return { dataHandles: [handle] };
+      },
+    },
+    default_branch_ensure: {
+      description:
+        "Make a branch the repository's default (unchanged when it already is). Refuses a branch the repository " +
+        "does not have, so run it after the first mirror push.",
+      arguments: DefaultBranchArgs,
+      execute: async (
+        args: z.infer<typeof DefaultBranchArgs>,
+        context: Ctx,
+      ) => {
+        const a = DefaultBranchArgs.parse(args);
+        const info = await defaultBranchEnsure(
+          fetchCaller(context.globalArgs, context.signal),
+          context.globalArgs.owner,
+          a,
+        );
+        context.logger.info("{repo} default branch {branch}: {action}", {
+          repo: `${info.owner}/${info.repo}`,
+          branch: info.defaultBranch,
+          action: info.action,
+        });
+        const handle = await context.writeResource(
+          "defaultBranch",
+          safeName(`${info.owner}:${info.repo}:default-branch`),
+          info,
+        );
+        return { dataHandles: [handle] };
+      },
+    },
+  }],
+};

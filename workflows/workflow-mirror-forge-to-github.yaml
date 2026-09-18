@@ -1,0 +1,143 @@
+id: bb607f5b-20cc-494d-963e-e8fbb2a1a69b
+name: mirror-forge-to-github
+description: >-
+  Mirror every repository of the dataverket org on git.dataverket.org to GitHub. Discovers the org's repositories,
+  ensures each exists under the GitHub org (created empty), then ensures a Forgejo push mirror (push on every commit plus an
+  interval) that carries the GitHub token from the infra vault, and converges GitHub's default branch to the forge's. Archived repositories, forks, pull mirrors and empty
+  repositories are skipped (mirroring an empty repository would delete every branch on GitHub). Idempotent: existing GitHub repositories and existing mirrors are left unchanged, so a new repository on
+  the forge is picked up by the next run and nothing is ever deleted on GitHub. Ends with an audit that fails the run
+  when any mirror reports a push error. Run it by hand whenever a repository was added on the forge, or as a
+  periodic check that every repository with commits has its mirror; it changes nothing that is already right.
+tags:
+  factory: forge
+version: 1
+inputs:
+  properties:
+    owner:
+      type: string
+      default: dataverket
+      description: Org on git.dataverket.org whose repositories are mirrored
+    githubOwner:
+      type: string
+      default: dataverket-org
+      description: GitHub organisation the mirrors are created under
+    githubUsername:
+      type: string
+      default: x-access-token
+      description: Username Forgejo sends with the token; GitHub accepts any value for a PAT
+    interval:
+      type: string
+      default: 8h0m0s
+      description: Periodic push interval as a Go duration, in addition to push-on-commit
+jobs:
+  - name: discover
+    steps:
+      - name: repos
+        description: Every repository the token sees under the org, one record each.
+        task:
+          type: model_method
+          modelIdOrName: forgejo
+          methodName: repo_list
+          inputs:
+            owner: ${{ inputs.owner }}
+  - name: github
+    dependsOn:
+      - job: discover
+        condition:
+          type: succeeded
+    steps:
+      - name: ensure-${{ self.repo.attributes.name }}
+        description: >-
+          The repository under the GitHub org, created empty when missing, same name and visibility. Only
+          repositories with commits take part: the forge marks a repository with no commits as empty, and a push
+          mirror of one would push nothing and delete every branch on GitHub, so empty repositories are neither
+          created on GitHub nor mirrored until their first commit lands on the forge.
+        forEach:
+          item: repo
+          in: ${{ data.findBySpec("forgejo", "repo").filter(r, r.attributes.owner == inputs.owner && !r.attributes.archived && !r.attributes.fork && !r.attributes.mirror && !r.attributes.empty) }}
+        concurrency: 1
+        task:
+          type: model_method
+          modelIdOrName: github
+          methodName: ensureRepo
+          inputs:
+            name: ${{ self.repo.attributes.name }}
+            description: ${{ self.repo.attributes.?description.orValue("") }}
+            private: ${{ self.repo.attributes.?private.orValue(false) }}
+            autoInit: false
+            dryRun: false
+  - name: mirrors
+    dependsOn:
+      - job: github
+        condition:
+          type: succeeded
+    steps:
+      - name: mirror-${{ self.repo.attributes.name }}
+        description: >-
+          A push mirror from the forge repository to its GitHub twin, pushing on every commit and on the interval;
+          the token never leaves the vault except to Forgejo. Same rule as above: no mirror for a repository
+          without commits.
+        forEach:
+          item: repo
+          in: ${{ data.findBySpec("forgejo", "repo").filter(r, r.attributes.owner == inputs.owner && !r.attributes.archived && !r.attributes.fork && !r.attributes.mirror && !r.attributes.empty) }}
+        concurrency: 1
+        task:
+          type: model_method
+          modelIdOrName: forgejo
+          methodName: push_mirror_ensure
+          inputs:
+            owner: ${{ inputs.owner }}
+            name: ${{ self.repo.attributes.name }}
+            remoteAddress: ${{ "https://github.com/" + inputs.githubOwner + "/" + self.repo.attributes.name + ".git" }}
+            remoteUsername: ${{ inputs.githubUsername }}
+            remotePassword: ${{ vault.get(infra, github/mirror_token) }}
+            interval: ${{ inputs.interval }}
+            syncOnCommit: true
+  - name: defaults
+    dependsOn:
+      - job: mirrors
+        condition:
+          type: succeeded
+    steps:
+      - name: default-branch-${{ self.repo.attributes.name }}
+        description: >-
+          GitHub's default branch follows the forge's, so a mirror whose default is not main is not rejected for
+          deleting GitHub's. A repository whose first push has not landed yet has no branches and fails here; the
+          next run converges it, so the failure is allowed.
+        forEach:
+          item: repo
+          in: ${{ data.findBySpec("forgejo", "repo").filter(r, r.attributes.owner == inputs.owner && !r.attributes.archived && !r.attributes.fork && !r.attributes.mirror && !r.attributes.empty) }}
+        concurrency: 1
+        allowFailure: true
+        task:
+          type: model_method
+          modelIdOrName: github
+          methodName: default_branch_ensure
+          inputs:
+            name: ${{ self.repo.attributes.name }}
+            defaultBranch: ${{ self.repo.attributes.defaultBranch }}
+  - name: audit
+    dependsOn:
+      - job: defaults
+        condition:
+          type: succeeded
+    steps:
+      - name: list-mirrors
+        description: Every push mirror under the org with its last push and last error.
+        task:
+          type: model_method
+          modelIdOrName: forgejo
+          methodName: push_mirror_list
+          inputs:
+            owner: ${{ inputs.owner }}
+      - name: all-mirrors-healthy
+        dependsOn:
+          - step: list-mirrors
+            condition:
+              type: succeeded
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec("forgejo", "pushMirror").filter(m, m.attributes.owner == inputs.owner && m.attributes.lastError != "").size() == 0
+          message: "At least one push mirror under the org reports a push error; see the pushMirror records"
+          severity: high
