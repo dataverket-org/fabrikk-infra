@@ -109,3 +109,34 @@ Deno.test("API errors carry GitHub's message", async () => {
     "HTTP 403: Resource not accessible",
   );
 });
+
+Deno.test("repoDelete deletes an existing repository, reports an absent one, and refuses a mismatch", async () => {
+  const { api, calls } = fakeApi({
+    "GET /repos/acme/old": {
+      status: 200,
+      body: { description: "mirror of https://forge.example.net/acme/old" },
+    },
+    "DELETE /repos/acme/old": { status: 204 },
+  });
+  assertEquals(
+    (await repoDelete(api, "acme", {
+      name: "old",
+      expectMirrorOf: "forge.example.net",
+    })).action,
+    "deleted",
+  );
+  assertEquals(calls.at(-1)!.method, "DELETE");
+  assertEquals(
+    (await repoDelete(api, "acme", { name: "missing" })).action,
+    "absent",
+  );
+  await assertRejects(
+    () =>
+      repoDelete(api, "acme", {
+        name: "old",
+        expectMirrorOf: "somewhere-else",
+      }),
+    Error,
+    "refusing to delete",
+  );
+});
