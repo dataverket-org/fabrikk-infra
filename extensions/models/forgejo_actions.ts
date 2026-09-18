@@ -35,13 +35,15 @@ export interface ApiResult {
 /** The authenticated-call seam; swapped for a fake in tests. */
 export type Caller = (call: ApiCall) => Promise<ApiResult>;
 
-interface GlobalArgs {
+/** The @thomas/forgejo global arguments this extension reads. */
+export interface GlobalArgs {
   apiUrl: string;
   token: string;
   httpTimeoutMs?: number;
 }
 
-function fetchCaller(g: GlobalArgs, signal?: AbortSignal): Caller {
+/** A {@link Caller} over `fetch` against `apiUrl`, authenticated with the token. */
+export function fetchCaller(g: GlobalArgs, signal?: AbortSignal): Caller {
   return async (c) => {
     const headers: Record<string, string> = {
       authorization: `token ${g.token}`,
@@ -80,7 +82,8 @@ function fetchCaller(g: GlobalArgs, signal?: AbortSignal): Caller {
   };
 }
 
-async function call(api: Caller, c: ApiCall): Promise<ApiResult> {
+/** Perform a call and throw on any 4xx/5xx with Forgejo's message. */
+export async function call(api: Caller, c: ApiCall): Promise<ApiResult> {
   const r = await api(c);
   if (r.status >= 400) {
     const b = r.body;

@@ -1,0 +1,11 @@
+type: '@goodcraft/github'
+typeVersion: 2026.06.14.1
+id: 8b621f84-491e-489f-856f-5b81a69005c6
+name: github
+version: 1
+tags: {}
+globalArguments:
+  owner: dataverket-org
+  isOrg: true
+  token: '${{ vault.get("infra", "github/mirror_token") }}'
+methods: {}
