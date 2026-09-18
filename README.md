@@ -62,6 +62,27 @@ zot at `registry.dataverket.org`: anonymous pull, push for `fabrikk-ci` (`artifa
 plaintext is `zot-ci-credentials.enc.yaml`, the source the factory's vault copies from). One replica on a retained
 Cinder volume; the zot image itself comes from ghcr.io, pinned by digest.
 
+## Operating models (swamp)
+
+This repository is also a swamp repository: `models/` holds the instances a human uses to operate what is deployed
+here, `extensions/models/` their custom methods, `workflows/` the release runner, and `vaults/infra.enc.json` the
+credentials (decision 006). They came from `fabrikk` on 2026-09-18 so that the factory holds no credential for this
+cluster. Run them from this checkout, with `_bin` on `PATH` for the Flux model:
+
+```sh
+swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, runner-pods, dataverket-prod-*
+swamp model method run forgejo health
+swamp model method run omni discover                  # the Talos fleet, read-only
+swamp model method run runner-pods list               # context fabrikk-readers
+swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
+swamp model method run registry copy --input source=<upstream>@sha256:<digest> --input name=<image> --input tag=<tag>
+swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
+```
+
+Kube contexts come from your default kubeconfig (`fabrikk-readers` for reading, `dataverket-prod-admin` for
+changes); model definitions name contexts, never paths. The vault decrypts with a YubiKey or the factory host's soft
+key; `swamp vault list-keys infra` shows what it holds.
+
 ## Decisions
 
 `docs/decisions/`: one numbered record per decision, why and with what consequences. New shape, new record.
