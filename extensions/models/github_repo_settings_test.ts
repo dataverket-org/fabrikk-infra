@@ -4,6 +4,7 @@ import {
   branchesList,
   type Caller,
   defaultBranchEnsure,
+  repoDelete,
 } from "./github_repo_settings.ts";
 
 function fakeApi(
