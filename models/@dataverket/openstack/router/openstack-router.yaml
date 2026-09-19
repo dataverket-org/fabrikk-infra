@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/router'
+typeVersion: 2026.09.18.1
+id: 24d7e690-6e90-4746-a725-adbe881f1edd
+name: openstack-router
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

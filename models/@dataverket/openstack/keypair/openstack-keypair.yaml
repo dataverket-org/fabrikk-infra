@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/keypair'
+typeVersion: 2026.09.18.1
+id: 53c4f2ab-e8bb-4ca1-a95a-a5b978191f1f
+name: openstack-keypair
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

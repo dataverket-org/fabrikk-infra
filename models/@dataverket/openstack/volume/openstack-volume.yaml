@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/volume'
+typeVersion: 2026.09.18.1
+id: 1eb9f6e6-8531-4cff-bfa0-143078553cf9
+name: openstack-volume
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

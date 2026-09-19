@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/floating-ip'
+typeVersion: 2026.09.18.1
+id: af47f1f5-7ee5-491d-8c3d-f7ae43e029af
+name: openstack-floating-ip
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

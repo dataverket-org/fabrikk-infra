@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/server'
+typeVersion: 2026.09.18.1
+id: 5ae1fd7e-a8a2-4ca7-8e75-c7ace2da13ea
+name: openstack-server
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}
