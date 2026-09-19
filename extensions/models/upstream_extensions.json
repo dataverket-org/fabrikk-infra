@@ -105,24 +105,6 @@
     "filesChecksum": "4b5cbaf575641008dce32c1db7e3fba98f2195fc3dc11f8f12c5b4f192f73eac",
     "serverUrl": "https://swamp-club.com"
   },
-  "@mccormick/omni": {
-    "version": "2026.06.09.1",
-    "pulledAt": "2026-09-18T09:42:29.791Z",
-    "files": [
-      ".swamp/bundles/0abc45bf/inventory.js",
-      ".swamp/pulled-extensions/@mccormick/omni/files/LICENSE.md",
-      ".swamp/pulled-extensions/@mccormick/omni/files/README.md",
-      ".swamp/pulled-extensions/@mccormick/omni/manifest.yaml",
-      ".swamp/pulled-extensions/@mccormick/omni/models/inventory.ts",
-      ".swamp/pulled-extensions/@mccormick/omni/models/omnictl.ts",
-      ".swamp/pulled-extensions/@mccormick/omni/models/schema.ts",
-      ".swamp/pulled-extensions/@mccormick/omni/models/transform.ts",
-      ".swamp/pulled-extensions/@mccormick/omni/models/util.ts"
-    ],
-    "checksum": "c1392ae1c11316e2fdc3170312ed2be9b9afed0181610ab1a3c9f6d744a90c31",
-    "filesChecksum": "cf0ca9dec318f91e0d3afd47ecf7bed259509a13fd5ab5245462149dcc90ed6a",
-    "serverUrl": "https://swamp-club.com"
-  },
   "@goodcraft/github": {
     "version": "2026.06.14.1",
     "pulledAt": "2026-09-18T18:27:04.721Z",
@@ -182,6 +164,25 @@
     ],
     "checksum": "c781bd841f1ad90707c1adaa9ba6e50e3de3e6240c599251b94691c9a38bb3fe",
     "filesChecksum": "14ab485c5689723283d15113e314ff8710c1af046a6209873f011086a6a81354",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/omni": {
+    "version": "2026.09.19.1",
+    "pulledAt": "2026-09-19T19:53:09.759Z",
+    "files": [
+      ".swamp/bundles/8637a9cc/inventory.js",
+      ".swamp/pulled-extensions/@dataverket/omni/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/omni/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/omni/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/omni/models/inventory.ts",
+      ".swamp/pulled-extensions/@dataverket/omni/models/omnictl.ts",
+      ".swamp/pulled-extensions/@dataverket/omni/models/schema.ts",
+      ".swamp/pulled-extensions/@dataverket/omni/models/talos_layout.ts",
+      ".swamp/pulled-extensions/@dataverket/omni/models/transform.ts",
+      ".swamp/pulled-extensions/@dataverket/omni/models/util.ts"
+    ],
+    "checksum": "252031f464e096e9c660d86f095318dbfdb7d2beb43f5bb20750ba937946d8ec",
+    "filesChecksum": "1af8671aab9e4b7b8885f9e3a466195b32cbea3c5439df5f6ec3f760bea2745b",
     "serverUrl": "https://swamp-club.com"
   }
 }
