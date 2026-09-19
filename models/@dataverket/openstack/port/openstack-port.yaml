@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/port'
+typeVersion: 2026.09.18.1
+id: daf61ab6-9599-424f-94aa-900122a09f17
+name: openstack-port
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

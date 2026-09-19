@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/security-group'
+typeVersion: 2026.09.18.1
+id: 29561d1f-113a-43c7-86b9-6329790c7644
+name: openstack-security-group
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/flavor'
+typeVersion: 2026.09.18.1
+id: e62c8598-5f0a-4be0-9aba-40a35a53debf
+name: openstack-flavor
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

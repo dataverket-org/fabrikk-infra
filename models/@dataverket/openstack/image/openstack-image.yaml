@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/image'
+typeVersion: 2026.09.18.1
+id: 0905a63c-2812-43e3-8c6b-912d4ed8de32
+name: openstack-image
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

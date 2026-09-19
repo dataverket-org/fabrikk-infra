@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/subnet'
+typeVersion: 2026.09.18.1
+id: 48fb58db-41ff-40e0-b343-a8d7154989d1
+name: openstack-subnet
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}

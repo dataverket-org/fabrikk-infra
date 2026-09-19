@@ -1,0 +1,11 @@
+type: '@dataverket/openstack/availability-zone'
+typeVersion: 2026.09.18.1
+id: 71f84fa5-f34e-444f-a371-4e5c5804ef1e
+name: openstack-availability-zone
+version: 1
+tags: {}
+globalArguments:
+  cloud: fabrikk-infra
+  openstackPath: openstack
+  concurrency: 4
+methods: {}
