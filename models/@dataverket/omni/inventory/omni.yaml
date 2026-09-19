@@ -1,10 +1,10 @@
 type: '@dataverket/omni/inventory'
-typeVersion: 2026.09.19.1
+typeVersion: 2026.09.19.4
 id: 9de407f8-6352-4de0-9cee-c82f2a2b8aea
 name: omni
 version: 1
 tags: {}
 globalArguments:
   endpoint: 'https://dataverket.eu-central-1.omni.siderolabs.io'
-  serviceAccountKey: '${{ vault.get(infra, omni/service_account_key) }}'
+  serviceAccountKey: '${{ vault.get("infra", "omni/service_account_key") }}'
 methods: {}
