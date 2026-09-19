@@ -1,7 +1,7 @@
 # Plan: storage building blocks
 
-Written 2026-09-19 from live inventory (swamp models `dataverket-prod-pvcs`, `openstack-*`, `omni` with its new
-`volumes` method) and the Nexthop price list of the same day. Third revision: the databases move to the workers'
+Written 2026-09-19 from live inventory (swamp models `dataverket-prod-pvcs`, `openstack-*`, `omni` and
+`dataverket-prod-talos`) and the Nexthop price list of the same day. Third revision: the databases move to the workers'
 own disks, replicated by CNPG, now that the root disks are measured. Reviewed adversarially. Nothing is applied.
 Decision 007 is the mechanism under the databases.
 
@@ -23,8 +23,8 @@ Decision 007 is the mechanism under the databases.
 
 ## Measured
 
-`swamp model method run omni volumes --input cluster=dataverket-prod`, through Omni's proxy; `@dataverket/talosctl`
-gives a lab cluster the same view. Today:
+`swamp workflow run fleet-volumes` (omni mints a talosconfig with the node list, `dataverket-prod-talos volumes`
+reads the machines through Omni's proxy); the same talosctl model gives a lab cluster the same view. Today:
 
 | Node | System disk | Partitions | EPHEMERAL | Used | Unallocated |
 |---|---|---|---|---|---|
@@ -100,8 +100,7 @@ a stand-in can do the rest once it is merged.
    `systemLabelsToWipe`; this needs an Operator talosconfig from `omnictl talosconfig`, which the read-only
    service account does not get). STATE and the config survive, the node reboots into the cluster, EPHEMERAL comes
    back at 16 GiB with the two
-   user partitions behind it; images re-pull. The fallback is Omni's remove, wipe and re-add. Check: `omni volumes`
-   shows EPHEMERAL 16,384 MiB and both user volumes on the worker, node Ready, the drained
+   user partitions behind it; images re-pull. The fallback is Omni's remove, wipe and re-add. Check: `fleet-volumes` shows EPHEMERAL 16,384 MiB and both user volumes on the worker, node Ready, the drained
    pods running elsewhere. Stopped here: empty user volumes, nothing uses them.
 3. **Provisioner (decision 007).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), classes `pg-zitadel-storage` and `pg-forgejo-storage` on
@@ -160,7 +159,7 @@ a fresh replica. Check: three ready instances, lag zero.
 leaves a gap only a new partition can use; plan the cap once.
 
 **Alerts, five:** CNPG last successful backup older than 36 hours; any volume, user volumes included, above 70
-percent (`omni volumes` on a schedule feeds it for the worker disks); WAL retained by a replication slot above
+percent (`fleet-volumes` on a schedule feeds it for the worker disks); WAL retained by a replication slot above
 512 MB; versitygw Service without endpoints for a minute; any pod Terminating over five minutes.
 
 **Upgrades.** Omni rolls one machine at a time with a drain, and the primary's PodDisruptionBudget blocks that

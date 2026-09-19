@@ -167,8 +167,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/omni": {
-    "version": "2026.09.19.1",
-    "pulledAt": "2026-09-19T19:53:09.759Z",
+    "version": "2026.09.19.4",
+    "pulledAt": "2026-09-19T20:22:04.822Z",
     "files": [
       ".swamp/bundles/8637a9cc/inventory.js",
       ".swamp/pulled-extensions/@dataverket/omni/files/LICENSE.md",
@@ -177,12 +177,27 @@
       ".swamp/pulled-extensions/@dataverket/omni/models/inventory.ts",
       ".swamp/pulled-extensions/@dataverket/omni/models/omnictl.ts",
       ".swamp/pulled-extensions/@dataverket/omni/models/schema.ts",
-      ".swamp/pulled-extensions/@dataverket/omni/models/talos_layout.ts",
       ".swamp/pulled-extensions/@dataverket/omni/models/transform.ts",
       ".swamp/pulled-extensions/@dataverket/omni/models/util.ts"
     ],
-    "checksum": "252031f464e096e9c660d86f095318dbfdb7d2beb43f5bb20750ba937946d8ec",
-    "filesChecksum": "1af8671aab9e4b7b8885f9e3a466195b32cbea3c5439df5f6ec3f760bea2745b",
+    "checksum": "b6b6169b12ab2458704f459a54c69b4e926b6159ebce45cc1148232b95e47b1e",
+    "filesChecksum": "1d5bb50045d20d01ae896d902baa8703b06dc6d6144748b358c55a2e9256fee6",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/talosctl": {
+    "version": "2026.09.19.2",
+    "pulledAt": "2026-09-19T20:09:45.141Z",
+    "files": [
+      ".swamp/bundles/7c616183/node.js",
+      ".swamp/pulled-extensions/@dataverket/talosctl/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/talosctl/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/talosctl/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/talosctl/models/layout.ts",
+      ".swamp/pulled-extensions/@dataverket/talosctl/models/node.ts",
+      ".swamp/pulled-extensions/@dataverket/talosctl/models/talosctl.ts"
+    ],
+    "checksum": "a7a89684c9c06dcb716510b441991d6ae43a0f5feb9605262e5923af6007fe3f",
+    "filesChecksum": "62b30f616a8b3030a2d47190632c228221bb09a1fd6056e69d3400bc8421c464",
     "serverUrl": "https://swamp-club.com"
   }
 }

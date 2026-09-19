@@ -1,0 +1,35 @@
+id: 6cf4c7ed-ff40-4698-a26f-1c2977179a5e
+name: fleet-volumes
+description: >-
+  The disk layout of every machine in dataverket-prod: disks, partitions by label (STATE, EPHEMERAL, u-<name>),
+  unallocated space on the system disk, and how full EPHEMERAL is. omni mints the cluster's admin talosconfig for
+  the service account and records the machines' node IPs with it; dataverket-prod-talos reads every machine through
+  Omni's proxy, taking both from that record by CEL. One volumeLayout resource per node on dataverket-prod-talos;
+  read them with swamp data query 'modelName == "dataverket-prod-talos" && specName == "volumeLayout" && isLatest'.
+  Read-only everywhere: nothing on a machine or in Omni changes, and no vault is written. Run this, not the model's
+  volumes method by itself: the model's node list and talosconfig are the talosconfig record, which this workflow
+  refreshes first and which expires after 30 days.
+tags:
+  cluster: dataverket-prod
+version: 1
+jobs:
+  - name: volumes
+    steps:
+      - name: talosconfig
+        description: The cluster's admin talosconfig for the service account and its machines' node IPs, one talosconfig record that dataverket-prod-talos reads.
+        task:
+          type: model_method
+          modelIdOrName: omni
+          methodName: talosconfig
+          inputs:
+            cluster: dataverket-prod
+      - name: volumes
+        description: Disks, partitions and /var usage of every node in one execution, through Omni's Talos proxy.
+        dependsOn:
+          - step: talosconfig
+            condition:
+              type: succeeded
+        task:
+          type: model_method
+          modelIdOrName: dataverket-prod-talos
+          methodName: volumes

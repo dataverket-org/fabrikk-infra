@@ -65,19 +65,26 @@ Cinder volume; the zot image itself comes from ghcr.io, pinned by digest.
 ## Operating models (swamp)
 
 This repository is also a swamp repository: `models/` holds the instances a human uses to operate what is deployed
-here, `extensions/models/` their custom methods, `workflows/` the release runner, and `vaults/infra.enc.json` the
-credentials (decision 006). They came from `fabrikk` on 2026-09-18 so that the factory holds no credential for this
-cluster. Run them from this checkout, with `_bin` on `PATH` for the Flux model:
+here, `extensions/models/` their custom methods, `workflows/` the release runner, the forge-to-GitHub mirror and the
+fleet disk survey, and `vaults/infra.enc.json` the credentials (decision 006). They came from `fabrikk` on 2026-09-18
+so that the factory holds no credential for this cluster. Run them from this checkout, with `_bin` on `PATH` for the
+Flux model and `omnictl` and `talosctl` on `PATH` for the Omni and Talos models:
 
 ```sh
 swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, runner-pods, dataverket-prod-*
 swamp model method run forgejo health
 swamp model method run omni discover                  # the Talos fleet, read-only
+swamp workflow run fleet-volumes                      # every node's disks, partitions and EPHEMERAL usage, read-only
 swamp model method run runner-pods list               # context fabrikk-readers
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
 swamp model method run registry copy --input source=<upstream>@sha256:<digest> --input name=<image> --input tag=<tag>
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
 ```
+
+`dataverket-prod-talos` (`@dataverket/talosctl/node`) reaches the machines through Omni's proxy; its node list and
+talosconfig are the `talosconfig-dataverket-prod` record that `omni talosconfig` writes and `fleet-volumes` refreshes,
+so run the workflow rather than the model's methods alone. Its `reset`, `upgrade` and `patchConfig` change machines;
+`volumes`, `version` and `services` do not.
 
 Kube contexts come from your default kubeconfig (`fabrikk-readers` for reading, `dataverket-prod-admin` for
 changes); model definitions name contexts, never paths. The vault decrypts with a YubiKey or the factory host's soft

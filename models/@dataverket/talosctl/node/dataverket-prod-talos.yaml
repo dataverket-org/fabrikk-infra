@@ -1,0 +1,11 @@
+type: '@dataverket/talosctl/node'
+typeVersion: 2026.09.19.2
+id: 278ff9ae-1f9e-4602-8dc2-1dad1922f63b
+name: dataverket-prod-talos
+version: 1
+tags: {}
+globalArguments:
+  nodes: '${{ data.latest("omni", "talosconfig-dataverket-prod").attributes.nodes }}'
+  talosconfigContent: '${{ data.latest("omni", "talosconfig-dataverket-prod").attributes.content }}'
+  serviceAccountKey: '${{ vault.get("infra", "omni/service_account_key") }}'
+methods: {}
