@@ -13,7 +13,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 |---|---|---|
 | `clusters/production/` | `flux bootstrap` | The Flux system and the two root Kustomizations below. |
 | `infrastructure/` | Kustomization `infrastructure` | OpenStack cloud controller and Cinder CSI, CNPG, Envoy Gateway, cert-manager and the wildcard certificate, external-dns, Kata. |
-| `backup/` | `docker compose` on a site host, nothing in the cluster | `versitygw/` is a compose stack, versitygw with the posix backend behind its own step-ca, that runs anywhere; `<site>/` is one instance of it, `hov1/` the S3 endpoint the backups are written to. |
+| `backup/` | `docker compose` on a site host, nothing in the cluster | The sources-and-targets table (`backup/README.md`); `versitygw/` is a compose stack, versitygw with the posix backend behind its own step-ca, that runs anywhere; `<site>/` is one instance of it, `hov1/` the S3 endpoint the backups are written to. |
 | `apps/` | Kustomization `apps` (after `infrastructure`) | Forgejo, its runners, Zitadel, and the pointer to zot. |
 | `artifacts/<name>/` | Nobody, from git | Sources of OCI config artifacts. Pushed with `artifacts/<name>/push.sh`, pulled by an `OCIRepository` declared under `apps/`. |
 | `bootstrap/` | `bootstrap.sh` | What must exist before the rest can be applied: the cluster's SOPS key, and zot from git until zot serves its own config. |
