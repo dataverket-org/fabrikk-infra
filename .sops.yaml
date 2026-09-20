@@ -8,8 +8,9 @@
 # - age15d64...      fabrikk, the factory host's soft key; decrypts the swamp vault unattended, never a cluster file
 # - age1yubikey1qwt.. Linus Johansen, YubiKey; the swamp vault and the cluster files, since 2026-09-20
 #
-# The swamp vault (vaults/infra.enc.json) carries the human and factory-host recipients in its own config and ignores
-# this file; the second rule makes `sops vaults/infra.enc.json` from a terminal encrypt to the same two.
+# The swamp vault (vaults/infra/<key>.enc.json, one file per secret, @dataverket/sops) carries the human and
+# factory-host recipients in its own config and ignores this file; the second rule makes `sops vaults/infra/...`
+# from a terminal encrypt to the same set.
 creation_rules:
   - path_regex: ^(artifacts|apps|infrastructure)/.*\.enc\.ya?ml$
     encrypted_regex: ^(data|stringData)$

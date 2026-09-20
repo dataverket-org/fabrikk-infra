@@ -1,9 +1,8 @@
 id: 29f189c7-19fa-432e-af77-c21ef1f6d75d
 name: infra
-type: '@zocc/sops-age'
+type: '@dataverket/sops'
 config:
-  secretsFile: vaults/infra.enc.json
-  ageKeyFile: ''
+  secretsDir: vaults/infra
   agePublicKey: >-
     age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v,age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
-createdAt: '2026-09-18T09:42:31.288Z'
+createdAt: '2026-09-20T17:29:04.583Z'

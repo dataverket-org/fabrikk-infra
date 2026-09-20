@@ -40,7 +40,7 @@ rule each, and names every recipient in its comments. Public keys only; the file
 | Setup | Files | Who decrypts | Recipients |
 |---|---|---|---|
 | Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | The cluster key (`flux-system/sops-age`, generated in-cluster, decision 001) and each human operator's YubiKey |
-| Swamp vault | `vaults/infra.enc.json` | The swamp models in `models/`, on every run | Each human operator's YubiKey and the factory host's soft key |
+| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | Each human operator's YubiKey and the factory host's soft key |
 
 **Cluster files** are Secret manifests with only `data`/`stringData` encrypted, so kind, name and namespace stay
 readable and diffs stay meaningful. Flux decrypts them on apply; nothing else ever does. Charts and workloads take
@@ -49,16 +49,18 @@ recipients so that the files can be edited and re-encrypted; the factory host is
 read a cluster secret.
 
 **The swamp vault** holds the credentials the operating models use (decision 006): the forge token, the Omni service
-account keys, the registry push credential. The `@zocc/sops-age` vault type carries its own recipient list in
-`vaults/@zocc/sops-age/*.yaml` (`agePublicKey`) and ignores `.sops.yaml`; every write re-encrypts the whole file to
-that list. The second rule in `.sops.yaml` repeats the same recipients so that `sops vaults/infra.enc.json` from a
-terminal encrypts to the same set. The factory host's soft key is a recipient so that scheduled runs decrypt
-unattended; it is never a recipient of a cluster file.
+account keys, the registry push credential. The `@dataverket/sops` vault type keeps one SOPS-encrypted file per
+secret under `vaults/infra/`, so a write touches one file, `git log` on a file is that secret's history, and a
+`put` needs only the recipients' public keys. Its recipient list lives in `vaults/@dataverket/sops/*.yaml`
+(`agePublicKey`) and it ignores `.sops.yaml`; the second rule there repeats the same recipients so that `sops` on a
+file under `vaults/` from a terminal encrypts to the same set. The factory host's soft key is a recipient so that
+scheduled runs decrypt unattended; it is never a recipient of a cluster file. A model whose output schema marks a
+field sensitive writes into this vault too, under a generated key; `swamp vault audit-trail --vault infra` shows
+who wrote what.
 
-**Adding an operator** is therefore two edits and two re-encryptions: their key in both rules of `.sops.yaml` and
-in the vault's `agePublicKey`; `sops updatekeys` on every cluster file, with a YubiKey that is already a recipient;
-and one `swamp vault put` of any key, which rewrites the vault to the new list (the provider cannot delete, so
-`recipients/reencrypt` is the marker of the last such write). Removing one is the same with the key taken out.
+**Adding an operator** is two edits and one re-encryption: their key in both rules of `.sops.yaml` and in the
+vault's `agePublicKey`, then `sops updatekeys` on every `*.enc.yaml` cluster file and every file under
+`vaults/infra/`, with a YubiKey that is already a recipient. Removing one is the same with the key taken out.
 
 This repository owns a credential. When the software factory needs the same value, it is copied from here into the
 factory's vault, never the other way around (decision 005).
