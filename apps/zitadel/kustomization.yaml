@@ -4,5 +4,8 @@ resources:
   - ./namespace.yaml
   - ./repo.yaml
   - ./postgres.yaml
+  - ./hov1-s3.yaml
+  - ./s3-cnpg-zitadel.enc.yaml
+  - ./backup.yaml
   - ./release.yaml
   - ./httproute.yaml

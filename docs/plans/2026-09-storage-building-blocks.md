@@ -96,9 +96,10 @@ Each step has a check and a "stopped here" state. Step 1 needs the author (a Yub
 a stand-in can do the rest once it is merged.
 
 1. **Backups first.** The target is the hov1 site: `backup/versitygw` is a compose stack that names no site (versitygw,
-   posix backend, `--versioning-dir` outside the root, a step-ca beside it, a renewer), and `backup/hov1` is its
-   first instance, an `.env` and a directory, at `213.128.185.82:443`; TLS is step-ca's with the address as SAN,
-   since no public CA issues a durable certificate for a bare address. Its README is the runbook. On it one bucket
+   posix backend, `--versioning-dir` outside the root, nothing else running), and `backup/hov1` is its
+   first instance, an `.env` and a directory, at `213.128.185.82:443`; TLS is from the site's own private CA, four
+   files made offline with `step`, root and certificate valid three years, since no public CA issues a durable
+   certificate for a bare address and one gateway does not justify a running CA. Its README is the runbook. On it one bucket
    and one account per writer, `cnpg-forgejo`, `cnpg-zitadel`, `restic-forgejo`, each account the owner of its
    bucket and of nothing else; the root key mints accounts and is held by no automation. The account reaches the
    cluster through sops and nothing else: `bin/user` prints the Secret manifest, it is piped from the repository
@@ -250,8 +251,8 @@ the gap a shrunk EPHEMERAL would leave never arises. Plan the cap once anyway: a
 and the slot budget cap nothing here, Postgres keeps every unarchived segment until the archive takes it, and with
 CNPG's default `archive_timeout` of five minutes a barely busy primary makes a 16 MiB segment every five minutes,
 about 190 MiB an hour, so the 4.5 GiB of headroom is gone in about a day and the alert leaves some twenty hours to
-act; the certificate at `213.128.185.82:443` expiring within seven days, probed from the cluster, since a renewal
-that fails at the site is otherwise seen only through the archive alert; CNPG last successful backup older than 36
+act; the certificate at `213.128.185.82:443` expiring within 30 days, probed from the cluster, since nothing at the
+site renews a three-year certificate and the reissue is a calendar event; CNPG last successful backup older than 36
 hours; any volume, user volumes included, above 70 percent (`fleet-volumes` on a schedule feeds it for the worker
 disks); WAL retained by a replication slot above 384 MB, below the 512 MB at which the slot is invalidated;
 versitygw Service without endpoints for a minute; any pod Terminating over five minutes.

@@ -1,0 +1,48 @@
+# Backups of forgejo-postgres to the hov1 site (backup/README.md): base backups daily, WAL continuously, 14 days of both,
+# through the Barman Cloud plugin. The account Secret s3-cnpg-forgejo is sops-encrypted; hov1-s3 carries the endpoint,
+# the region and the site's CA root in clear. The serverName is the folder inside the bucket; a cluster restored
+# from this archive must use a new one.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hov1
+  namespace: forgejo
+spec:
+  retentionPolicy: 14d
+  configuration:
+    destinationPath: s3://cnpg-forgejo/
+    endpointURL: https://213.128.185.82:443
+    endpointCA:
+      name: hov1-s3
+      key: ca.crt
+    s3Credentials:
+      accessKeyId:
+        name: s3-cnpg-forgejo
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: s3-cnpg-forgejo
+        key: SECRET_ACCESS_KEY
+      region:
+        name: hov1-s3
+        key: REGION
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+# Daily base backup. CNPG's schedule has six fields, seconds first. immediate: the first base backup runs as soon
+# as this is applied, so the archive is restorable from day one and not from the first 03:00 after.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: forgejo-postgres-daily
+  namespace: forgejo
+spec:
+  schedule: "0 0 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: forgejo-postgres
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
