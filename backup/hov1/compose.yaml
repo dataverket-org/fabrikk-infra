@@ -1,0 +1,6 @@
+# The hov1 site: one instance of the stack in ../versitygw, with this directory's .env and certs.
+name: hov1
+include:
+  - path: ../versitygw/compose.yaml
+    project_directory: .
+    env_file: .env

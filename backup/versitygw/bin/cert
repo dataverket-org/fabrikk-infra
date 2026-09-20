@@ -1,0 +1,24 @@
+#!/bin/sh
+# Issue the gateway's certificate from the site's step-ca. Run from the site directory (the one with .env).
+# First run: brings the CA up (it initialises itself), widens the admin provisioner's certificate lifetime from
+# the 24 h default to 30 days (max 90), exports the root to certs/ca.crt, which is committed and pinned by every
+# client. Every run: a one-time token from the CA, tls.crt/tls.key for the address in .env written by the renewer's
+# image as root, the stack up, and SIGHUP to a running versitygw so it reloads them. Renewal after that is
+# step-renew's job. The CA password is the one step-ca keeps in its own secrets directory; nothing is copied.
+set -eu
+[ -f .env ] || { echo "run from a site directory: no .env here" >&2; exit 2; }
+set -a; . ./.env; set +a
+host=${S3_ADDR%:*}
+mkdir -p certs
+docker compose up -d --wait step-ca
+ca() { docker compose exec -T step-ca "$@"; }
+pw=/home/step/secrets/password
+ca step ca provisioner update admin --x509-default-dur 720h --x509-max-dur 2160h \
+  --admin-subject step --admin-provisioner admin --admin-password-file "$pw"
+ca sh -c 'cat "$(step path)/certs/root_ca.crt"' > certs/ca.crt
+token=$(ca step ca token "$host" --san "$host" --provisioner admin --provisioner-password-file "$pw" --not-after 720h)
+docker compose run --rm --no-deps --user 0 step-renew \
+  step ca certificate "$host" /certs/tls.crt /certs/tls.key --token "$token" --force
+docker compose up -d
+docker compose kill -s HUP versitygw
+docker compose run --rm --no-deps step-renew step certificate inspect /certs/tls.crt --short

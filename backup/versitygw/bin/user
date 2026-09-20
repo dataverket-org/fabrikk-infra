@@ -1,0 +1,33 @@
+#!/bin/sh
+# Mint one account and its bucket on the running gateway and print, on stdout, the Kubernetes Secret the writer
+# reads: pipe it through sops, never onto disk in clear. Run from the site directory.
+#   usage: bin/user <bucket> <namespace> [--rotate]
+# The account is named after the bucket, gets the role "user", which sees only buckets it owns, and the bucket is
+# created owned by it (or handed over when it already exists). --rotate deletes an existing account first and
+# mints a new key pair: the writer fails from that moment until the new Secret is applied, which WAL archiving
+# and restic tolerate, so commit at once. Without --rotate an existing account is an error.
+set -eu
+[ -f .env ] || { echo "run from a site directory: no .env here" >&2; exit 2; }
+set -a; . ./.env; set +a
+bucket=${1:?bucket}; namespace=${2:?namespace}; rotate=${3:-}
+secret=$(head -c 30 /dev/urandom | base64 | tr -d '/+=' | head -c 40)
+admin() {
+  docker compose exec -T versitygw versitygw admin \
+    -a "$ROOT_ACCESS_KEY" -s "$ROOT_SECRET_KEY" -r "$REGION" -er http://localhost:7071 "$@"
+}
+if [ "$rotate" = "--rotate" ]; then admin delete-user -a "$bucket" >&2; fi
+admin create-user -a "$bucket" -s "$secret" -r user >&2
+admin create-bucket -b "$bucket" -o "$bucket" >&2 2>/dev/null || admin change-bucket-owner -b "$bucket" -o "$bucket" >&2
+cat <<YAML
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s3-$bucket
+  namespace: $namespace
+type: Opaque
+stringData:
+  BUCKET: $bucket
+  ACCESS_KEY_ID: $bucket
+  SECRET_ACCESS_KEY: $secret
+YAML
+echo "account $bucket minted on $SITE; the secret key is in the manifest above, and in clear only in the gateway's IAM store" >&2

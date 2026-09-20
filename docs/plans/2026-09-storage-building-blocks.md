@@ -3,8 +3,13 @@
 Written 2026-09-19 from live inventory (swamp models `dataverket-prod-pvcs`, `openstack-*`, `omni` and
 `dataverket-prod-talos`) and the Nexthop price list of the same day. Fourth revision, 2026-09-20: the workers are placed in a Nova
 anti-affinity server group and replaced through Omni one at a time, never reset in place; the new disk layout
-arrives with the new machines. Reviewed adversarially. Nothing is applied. Decision 007 is the mechanism under the
-databases.
+arrives with the new machines. Fifth revision, 2026-09-20: backups go to the hov1 site, `213.128.185.82:443`, a
+versitygw with the posix backend in Docker (`backup/versitygw`, instantiated as `backup/hov1`), instead of Nexthop
+Object Storage; the
+in-cluster versitygw of building block 3 keeps its role. Reviewed adversarially again the same day; what it found
+(the admin API signs with the region, the sops rule path, SIGHUP reloads versitygw's certificate, versioning without
+lifecycle, the WAL rate) is folded in. Nothing is applied. Decision 007 is
+the mechanism under the databases.
 
 ## Building blocks
 
@@ -19,7 +24,12 @@ databases.
    30 GiB and 1 TB disks.
 3. **Object storage inside the cluster is versitygw on Cinder**: one S3 endpoint, POSIX backend, Standard tier;
    registry blobs first, later Forgejo LFS and packages.
-4. **Backups leave Cinder** for Nexthop Object Storage; versitygw shares Cinder's blast radius.
+4. **Backups leave the provider.** The target is `213.128.185.82:443`, a versitygw with the posix backend in Docker
+   at the hov1 site (`backup/hov1`), reached by address so that no zone, name or DirectAdmin sits in the backup
+   path: a different building, a different network, a different operator's mistakes. The
+   in-cluster versitygw shares Cinder's blast radius and Nexthop Object Storage shares the account's, so neither is
+   the copy that matters. The price is availability: the site's uplink is down more often than a provider's, so every
+   writer must tolerate hours of that, and the WAL alert below is what makes an outage cheap instead of fatal.
 5. **Tier by shape.** SSD for working trees and caches, Standard for blobs.
 6. **Placement is declared, not observed.** The workers are members of a Nova anti-affinity server group, so no
    two share a hypervisor, and a worker that cannot be placed fails to boot instead of landing beside a sibling.
@@ -74,7 +84,8 @@ Prices, NOK per GB-month ex VAT: SSD 1.99, Standard 0.89, Object 0.49 at no comm
 | 2. After step 5: versitygw 100 GB Standard, zot on S3 with a 10 GB cache | 60 SSD + 100 Std | 208 / 158 | 564 / 420 |
 | 2b. Instead of versitygw: zot moved to a Standard volume | 50 SSD + 50 Std | 144 / 109 | 628 / 469 |
 
-Backups add about 10 NOK/month with WAL compression (measure after a week), and zot's retained SSD volume adds
+Backups cost nothing per month, the hov1 site is paid for; measure the archive's size and the WAL rate after a week
+anyway, they size the site's disk and say how long an outage the budget survives. zot's retained SSD volume adds
 about 100 for the month it is kept. versitygw costs 65 NOK/month more than row 2b because 100 GB is provisioned
 for growth: a building block, not a saving. Step 2 runs one extra m5.large for the hours each swap takes, three
 times, a few NOK in total.
@@ -84,22 +95,38 @@ times, a few NOK in total.
 Each step has a check and a "stopped here" state. Step 1 needs the author (a YubiKey recipient in `.sops.yaml`);
 a stand-in can do the rest once it is merged.
 
-1. **Backups first.** Bucket and EC2 credential on Nexthop Object Storage; the openstack extension has no
-   object-storage model, so
-   add one. Credential as an encrypted Secret in `apps/`, copied to the `infra` vault (decision 005). CNPG Barman
-   Cloud
-   plugin (the in-tree `barmanObjectStore` is deprecated): per cluster an `ObjectStore` with gzip compression and a
-   distinct `serverName`, daily
-   `ScheduledBackup`, continuous WAL, 14 days; retention needs to delete, so protect the archive with bucket
-   versioning and a lifecycle rule if the object
-   store offers them, and record it as an accepted risk if not. Nightly restic of `gitea-shared-storage`, pod-affine
-   to the forgejo pod. A restore needs the application
+1. **Backups first.** The target is the hov1 site: `backup/versitygw` is a compose stack that names no site (versitygw,
+   posix backend, `--versioning-dir` outside the root, a step-ca beside it, a renewer), and `backup/hov1` is its
+   first instance, an `.env` and a directory, at `213.128.185.82:443`; TLS is step-ca's with the address as SAN,
+   since no public CA issues a durable certificate for a bare address. Its README is the runbook. On it one bucket
+   and one account per writer, `cnpg-forgejo`, `cnpg-zitadel`, `restic-forgejo`, each account the owner of its
+   bucket and of nothing else; the root key mints accounts and is held by no automation. The account reaches the
+   cluster through sops and nothing else: `bin/user` prints the Secret manifest, it is piped from the repository
+   root through `sops --encrypt --filename-override apps/<namespace>/s3-<bucket>.enc.yaml` (the override is what
+   matches the cluster-files rule) into that file, in clear only in the gateway's IAM store and in the shell for
+   the seconds it takes; Flux decrypts it with the cluster key like every `*.enc.yaml`, and the writer reads it by
+   name. The site's public facts, root, endpoint and region, come in clear as `apps/<namespace>/hov1-s3.yaml`
+   from `bin/site-secret`, so an address change is a plaintext diff. Both files are listed in the namespace's
+   `kustomization.yaml`. Nothing goes into the `infra` vault until a workflow needs it (decision 005); rotation is
+   `bin/user --rotate` and a commit at once, since the writer fails from the delete until the new Secret lands.
+   Bucket versioning stays off: versitygw 1.8 has no lifecycle rules, so it would keep every deleted object
+   forever, and an account that owns a bucket can suspend it anyway; retention is the writers' job, and the second
+   copy below is what protects the archive from a bad writer, object lock the upgrade if it is ever wanted. CNPG
+   Barman Cloud plugin (the in-tree `barmanObjectStore` is deprecated): per cluster an `ObjectStore` with
+   `endpointURL` on the site's address (boto picks path-style for an address by itself), `endpointCA` from the site
+   Secret, `s3Credentials` and their `region` from the account and site Secrets, gzip compression, and a distinct
+   `serverName` in the Cluster's plugin parameters, daily `ScheduledBackup`, continuous WAL, 14 days. Nightly
+   restic of
+   `gitea-shared-storage` to the `restic-forgejo` bucket, pod-affine to the forgejo pod. A restore needs the application
    secrets, so the Zitadel masterkey, Forgejo's generated
-   `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password go into `*.enc.yaml` and the vault first.
+   `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password go into `*.enc.yaml` first; the vault gets a copy
+   the day a workflow restores (decision 005).
    Then a restore drill of both clusters into a scratch namespace (`bootstrap.recovery` via
    `externalClusters[].plugin`, a new `serverName` for the restored cluster's own archive), restic restored beside
-   it, timings recorded. Check: `psql` on each restored cluster shows the application tables. Stopped here: proven
-   backups.
+   it, timings recorded: the drill measures the site's uplink, and the base backup's transfer time is the number to
+   know before an outage. Check: `psql` on each restored cluster shows the application tables. Stopped here: proven
+   backups, off the provider. If the hov1 site proves unreachable too often, a second copy to Nexthop Object
+   Storage is the same mechanism with a second `ObjectStore`, not a new plan.
 2. **Worker placement and disk layout, by replacement.** Talos sizes EPHEMERAL and provisions user volumes only
    when it first provisions a machine, and Nova sets server-group membership only at boot, so both arrive the same
    way: a new worker, created in the group, provisioned by Omni with the patch already on it. Three swaps, one
@@ -195,16 +222,19 @@ a stand-in can do the rest once it is merged.
    directory. Stopped here: layout 2.
 6. **Records and models.** Decision 007 is the mechanism. New decisions for: workers placed by a Nova server
    group and replaced through Omni, never changed in place; databases replicated on worker disks; the 16 GiB
-   EPHEMERAL standard; versitygw as in-cluster S3; backups on Nexthop Object Storage. README layout table;
+   EPHEMERAL standard; versitygw as in-cluster S3; backups on the hov1 site over the public internet. README layout table;
    `bootstrap.sh` for the credentials and versitygw ordering. The models this plan runs on are published and
    pulled from the registry since 2026-09-20: `@dataverket/omnictl` (`inventory` and `cluster`),
-   `@dataverket/openstack` with `hostId`, and `@dataverket/sops` under the vault.
+   `@dataverket/openstack` with `hostId`, and `@dataverket/sops` under the vault. Not needed for this plan,
+   since the site's endpoint is an address: a `@dataverket/directadmin` `dns-record` model for names that are not
+   cluster services, and the `dvkt.no` credential in `nordhost-config`. Both arrive the day the endpoint gets a name
+   (`s3.hov1.dvkt.no`), which is what an address change would ask for.
 
 ## Operations after the change
 
 **Failure model.** A worker dying loses one replica of each database; CNPG promotes the synchronous one, with no
 Cinder detach and no taint in the path. Cinder-backed pods on that worker still need the `out-of-service` taint
-before they move. Losing all three workers at once loses the databases; the object store is the recovery.
+before they move. Losing all three workers at once loses the databases; the hov1 site is the recovery.
 
 **Replacing a worker** is step 2's swap, and it is the only way a worker changes: a new machine in the group,
 the old one retired. It does not self-heal for the databases: the instance whose volume was on the old node keeps
@@ -216,9 +246,15 @@ class's `WaitForFirstConsumer` put it. Check: three ready instances, lag zero, t
 **Changing EPHEMERAL later** is three swaps with a new patch; a machine never changes its layout in place, so
 the gap a shrunk EPHEMERAL would leave never arises. Plan the cap once anyway: a swap moves every replica.
 
-**Alerts, five:** CNPG last successful backup older than 36 hours; any volume, user volumes included, above 70
-percent (`fleet-volumes` on a schedule feeds it for the worker disks); WAL retained by a replication slot above
-512 MB; versitygw Service without endpoints for a minute; any pod Terminating over five minutes.
+**Alerts, seven:** CNPG WAL archiving failing for over two hours, which is the hov1 site unreachable: `max_wal_size`
+and the slot budget cap nothing here, Postgres keeps every unarchived segment until the archive takes it, and with
+CNPG's default `archive_timeout` of five minutes a barely busy primary makes a 16 MiB segment every five minutes,
+about 190 MiB an hour, so the 4.5 GiB of headroom is gone in about a day and the alert leaves some twenty hours to
+act; the certificate at `213.128.185.82:443` expiring within seven days, probed from the cluster, since a renewal
+that fails at the site is otherwise seen only through the archive alert; CNPG last successful backup older than 36
+hours; any volume, user volumes included, above 70 percent (`fleet-volumes` on a schedule feeds it for the worker
+disks); WAL retained by a replication slot above 384 MB, below the 512 MB at which the slot is invalidated;
+versitygw Service without endpoints for a minute; any pod Terminating over five minutes.
 
 **Upgrades.** Omni rolls one machine at a time with a drain, and the primary's PodDisruptionBudget blocks that
 drain: promote primaries off the machine before each roll, as in step 2. Then one replica is down per roll, never
@@ -238,8 +274,8 @@ are large, everything else as user volumes.
 
 ## Backups
 
-- **Databases:** Barman Cloud plugin to Nexthop Object Storage, daily base, continuous compressed WAL, 14 days,
-  point-in-time recovery. Quarterly drill, timed. The only copy outside the workers.
+- **Databases:** Barman Cloud plugin to `213.128.185.82:443`, daily base, continuous compressed WAL, 14 days,
+  point-in-time recovery. Quarterly drill, timed. The only copy outside the provider.
 - **Repositories:** nightly restic of `gitea-shared-storage`, 30 daily and 6 monthly. Its snapshot time is the
   PITR target for the database when both must match.
 - **versitygw volume:** none while it holds only registry blobs (mirrors re-copy, artifacts come from git, product
@@ -270,10 +306,10 @@ their placement: they are in no server group either, and placing one is an etcd 
 
 | Service | Component | Storage | Class, tier | Size | Redundancy | Backup |
 |---|---|---|---|---|---|---|
-| Forgejo | postgres, CNPG ×3 | worker root disk, `u-pg-forgejo` | `pg-forgejo-storage`, local | 3 × ~6 GiB, claim 5Gi | app ×3, one per worker | Barman to Nexthop Object Storage, PITR |
-| Forgejo | repositories | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | restic to Nexthop Object Storage |
+| Forgejo | postgres, CNPG ×3 | worker root disk, `u-pg-forgejo` | `pg-forgejo-storage`, local | 3 × ~6 GiB, claim 5Gi | app ×3, one per worker | Barman to `213.128.185.82`, PITR |
+| Forgejo | repositories | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | restic to `213.128.185.82` |
 | Forgejo | LFS, attachments, packages (later) | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | restic of the directory tree, when populated |
-| Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 6 GiB, claim 5Gi | app ×3, one per worker | Barman to Nexthop Object Storage, PITR |
+| Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 6 GiB, claim 5Gi | app ×3, one per worker | Barman to `213.128.185.82`, PITR |
 | versitygw | gateway root, IAM dir, versioning dir | Cinder | `csi-cinder-standard-retain`, Standard, xfs | 100 GB | Cinder ×3 | see rows above |
 | zot | blobs | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | none, rebuildable |
 | zot | working dir | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | none |
@@ -281,4 +317,4 @@ their placement: they are in no server group either, and placing one is an etcd 
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | Cinder ×3 | none |
 | Control planes ×3 | Talos, etcd | flavor root disk, EPHEMERAL default | c5.large | 3 × 25 GiB | etcd ×3 | Omni etcd backups (decision 001) |
 | Workers ×3, anti-affinity group | Talos, images | flavor root disk, EPHEMERAL 16 GiB | m5.large, one per hypervisor | 3 × 30 GiB | none needed | none |
-| Backups | CNPG archives, restic repos | Nexthop Object Storage | 0.49/GB | ~15 GB | provider | is the backup |
+| Backups | CNPG archives, restic repos | versitygw at the hov1 site, `213.128.185.82:443` | posix, `backup/hov1` | ~15 GB | one disk, versioned buckets | is the backup |

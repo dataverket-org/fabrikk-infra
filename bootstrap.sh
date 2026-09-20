@@ -61,5 +61,6 @@ cat <<'MSG'
   kube-system/cloud-config                                      apply-secret.sh from cloud.conf
   forgejo/forgejo-admin, forgejo-mailer, forgejo-zitadel-oauth-secret   see apps/forgejo/*.example.yaml
   zitadel/zitadel-masterkey
+  cert-manager/nordhost-config                                  config.json: DirectAdmin credentials per zone (nordhost-integrator); dataverket.org today, dvkt.no next
   forgejo-runners/org-dataverket-runner-secret                  runner registration token
 MSG
