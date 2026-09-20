@@ -1,0 +1,10 @@
+type: '@ginger_pappa/flux/kustomization'
+typeVersion: 2026.06.09.1
+id: 39d0ac32-dabf-47b4-bea4-adb4f2e2a99f
+name: dataverket-prod-kustomizations
+version: 1
+tags: {}
+globalArguments:
+  namespace: flux-system
+  context: dataverket-prod-admin
+methods: {}

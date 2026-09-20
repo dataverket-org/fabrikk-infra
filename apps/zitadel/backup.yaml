@@ -46,3 +46,18 @@ spec:
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
+---
+# The first base backup, taken on 2026-09-20 right after the plugin rollout: the ScheduledBackup's immediate run had
+# fired while the instances were still being recreated and failed. A completed Backup is inert; this stays as the
+# record of when the archive became restorable.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: zitadel-db-first
+  namespace: zitadel
+spec:
+  cluster:
+    name: zitadel-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
