@@ -1,0 +1,10 @@
+type: '@dataverket/omnictl/cluster'
+typeVersion: 2026.09.20.1
+id: d03267ff-fdad-489d-8433-e5ce48235ed0
+name: omni-cluster
+version: 1
+tags: {}
+globalArguments:
+  endpoint: 'https://dataverket.eu-central-1.omni.siderolabs.io'
+  serviceAccountKey: '${{ vault.get("infra", "omni/operator_service_account_key") }}'
+methods: {}

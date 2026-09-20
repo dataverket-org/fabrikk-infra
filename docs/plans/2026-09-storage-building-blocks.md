@@ -1,9 +1,10 @@
 # Plan: storage building blocks
 
 Written 2026-09-19 from live inventory (swamp models `dataverket-prod-pvcs`, `openstack-*`, `omni` and
-`dataverket-prod-talos`) and the Nexthop price list of the same day. Third revision: the databases move to the workers'
-own disks, replicated by CNPG, now that the root disks are measured. Reviewed adversarially. Nothing is applied.
-Decision 007 is the mechanism under the databases.
+`dataverket-prod-talos`) and the Nexthop price list of the same day. Fourth revision, 2026-09-20: the workers are placed in a Nova
+anti-affinity server group and replaced through Omni one at a time, never reset in place; the new disk layout
+arrives with the new machines. Reviewed adversarially. Nothing is applied. Decision 007 is the mechanism under the
+databases.
 
 ## Building blocks
 
@@ -20,6 +21,11 @@ Decision 007 is the mechanism under the databases.
    registry blobs first, later Forgejo LFS and packages.
 4. **Backups leave Cinder** for Nexthop Object Storage; versitygw shares Cinder's blast radius.
 5. **Tier by shape.** SSD for working trees and caches, Standard for blobs.
+6. **Placement is declared, not observed.** The workers are members of a Nova anti-affinity server group, so no
+   two share a hypervisor, and a worker that cannot be placed fails to boot instead of landing beside a sibling.
+   Nova sets membership only at boot, so a machine gets into the group by being created in it; a worker's disk
+   layout, which Talos likewise fixes at first provisioning, arrives the same way. A worker is never changed in
+   place, it is replaced.
 
 ## Measured
 
@@ -35,17 +41,26 @@ reads the machines through Omni's proxy); the same talosctl model gives a lab cl
 Usage is almost entirely container images; logs are under 105 MiB. At 16 GiB the busiest worker sits at 52
 percent, with image collection from 80. Every disk already has 2 GiB unallocated that EPHEMERAL never took.
 
-**The worker disk after the change**, 30 GiB: 2,102 MiB of Talos partitions, EPHEMERAL 16,384 MiB,
-`u-pg-zitadel` 3,072 MiB, `u-pg-forgejo` at least 8,192 MiB grown into the rest, about 9,160 MiB. Both databases
-hold about 620 MB today. The bigger volume comes last because only the last partition can grow.
+**The worker disk after the change**, 30 GiB: 2,102 MiB of Talos partitions, EPHEMERAL 16,384 MiB, and the
+remaining 12,234 MiB split evenly: `u-pg-zitadel` 6,144 MiB, `u-pg-forgejo` at least 6,144 MiB grown into the
+rest, about 6,090 MiB. Both databases hold about 620 MB today and neither's growth is measured; Zitadel's is an
+append-only event store and Forgejo's grows with issues, pull requests and CI runs, so nothing says one deserves
+more than the other. Per partition, WAL is budgeted at 1.5 GiB (`max_wal_size` 1 GB plus 512 MB retained by
+replication slots), leaving about 4.5 GiB for data, seven times today's. Forgejo's comes last because only the
+last partition can grow.
 
-## Open question: are the root disks local?
+## Placement, and the open question of where the root disks are
 
 Nexthop documents three copies for volumes and nothing for flavor disks. Ask whether flavor root disks are
-hypervisor-local or replicated, and whether instances live-migrate. The plan no longer depends on the answer: the
-disk is paid for either way, and CNPG replicates for failover, not durability. Independently of the answer,
-the three workers must sit on three hypervisors: put them in a Nova anti-affinity server group
-(`openstack-server-group`) and confirm `serverGroups` on each server before step 4.
+hypervisor-local or replicated, and whether instances live-migrate. The plan does not depend on the answer: the
+disk is paid for either way, and CNPG replicates for failover, not durability. What it does depend on is three
+workers on three hypervisors, and today nothing says they are: every server record shows `serverGroups: []`, and
+until 2026-09-20 the server model did not record `hostId`, the per-project hash Nova shows a tenant. It does
+now, and the seven servers show exactly three values, one control plane and one worker on each: the workers
+already sit on three hypervisors, and three is what this project can see. The group turns that from what the
+scheduler happened to do into what it must do. Nova honours a server group
+only at boot and has no call that adds a running server to one, so the workers are placed by being recreated,
+which is step 2. Building block 6.
 
 ## Cost
 
@@ -61,7 +76,8 @@ Prices, NOK per GB-month ex VAT: SSD 1.99, Standard 0.89, Object 0.49 at no comm
 
 Backups add about 10 NOK/month with WAL compression (measure after a week), and zot's retained SSD volume adds
 about 100 for the month it is kept. versitygw costs 65 NOK/month more than row 2b because 100 GB is provisioned
-for growth: a building block, not a saving.
+for growth: a building block, not a saving. Step 2 runs one extra m5.large for the hours each swap takes, three
+times, a few NOK in total.
 
 ## Steps
 
@@ -84,24 +100,63 @@ a stand-in can do the rest once it is merged.
    `externalClusters[].plugin`, a new `serverName` for the restored cluster's own archive), restic restored beside
    it, timings recorded. Check: `psql` on each restored cluster shows the application tables. Stopped here: proven
    backups.
-2. **Worker disk layout, rehearsed first.** The unverified assumption is that a reset wiping only EPHEMERAL
-   re-creates it at the new `maxSize` and provisions the user partitions behind it, and that Omni tolerates a
-   machine resetting itself. Prove it on the lab cluster with `@dataverket/talosctl` (`patchConfig`, then `reset`
-   with `systemLabelsToWipe: [EPHEMERAL]`, then `volumes`) before touching production. Then one Omni config patch
-   on the worker machine set, applied through the Omni UI or cluster template: `VolumeConfig` EPHEMERAL with
-   `maxSize: 16GiB`; `UserVolumeConfig` `pg-zitadel` (`diskSelector.match: system_disk`, `minSize` and `maxSize`
-   3 GiB, xfs) and then `pg-forgejo` (`minSize: 8GiB`, `grow: true`, xfs); kubelet `extraConfig` with
-   `imageGCHighThresholdPercent: 80`, `imageGCLowThresholdPercent: 70`,
-   `imageMaximumGCAge: 168h`, `containerLogMaxSize: 20Mi`, `evictionHard` `imagefs.available: 2Gi` and
-   `nodefs.available: 1Gi`. The patch only takes effect when EPHEMERAL is re-provisioned, so per worker, one at a
-   time: promote CNPG
-   primaries away (`kubectl cnpg promote`; the primary's PodDisruptionBudget blocks a drain), drain, then
-   `talosctl reset --graceful --reboot --system-labels-to-wipe EPHEMERAL` (the `talosctl` model's `reset` with
-   `systemLabelsToWipe`; this needs an Operator talosconfig from `omnictl talosconfig`, which the read-only
-   service account does not get). STATE and the config survive, the node reboots into the cluster, EPHEMERAL comes
-   back at 16 GiB with the two
-   user partitions behind it; images re-pull. The fallback is Omni's remove, wipe and re-add. Check: `fleet-volumes` shows EPHEMERAL 16,384 MiB and both user volumes on the worker, node Ready, the drained
-   pods running elsewhere. Stopped here: empty user volumes, nothing uses them.
+2. **Worker placement and disk layout, by replacement.** Talos sizes EPHEMERAL and provisions user volumes only
+   when it first provisions a machine, and Nova sets server-group membership only at boot, so both arrive the same
+   way: a new worker, created in the group, provisioned by Omni with the patch already on it. Three swaps, one
+   worker at a time, never fewer than three workers in the cluster. Nothing is reset in place and no rehearsal
+   cluster is needed: this is the path the existing workers took on 2026-09-07, from the same image, plus a
+   group and a patch. The Omni side is four methods of the `omni-cluster` model (`@dataverket/omnictl/cluster`,
+   the Operator service account `fabrikk-infra-omni-cluster` on its own vault key,
+   `omni/operator_service_account_key`; the Reader `fabrikk-infra-omni` stays on `omni`): `applyPatch` writes a
+   machine-scoped `ConfigPatch` (label `omni.sidero.dev/machine: <uuid>`, id `500-<hostname>-storage`);
+   `addMachine` writes the `MachineSetNode` (id the machine's UUID, labels `omni.sidero.dev/machine-set:
+   dataverket-prod-workers` and `omni.sidero.dev/cluster: dataverket-prod`), which is what the UI's "add machine"
+   creates; `removeMachine` is `omnictl cluster machine delete <uuid>`, which drains, wipes and waits;
+   `forgetMachine` deletes the retired machine's `Link` and refuses while it is in a cluster. The first
+   `applyPatch` and `addMachine` run with `dryRun=true`, so Omni validates both resources with the new key before
+   anything is written.
+
+   Once, before the first swap: `openstack-server-group create` with `name: dataverket-prod-workers` and
+   `policy: anti-affinity` (an existing name is reused; no `maxServerPerHost`, so one member per host). And the
+   patch, written once and applied as a machine-scoped Omni `ConfigPatch` to each new machine before it joins,
+   not to the machine set: `VolumeConfig` EPHEMERAL with `maxSize: 16GiB`; `UserVolumeConfig` `pg-zitadel`
+   (`diskSelector.match: system_disk`, `minSize` and `maxSize` 6 GiB, xfs) and then `pg-forgejo` (`minSize: 6GiB`,
+   `grow: true`, xfs); kubelet `extraConfig` with `imageGCHighThresholdPercent: 80`,
+   `imageGCLowThresholdPercent: 70`, `imageMaximumGCAge: 168h`, `containerLogMaxSize: 20Mi`, `evictionHard`
+   `imagefs.available: 2Gi` and `nodefs.available: 1Gi`. `system_disk` is what keeps Talos off the Cinder disks
+   attached to the same machine, so it is checked in the patch before anything else is. The old workers must
+   never see the patch: a user volume a running machine cannot fit is a state this plan has not proved harmless,
+   and a machine-scoped patch is the guarantee. After the third swap the same patch moves to the workers machine
+   set, where every member already matches it, so a future worker inherits it.
+
+   Per swap, new machine first, old machine last, so every step before the last leaves the old worker untouched:
+   1. `openstack-server create`: `name` the next free `dataverket-wrkr-N` (4, 5, 6; nothing keys on the names),
+      `flavor: m5.large`, `image: dataverket-omni-talos-amd64`, `networks: [infra1-net]`,
+      `securityGroups: [default]`, `serverGroup: dataverket-prod-workers`, its siblings' description. The image
+      carries the Omni join token of 2026-09-07, so the machine appears in Omni unallocated, provided that token
+      is still active: `omni joinTokens` before the first create (2026-09-20: one token, active, default, six
+      machines joined, no expiry), and a new image from the current default token if it is not. A create that fails with no valid
+      host is the group doing its job: the zone has no free hypervisor, and that is a conversation with Nexthop
+      before a `soft-anti-affinity` retreat.
+   2. `omni-cluster applyPatch` for the machine, then `omni-cluster addMachine` into `dataverket-prod-workers`;
+      the stored `configPatch` and `machineSetNode` are the record. Omni installs Talos: EPHEMERAL at 16 GiB,
+      both user volumes behind it, the kubelet thresholds. The node joins.
+   3. Check: `fleet-volumes` shows the new node with EPHEMERAL 16,384 MiB and `u-pg-zitadel`, `u-pg-forgejo`,
+      and every Cinder disk on it untouched; `omni discover` shows it running in the workers machine set with
+      `siderolabs/kata-containers` among its extensions; `openstack-server get` shows the group under
+      `serverGroups`, a `hostId` unlike the other new workers', and the load balancers' `lb-sg-*` groups, which
+      OCCM adds to members by itself; the node is Ready. Anything else: stop, the old worker is untouched and the new one is deleted.
+   4. Retire the old worker, the one with the fewest database instances first (wrkr-3 carries two of Forgejo's
+      today): promote CNPG primaries away (`kubectl cnpg promote`; the primary's PodDisruptionBudget blocks a
+      drain), cordon and drain; every pod on it is Cinder-backed or stateless and reattaches elsewhere.
+      `omni-cluster removeMachine`, which wipes it and returns it to the pool. `openstack-server get` must show
+      `volumesAttached` empty; then `openstack-server delete` by ID (rule 5); only then `omni-cluster
+      forgetMachine`, because a wiped machine that is still running re-registers the moment its entry goes.
+      Then `swamp workflow run fleet-volumes`, so the talosconfig record carries the new node list.
+
+   Check after the third swap: three workers, `serverGroups` non-empty on each, three distinct `hostId` values
+   across them, which is the placement the group promised, observed; the patch on the machine set. Stopped here: empty user volumes on three placed workers, nothing
+   uses them.
 3. **Provisioner (decision 007).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), classes `pg-zitadel-storage` and `pg-forgejo-storage` on
    the two mount patterns, `WaitForFirstConsumer`. Check: three `local` PVs per class, one per worker, capacity
@@ -114,9 +169,9 @@ a stand-in can do the rest once it is merged.
    `Retain`; delete the `Cluster`; wait until `kubectl get pvc -l cnpg.io/cluster=<name>` is empty; commit and
    apply the same-name `Cluster` (so the `-rw` Service and `-app` Secret keep their names) with `storage.storageClass`
    set to the local class and `storage.size` below the partition
-   (`8Gi` and `2Gi`; the PV reports filesystem capacity, and a claim of the partition size never binds),
+   (`5Gi` for both; the PV reports filesystem capacity, and a claim of the partition size never binds),
    `instances: 3`, `podAntiAffinityType: required`, `postgresql.synchronous` with `method: any` and `number: 1`,
-   `max_slot_wal_keep_size: 1GB`, `imageName` pinned to the archive's Postgres major, Zitadel's
+   `max_slot_wal_keep_size: 512MB` and `max_wal_size: 1GB`, `imageName` pinned to the archive's Postgres major, Zitadel's
    `enableSuperuserAccess: true` kept, `bootstrap.recovery` from the store with `recovery.database` and
    `recovery.owner` set (recovery does not inherit `initdb`'s names), and a new `serverName`. The regenerated Secret
    has a new password; the scale-up restarts the app with it. Resume Flux.
@@ -138,11 +193,12 @@ a stand-in can do the rest once it is merged.
    so apply from git explicitly). Delete the old `Retain` volume after a month. Check: a pull succeeds and the blob is
    a file in the bucket
    directory. Stopped here: layout 2.
-6. **Records and models.** Decision 007 is the mechanism. New decisions for: databases
-   replicated on worker disks; the 16 GiB EPHEMERAL standard; versitygw as in-cluster S3; backups on Nexthop
-   Object Storage. README layout table; `bootstrap.sh` for the credentials and versitygw ordering. Publish
-   `@dataverket/omni` and `@dataverket/talosctl`, pull `@dataverket/omni` here, move the `omni` model to it, and
-   delete the bridge extension `extensions/models/omni_volumes.ts`.
+6. **Records and models.** Decision 007 is the mechanism. New decisions for: workers placed by a Nova server
+   group and replaced through Omni, never changed in place; databases replicated on worker disks; the 16 GiB
+   EPHEMERAL standard; versitygw as in-cluster S3; backups on Nexthop Object Storage. README layout table; `bootstrap.sh` for the credentials and versitygw ordering. Publish
+   `@dataverket/omnictl` (2026-09-20: the `omni` extension renamed after its CLI, `inventory` and `cluster` model
+   types) and `@dataverket/openstack` with `hostId`, pull both here in place of the source trees, and remove the
+   pulled `@dataverket/omni`.
 
 ## Operations after the change
 
@@ -150,13 +206,15 @@ a stand-in can do the rest once it is merged.
 Cinder detach and no taint in the path. Cinder-backed pods on that worker still need the `out-of-service` taint
 before they move. Losing all three workers at once loses the databases; the object store is the recovery.
 
-**Rebuilding a worker** does not self-heal for the databases. After a wipe and re-add under the same hostname the
-old local PV is still bound to the CNPG claim and points at an empty partition; CNPG will not re-clone into it.
-Sequence: `kubectl cnpg destroy <cluster> <n>` for that instance; the provisioner republishes the PV; CNPG joins
-a fresh replica. Check: three ready instances, lag zero.
+**Replacing a worker** is step 2's swap, and it is the only way a worker changes: a new machine in the group,
+the old one retired. It does not self-heal for the databases: the instance whose volume was on the old node keeps
+a claim bound to a `local` PV on a node that no longer exists (or, under a reused hostname, to an empty
+partition), and CNPG will not re-clone into it. Sequence: `kubectl cnpg destroy <cluster> <n>` for that instance,
+delete the orphaned PV, and CNPG joins a fresh replica on the new worker, where the required anti-affinity and the
+class's `WaitForFirstConsumer` put it. Check: three ready instances, lag zero, the new server in the group.
 
-**Changing EPHEMERAL later** is step 2 again. The user partitions behind it survive, but a smaller EPHEMERAL
-leaves a gap only a new partition can use; plan the cap once.
+**Changing EPHEMERAL later** is three swaps with a new patch; a machine never changes its layout in place, so
+the gap a shrunk EPHEMERAL would leave never arises. Plan the cap once anyway: a swap moves every replica.
 
 **Alerts, five:** CNPG last successful backup older than 36 hours; any volume, user volumes included, above 70
 percent (`fleet-volumes` on a schedule feeds it for the worker disks); WAL retained by a replication slot above
@@ -191,7 +249,8 @@ are large, everything else as user volumes.
 ## Not in this plan
 
 Compute is 4,596/month against 772 for volumes; public IPs and load balancers are on top. The three control
-planes stay three: etcd replicates for quorum and API availability. That is a separate conversation.
+planes stay three: etcd replicates for quorum and API availability. That is a separate conversation, and so is
+their placement: they are in no server group either, and placing one is an etcd member replacement.
 
 ## Placement today
 
@@ -204,22 +263,22 @@ planes stay three: etcd replicates for quorum and API availability. That is a se
 | Runner, org | docker-lib cache (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3, disposable | wrkr-1 |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3 | wrkr-3 |
 | Control planes ×3 | Talos system, etcd | flavor root disk, EPHEMERAL 21 GiB | c5.large | 3 × 25 GiB | 1.1 GiB | etcd ×3, disk unknown | ctrl-1..3 |
-| Workers ×3 | Talos system, images, logs | flavor root disk, EPHEMERAL 26 GiB | m5.large | 3 × 30 GiB | 5.5, 5.5, 8.4 GiB | disk unknown | wrkr-1..3 |
+| Workers ×3 | Talos system, images, logs | flavor root disk, EPHEMERAL 26 GiB | m5.large | 3 × 30 GiB | 5.5, 5.5, 8.4 GiB | disk unknown, no server group | wrkr-1..3 |
 | Backups | | none | | | | | |
 
 ## Placement planned
 
 | Service | Component | Storage | Class, tier | Size | Redundancy | Backup |
 |---|---|---|---|---|---|---|
-| Forgejo | postgres, CNPG ×3 | worker root disk, `u-pg-forgejo` | `pg-forgejo-storage`, local | 3 × ~9 GiB, claim 8Gi | app ×3, one per worker | Barman to Nexthop Object Storage, PITR |
+| Forgejo | postgres, CNPG ×3 | worker root disk, `u-pg-forgejo` | `pg-forgejo-storage`, local | 3 × ~6 GiB, claim 5Gi | app ×3, one per worker | Barman to Nexthop Object Storage, PITR |
 | Forgejo | repositories | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | restic to Nexthop Object Storage |
 | Forgejo | LFS, attachments, packages (later) | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | restic of the directory tree, when populated |
-| Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 3 GiB, claim 2Gi | app ×3, one per worker | Barman to Nexthop Object Storage, PITR |
+| Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 6 GiB, claim 5Gi | app ×3, one per worker | Barman to Nexthop Object Storage, PITR |
 | versitygw | gateway root, IAM dir, versioning dir | Cinder | `csi-cinder-standard-retain`, Standard, xfs | 100 GB | Cinder ×3 | see rows above |
 | zot | blobs | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | none, rebuildable |
 | zot | working dir | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | none |
 | Runner, org | docker-lib cache | Cinder, or root disk if local | SSD, or decision 007 | 20 GB | disposable | none |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | Cinder ×3 | none |
 | Control planes ×3 | Talos, etcd | flavor root disk, EPHEMERAL default | c5.large | 3 × 25 GiB | etcd ×3 | Omni etcd backups (decision 001) |
-| Workers ×3 | Talos, images | flavor root disk, EPHEMERAL 16 GiB | m5.large | 3 × 30 GiB | none needed | none |
+| Workers ×3, anti-affinity group | Talos, images | flavor root disk, EPHEMERAL 16 GiB | m5.large, one per hypervisor | 3 × 30 GiB | none needed | none |
 | Backups | CNPG archives, restic repos | Nexthop Object Storage | 0.49/GB | ~15 GB | provider | is the backup |
