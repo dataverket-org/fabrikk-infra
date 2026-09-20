@@ -1,18 +1,46 @@
-# backup/hov1: the hov1 site
+# Site: hov1
 
-The backup target for dataverket-prod: the versitygw stack of `../versitygw` at `213.128.185.82:443`, written to by
-the CNPG Barman Cloud plugin and by restic. It is the copy that lives in a different building, on a different network,
-under a different provider's mistakes. The stack, its scripts and the account handover are documented in
-`../versitygw/README.md`; this directory is what makes it hov1: `.env` (from `.env.example`, never committed),
-`certs/ca.crt` (committed, pinned by the cluster). What is written here, by whom, into which bucket, is the table in
-`../README.md`.
+The first instance of the stack in `../versitygw/`, and the backup target of dataverket-prod. What is written here and
+by whom: `../README.md`. How the stack runs and every runbook: `../versitygw/README.md`. This page holds only what makes
+the site hov1.
 
-The site's public facts, root, endpoint and region, are `hov1-s3` in each writing namespace. On the host:
-`cp .env.example .env`, fill it in, create the two directories on an xattr filesystem, forward 443, then
-`../versitygw/bin/cert`, and the stack is up. If the address ever changes, the certificate and the `hov1-s3` Secrets
-change with it, a plaintext diff; a name (`s3.hov1.dvkt.no`, set through DirectAdmin's DNS API for `dvkt.no`) is the
-day that stops being true, and is not needed before.
+## Facts
 
-Backups of the gateway itself: none, it is the backup. If the host or the disk under `DATA_DIR` is lost, the cluster
-still runs; the runbook in `../versitygw/README.md` brings a new one up, and the next base backup refills the buckets.
-A second copy elsewhere is a decision for the plan, not for this directory.
+| | |
+|---|---|
+| Endpoint | `https://213.128.185.82:443`, path-style |
+| Region | `us-east-1` |
+| Trust | step-ca root in `certs/ca.crt`, delivered as Secret `hov1-s3` to `forgejo` and `zitadel` |
+| Buckets | `cnpg-forgejo`, `cnpg-zitadel`, `restic-forgejo`; one account each, named after the bucket |
+| Host | The hov1 site, Docker Compose 2.24 or newer; port 443 forwarded to the gateway |
+| Data | `DATA_DIR` and `VERSIONS_DIR` per `.env`, on an xattr filesystem |
+| Name | None. `s3.hov1.dvkt.no` through DirectAdmin's DNS API for `dvkt.no` is the day an address change should not touch every client; not needed before |
+
+## Files
+
+| File | Committed | Purpose |
+|---|---|---|
+| `compose.yaml` | yes | Includes `../versitygw/compose.yaml` with this directory as project directory |
+| `.env.example` | yes | Template for `.env` |
+| `.env` | never | The site's values, root key pair and CA password; also in the operator's password manager |
+| `certs/ca.crt` | yes | The CA root every client pins |
+| `certs/tls.*` | never | The gateway's certificate and key, written by `bin/cert` and the renewer |
+
+## Bring-up
+
+1. `cp .env.example .env`; fill it in.
+2. On the host: create `DATA_DIR` and `VERSIONS_DIR`; forward 443.
+3. `../versitygw/bin/cert`.
+4. Commit `certs/ca.crt`.
+5. Writers: `../versitygw/README.md`, runbook "Add a writer", for `forgejo` and `zitadel`.
+
+## When the address changes
+
+`../versitygw/README.md`, runbook "Change the address": new `S3_ADDR`, `bin/cert`, `bin/site-secret` into
+`apps/forgejo/hov1-s3.yaml` and `apps/zitadel/hov1-s3.yaml`, commit. The certificate and two plaintext Secrets change;
+no writer key does.
+
+## When the host is lost
+
+The cluster keeps running; only the target is gone. `../versitygw/README.md`, runbook "Site host lost". Until the next
+base backup completes there is no restorable copy.
