@@ -4,4 +4,7 @@ resources:
   - namespace.yaml
   - repo.yaml
   - postgres.yaml
+  - hov1-s3.yaml
+  - s3-cnpg-forgejo.enc.yaml
+  - backup.yaml
   - release.yaml

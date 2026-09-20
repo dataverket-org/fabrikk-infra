@@ -4,6 +4,7 @@ resources:
   - occm
   - cinder-csi-provider
   - cnpg-operator
+  - cnpg-barman-plugin
   - envoy
   - cert-manager
   - nordhost-webhook

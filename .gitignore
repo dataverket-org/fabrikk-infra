@@ -25,7 +25,7 @@ create-zitadel-master-key.sh
 vaults/*.plain.tmp
 _bin/
 
-# Backup sites (backup/<site>): .env and the gateway's key and certificate stay on the host; step-ca's root is committed.
+# Backup sites (backup/<site>): .env and the gateway's key and certificate and the CA key stay on the host; the CA root is committed.
 backup/*/.env
 backup/*/certs/*
 !backup/*/certs/ca.crt

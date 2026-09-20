@@ -7,6 +7,14 @@ spec:
   instances: 3
   storage:
     size: 32Gi
+  # WAL archiving and base backups to the hov1 site through the Barman Cloud plugin (backup.yaml). Adding this
+  # gives every instance a plugin sidecar, which is a rolling restart and one primary switchover.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: hov1
+        serverName: zitadel-db
   enableSuperuserAccess: true
   bootstrap:
     initdb:

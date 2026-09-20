@@ -11,13 +11,23 @@ set -eu
 set -a; . ./.env; set +a
 bucket=${1:?bucket}; namespace=${2:?namespace}; rotate=${3:-}
 secret=$(head -c 30 /dev/urandom | base64 | tr -d '/+=' | head -c 40)
+# The root key pair stays inside the container: the admin CLI reads it from the environment versitygw itself was
+# started with, and the new account's secret arrives on stdin. Nothing secret is ever an argument on the host,
+# where a failing command is echoed with its arguments.
 admin() {
-  docker compose exec -T versitygw versitygw admin \
-    -a "$ROOT_ACCESS_KEY" -s "$ROOT_SECRET_KEY" -r "$REGION" -er http://localhost:7071 "$@"
+  docker compose exec -T versitygw sh -c \
+    'exec versitygw admin -a "$ROOT_ACCESS_KEY" -s "$ROOT_SECRET_KEY" -r "$0" -er http://localhost:7071 "$@"' \
+    "$REGION" "$@"
 }
 if [ "$rotate" = "--rotate" ]; then admin delete-user -a "$bucket" >&2; fi
-admin create-user -a "$bucket" -s "$secret" -r user >&2
-admin create-bucket -b "$bucket" -o "$bucket" >&2 2>/dev/null || admin change-bucket-owner -b "$bucket" -o "$bucket" >&2
+printf '%s\n' "$secret" | docker compose exec -T versitygw sh -c \
+  'read -r s; exec versitygw admin -a "$ROOT_ACCESS_KEY" -s "$ROOT_SECRET_KEY" -r "$0" -er http://localhost:7071 create-user -a "$1" -s "$s" -r user' \
+  "$REGION" "$bucket" >&2
+if admin list-buckets 2>/dev/null | awk 'NR>2 {print $1}' | grep -qx "$bucket"; then
+  admin change-bucket-owner -b "$bucket" -o "$bucket" >&2
+else
+  admin create-bucket --bucket "$bucket" -o "$bucket" >&2
+fi
 cat <<YAML
 apiVersion: v1
 kind: Secret
