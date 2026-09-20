@@ -34,13 +34,34 @@ The reasons behind each step are in `docs/decisions/`.
 
 ## Secrets
 
-Secrets are committed as `*.enc.yaml` Secret manifests, encrypted with SOPS to the recipients in `.sops.yaml` (the
-cluster key plus the attesters' YubiKeys), with only `data`/`stringData` encrypted. Flux decrypts on apply; nothing
-else ever decrypts them. Charts and workloads take secrets by reference (`existingSecret`, `secretKeyRef`, a mounted
-Secret), never as inline values.
+Two SOPS setups live here, with different readers and different recipients. `.sops.yaml` holds both, one creation
+rule each, and names every recipient in its comments. Public keys only; the file is safe to commit.
+
+| Setup | Files | Who decrypts | Recipients |
+|---|---|---|---|
+| Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | The cluster key (`flux-system/sops-age`, generated in-cluster, decision 001) and each human operator's YubiKey |
+| Swamp vault | `vaults/infra.enc.json` | The swamp models in `models/`, on every run | Each human operator's YubiKey and the factory host's soft key |
+
+**Cluster files** are Secret manifests with only `data`/`stringData` encrypted, so kind, name and namespace stay
+readable and diffs stay meaningful. Flux decrypts them on apply; nothing else ever does. Charts and workloads take
+secrets by reference (`existingSecret`, `secretKeyRef`, a mounted Secret), never as inline values. The humans are
+recipients so that the files can be edited and re-encrypted; the factory host is not, so no unattended process can
+read a cluster secret.
+
+**The swamp vault** holds the credentials the operating models use (decision 006): the forge token, the Omni service
+account keys, the registry push credential. The `@zocc/sops-age` vault type carries its own recipient list in
+`vaults/@zocc/sops-age/*.yaml` (`agePublicKey`) and ignores `.sops.yaml`; every write re-encrypts the whole file to
+that list. The second rule in `.sops.yaml` repeats the same recipients so that `sops vaults/infra.enc.json` from a
+terminal encrypts to the same set. The factory host's soft key is a recipient so that scheduled runs decrypt
+unattended; it is never a recipient of a cluster file.
+
+**Adding an operator** is therefore two edits and two re-encryptions: their key in both rules of `.sops.yaml` and
+in the vault's `agePublicKey`; `sops updatekeys` on every cluster file, with a YubiKey that is already a recipient;
+and one `swamp vault put` of any key, which rewrites the vault to the new list (the provider cannot delete, so
+`recipients/reencrypt` is the marker of the last such write). Removing one is the same with the key taken out.
 
 This repository owns a credential. When the software factory needs the same value, it is copied from here into the
-factory's vault, never the other way around.
+factory's vault, never the other way around (decision 005).
 
 Not migrated yet: the Forgejo admin, mailer, and OAuth secrets, the Zitadel masterkey, the runner registration
 token, and `cloud.conf` are still created by hand (see `apps/forgejo/*.example.yaml`). They move here one at a time.
@@ -87,8 +108,8 @@ so run the workflow rather than the model's methods alone. Its `reset`, `upgrade
 `volumes`, `version` and `services` do not.
 
 Kube contexts come from your default kubeconfig (`fabrikk-readers` for reading, `dataverket-prod-admin` for
-changes); model definitions name contexts, never paths. The vault decrypts with a YubiKey or the factory host's soft
-key; `swamp vault list-keys infra` shows what it holds.
+changes); model definitions name contexts, never paths. The vault decrypts with an operator's YubiKey or the factory host's
+soft key, see Secrets above; `swamp vault list-keys infra` shows what it holds.
 
 ## Decisions
 

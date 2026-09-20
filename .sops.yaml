@@ -6,6 +6,7 @@
 # - age1yubikey1...  beddari, YubiKey serial 19668198 (PIN once, touch always)
 # - age1g3x9w...      dataverket-prod, Secret flux-system/sops-age, generated in-cluster 2026-09-17
 # - age15d64...      fabrikk, the factory host's soft key; decrypts the swamp vault unattended, never a cluster file
+# - age1yubikey1qwt.. Linus Johansen, YubiKey; the swamp vault and the cluster files, since 2026-09-20
 #
 # The swamp vault (vaults/infra.enc.json) carries the human and factory-host recipients in its own config and ignores
 # this file; the second rule makes `sops vaults/infra.enc.json` from a terminal encrypt to the same two.
@@ -14,8 +15,10 @@ creation_rules:
     encrypted_regex: ^(data|stringData)$
     age: >-
       age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,
-      age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
+      age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy,
+      age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
   - path_regex: vaults/.*\.enc\.json(\.plain\.tmp)?$
     age: >-
       age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,
-      age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
+      age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v,
+      age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
