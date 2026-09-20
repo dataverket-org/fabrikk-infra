@@ -1,0 +1,90 @@
+# An S3 endpoint from one directory: versitygw with the posix backend, TLS from a step-ca that lives beside it, and
+# a renewer that keeps the certificate fresh. Nothing in this file names a site. Every value comes from the site's
+# .env, and the site's compose.yaml includes this one with the site directory as the project directory, so ./certs
+# below is the site's certs. Needs Docker Compose 2.24 or newer (include, inline configs).
+
+services:
+  versitygw:
+    image: versity/versitygw:v1.8.0
+    container_name: ${SITE:?set in .env}-versitygw
+    restart: unless-stopped
+    command:
+      - --port=:7070
+      - --cert=/certs/tls.crt
+      - --key=/certs/tls.key
+      - --iam-dir=/iam
+      - --region=${REGION:?set in .env}
+      - --health=/health
+      # The admin API (create-user and friends) is a separate plain-HTTP listener; it is never published, so only
+      # this stack's containers reach it, and bin/user talks to it from inside this one.
+      - --admin-port=:7071
+      - posix
+      - --versioning-dir=/versions
+      - /data
+    environment:
+      ROOT_ACCESS_KEY: ${ROOT_ACCESS_KEY:?set in .env}
+      ROOT_SECRET_KEY: ${ROOT_SECRET_KEY:?set in .env}
+    ports:
+      - "${LISTEN:-0.0.0.0}:${PORT:-443}:7070"
+    volumes:
+      - ${DATA_DIR:?set in .env}:/data
+      - ${VERSIONS_DIR:?set in .env}:/versions
+      - iam:/iam
+      - ./certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "--no-check-certificate", "https://127.0.0.1:7070/health"]
+      interval: 1m
+
+  # The site's CA. Initialises itself on first start (root, intermediate, one JWK provisioner named admin), listens
+  # on 9000 inside the compose network only, and never touches the certs directory: bin/cert asks it for a token
+  # and step-renew does the writing. Its root certificate is what every client of the gateway pins.
+  step-ca:
+    image: smallstep/step-ca:0.30.2
+    container_name: ${SITE}-step-ca
+    restart: unless-stopped
+    environment:
+      DOCKER_STEPCA_INIT_NAME: ${SITE}
+      DOCKER_STEPCA_INIT_DNS_NAMES: step-ca,localhost
+      DOCKER_STEPCA_INIT_PROVISIONER_NAME: admin
+      DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT: "true"
+      DOCKER_STEPCA_INIT_PASSWORD: ${STEP_CA_PASSWORD:?set in .env}
+    volumes:
+      - step:/home/step
+    healthcheck:
+      test: ["CMD", "step", "ca", "health"]
+      interval: 30s
+
+  # Renews the gateway's certificate at two thirds of its lifetime (mTLS with the current one, no password) and
+  # sends versitygw SIGHUP, which makes it reload its certificate and key. It shares versitygw's pid namespace for
+  # that signal and nothing else: no Docker socket. Root, to signal a root process and to write into certs/.
+  step-renew:
+    image: smallstep/step-cli:0.30.6
+    container_name: ${SITE}-step-renew
+    restart: unless-stopped
+    user: "0"
+    pid: service:versitygw
+    depends_on:
+      step-ca:
+        condition: service_healthy
+      versitygw:
+        condition: service_started
+    environment:
+      STEP_CA_URL: https://step-ca:9000
+      STEP_ROOT: /certs/ca.crt
+    command: ["step", "ca", "renew", "--daemon", "--exec", "/renew-hook.sh", "/certs/tls.crt", "/certs/tls.key"]
+    configs:
+      - source: renew-hook
+        target: /renew-hook.sh
+        mode: 0555
+    volumes:
+      - ./certs:/certs
+
+configs:
+  renew-hook:
+    content: |
+      #!/bin/bash
+      exec pkill -HUP -x versitygw
+
+volumes:
+  iam:
+  step:
