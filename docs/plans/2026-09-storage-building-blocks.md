@@ -195,10 +195,10 @@ a stand-in can do the rest once it is merged.
    directory. Stopped here: layout 2.
 6. **Records and models.** Decision 007 is the mechanism. New decisions for: workers placed by a Nova server
    group and replaced through Omni, never changed in place; databases replicated on worker disks; the 16 GiB
-   EPHEMERAL standard; versitygw as in-cluster S3; backups on Nexthop Object Storage. README layout table; `bootstrap.sh` for the credentials and versitygw ordering. Publish
-   `@dataverket/omnictl` (2026-09-20: the `omni` extension renamed after its CLI, `inventory` and `cluster` model
-   types) and `@dataverket/openstack` with `hostId`, pull both here in place of the source trees, and remove the
-   pulled `@dataverket/omni`.
+   EPHEMERAL standard; versitygw as in-cluster S3; backups on Nexthop Object Storage. README layout table;
+   `bootstrap.sh` for the credentials and versitygw ordering. The models this plan runs on are published and
+   pulled from the registry since 2026-09-20: `@dataverket/omnictl` (`inventory` and `cluster`),
+   `@dataverket/openstack` with `hostId`, and `@dataverket/sops` under the vault.
 
 ## Operations after the change
 
