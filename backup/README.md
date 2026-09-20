@@ -1,46 +1,70 @@
 # Backups
 
-What is copied, from where, by what, to where, and how far back it reaches. The plan behind it is
-`docs/plans/2026-09-storage-building-blocks.md`, step 1; nothing here is applied yet. One rule shapes the table: the
-copy that matters lives outside the provider, on the hov1 site, and each writer owns one bucket there and nothing else.
+Status: **planned, nothing applied**. Design and sequencing: `docs/plans/2026-09-storage-building-blocks.md`, step 1.
+
+Every backup of dataverket-prod lands outside the provider, on the hov1 site, in one bucket per writer. This page is
+the map: what is copied, by what, to where, how far back, and what fires when it stops. How the target runs is in
+`versitygw/README.md`; what makes hov1 hov1 is in `hov1/README.md`.
+
+## Directory map
+
+| Path | Contents | Go here when |
+|---|---|---|
+| `README.md` | Sources, targets, retention, alerts | You need to know what is backed up or where a restore starts |
+| `versitygw/` | The S3 gateway stack (versitygw, step-ca, renewer) and its scripts; names no site | You operate the gateway: bring-up, accounts, certificates, recovery |
+| `hov1/` | The first site: `.env` (never committed), `certs/ca.crt` (committed), site facts | You touch the hov1 host or its address |
 
 ## Sources and targets
 
-| Source | In the cluster | Tool | Target bucket, account | Schedule, retention | Credentials |
+| Source | Namespace | Tool | Bucket and account on hov1 | Schedule and retention | Secrets read by the writer |
 |---|---|---|---|---|---|
-| Forgejo's Postgres (`Cluster forgejo-postgres`) | `forgejo` | CNPG Barman Cloud plugin | `cnpg-forgejo` on hov1, account `cnpg-forgejo` | daily base backup, continuous WAL, 14 days, point-in-time recovery | `forgejo/s3-cnpg-forgejo`, `forgejo/hov1-s3` |
-| Zitadel's Postgres (`Cluster zitadel-db`) | `zitadel` | CNPG Barman Cloud plugin | `cnpg-zitadel` on hov1, account `cnpg-zitadel` | daily base backup, continuous WAL, 14 days, point-in-time recovery | `zitadel/s3-cnpg-zitadel`, `zitadel/hov1-s3` |
-| Forgejo's repositories (PVC `gitea-shared-storage`) | `forgejo` | restic CronJob, pod-affine to the forgejo pod | `restic-forgejo` on hov1, account `restic-forgejo` | nightly, 30 daily and 6 monthly | `forgejo/s3-restic-forgejo`, `forgejo/hov1-s3`, the restic password |
-| Forgejo's LFS, attachments and packages, once on the in-cluster versitygw | `forgejo` | the same restic CronJob, as a directory tree | `restic-forgejo` on hov1 | with the repositories | as above |
-| etcd of the three control planes | `kube-system` | Omni | Omni's own backup store | Omni's schedule (decision 001) | Omni's |
+| Forgejo's Postgres, `Cluster forgejo-postgres` | `forgejo` | CNPG Barman Cloud plugin | `cnpg-forgejo` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-forgejo`, `hov1-s3` |
+| Zitadel's Postgres, `Cluster zitadel-db` | `zitadel` | CNPG Barman Cloud plugin | `cnpg-zitadel` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-zitadel`, `hov1-s3` |
+| Forgejo's repositories, PVC `gitea-shared-storage` | `forgejo` | restic CronJob, pod-affine to the forgejo pod | `restic-forgejo` | Nightly; 30 daily, 6 monthly | `s3-restic-forgejo`, `hov1-s3`, the restic password |
+| Forgejo's LFS, attachments, packages, once on the in-cluster versitygw | `forgejo` | The same restic CronJob, as a directory tree | `restic-forgejo` | With the repositories | As above |
+| etcd of the three control planes | `kube-system` | Omni | Omni's backup store | Omni's schedule, decision 001 | Omni's |
 
-Not copied anywhere, on purpose: the in-cluster versitygw volume (zot blobs: mirrors re-copy, artifacts come from
-git, product images rebuild), the runner caches, and the hov1 gateway itself (it is the backup; the runbook in
-`versitygw/README.md` rebuilds it and the next base backup refills it). Restores need the application secrets too,
-which is why the Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password are in
-`*.enc.yaml` before the first backup runs.
+Account names equal bucket names. Each account owns its bucket and sees nothing else.
+
+### Not backed up, on purpose
+
+| What | Why |
+|---|---|
+| The in-cluster versitygw volume (zot blobs) | Mirrors re-copy, artifacts come from git, product images rebuild |
+| Runner caches | Disposable |
+| The hov1 gateway itself | It is the backup; `versitygw/README.md` rebuilds it, the next base backup refills it |
+
+### Needed for any restore
+
+The Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password. They live in
+`*.enc.yaml` before the first backup runs; a backup without them restores nothing usable.
 
 ## Targets
 
-| Target | Where | Reached as | Trust | Second copy |
+| Target | Location | Endpoint | Trust | Second copy |
 |---|---|---|---|---|
-| hov1 | the hov1 site, `hov1/`, the stack of `versitygw/` | `https://213.128.185.82:443`, path-style, region `us-east-1` | step-ca's root, in the `hov1-s3` Secret of each writing namespace | none yet; Nexthop Object Storage by the same mechanism, a second `ObjectStore`, if the site proves unreachable too often |
-| Omni | Sidero's hosted Omni | by Omni | Omni | Omni's |
+| hov1 | The hov1 site, stack `versitygw/`, instance `hov1/` | `https://213.128.185.82:443`, path-style, region `us-east-1` | step-ca's root, in Secret `hov1-s3` of each writing namespace | None yet. Nexthop Object Storage as a second `ObjectStore` if the site proves unreachable too often |
+| Omni | Sidero's hosted Omni | Omni's | Omni | Omni's |
 
-Bucket versioning on hov1 is off (versitygw 1.8 has no lifecycle rules, and a bucket's owner could suspend it anyway),
-so retention is each writer's job: Barman's `retentionPolicy`, restic's `forget`. What protects an archive from a bad
-writer key is the second copy, or object lock the day it is wanted.
+### Retention and protection
 
-## Alarms that watch this
+- Retention is each writer's job: Barman's `retentionPolicy`, restic's `forget`.
+- Bucket versioning is **off**. versitygw 1.8 has no lifecycle rules, so versioning would keep every deleted object
+  forever, and a bucket's owner can suspend it anyway.
+- Protection against a leaked writer key is the second copy, or object lock the day it is wanted. Neither exists yet.
 
-WAL archiving failing for over two hours (the site unreachable; about twenty hours of headroom follow), the last
-successful base backup older than 36 hours, the certificate at the site expiring within seven days, a restic snapshot
-older than 48 hours. The restore drill, quarterly and timed, is the only proof any of it works.
+## Alerts
 
-## Layout
+| Alert | Threshold | Meaning | First action |
+|---|---|---|---|
+| CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so the 4.5 GiB of headroom lasts about a day, some 20 hours after this fires | Reach the site: `versitygw/README.md`, failure modes |
+| CNPG last successful base backup | Older than 36 hours | The `ScheduledBackup` did not complete | `kubectl cnpg status`, then the plugin's Backup objects |
+| Certificate at `213.128.185.82:443` | Expires within 7 days | Renewal at the site is failing; nothing at the site says so | `versitygw/README.md`, runbook "Reissue the certificate" |
+| restic snapshot | Older than 48 hours | The CronJob failed or cannot reach hov1 | The CronJob's last Job logs |
 
-| Path | What |
-|---|---|
-| `versitygw/` | The stack: versitygw with the posix backend, step-ca, a renewer, and the scripts; names no site |
-| `<site>/` | One instance: `compose.yaml` including the stack, `.env` (never committed), `certs/ca.crt` (committed) |
-| `hov1/` | The first site, the target above |
+## Restore
+
+The quarterly, timed restore drill is the only proof any of this works. Procedure and targets: the plan, step 1
+(`bootstrap.recovery` into a scratch namespace for each cluster, restic beside it, `psql` shows the application
+tables). Record the timings; the base backup's transfer time over the site's uplink is the number to know before an
+outage.
