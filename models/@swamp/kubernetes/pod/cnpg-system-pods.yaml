@@ -1,0 +1,10 @@
+type: '@swamp/kubernetes/pod'
+typeVersion: 2026.08.01.1
+id: 36254fe8-3787-4369-b1b7-bbae5823747b
+name: cnpg-system-pods
+version: 1
+tags: {}
+globalArguments:
+  namespace: cnpg-system
+  context: dataverket-prod-admin
+methods: {}
