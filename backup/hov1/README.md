@@ -4,15 +4,10 @@ The backup target for dataverket-prod: the versitygw stack of `../versitygw` at 
 the CNPG Barman Cloud plugin and by restic. It is the copy that lives in a different building, on a different network,
 under a different provider's mistakes. The stack, its scripts and the account handover are documented in
 `../versitygw/README.md`; this directory is what makes it hov1: `.env` (from `.env.example`, never committed),
-`certs/ca.crt` (committed, pinned by the cluster), and the buckets below.
+`certs/ca.crt` (committed, pinned by the cluster). What is written here, by whom, into which bucket, is the table in
+`../README.md`.
 
-| Bucket | Account | Writer | Secret in the cluster |
-|---|---|---|---|
-| `cnpg-forgejo` | `cnpg-forgejo` | Barman Cloud plugin, Forgejo's Postgres | `forgejo/s3-cnpg-forgejo` |
-| `cnpg-zitadel` | `cnpg-zitadel` | Barman Cloud plugin, Zitadel's Postgres | `zitadel/s3-cnpg-zitadel` |
-| `restic-forgejo` | `restic-forgejo` | restic, the Forgejo repositories | `forgejo/s3-restic-forgejo` |
-
-The site's public facts, root, endpoint and region, are `hov1-s3` in each of those namespaces. On the host:
+The site's public facts, root, endpoint and region, are `hov1-s3` in each writing namespace. On the host:
 `cp .env.example .env`, fill it in, create the two directories on an xattr filesystem, forward 443, then
 `../versitygw/bin/cert`, and the stack is up. If the address ever changes, the certificate and the `hov1-s3` Secrets
 change with it, a plaintext diff; a name (`s3.hov1.dvkt.no`, set through DirectAdmin's DNS API for `dvkt.no`) is the
