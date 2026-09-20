@@ -1,0 +1,10 @@
+type: '@swamp/kubernetes/event'
+typeVersion: 2026.08.01.1
+id: 4af48cf6-ce7d-4628-9979-2f96e813b661
+name: zitadel-events
+version: 1
+tags: {}
+globalArguments:
+  namespace: zitadel
+  context: dataverket-prod-admin
+methods: {}

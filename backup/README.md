@@ -1,6 +1,6 @@
 # Backups
 
-Status: **hov1 up since 2026-09-20; the Postgres writers are declared in `apps/` and arrive with their PR.** Design and
+Status: **live since 2026-09-20 21:10 UTC: both Postgres clusters archive WAL to hov1 continuously; daily base backups at 03:00 and 03:30 UTC, the first one taken the same evening.** Design and
 sequencing: `docs/plans/2026-09-storage-building-blocks.md`, step 1. The gateway's lifecycle is `docker compose` from
 the site directory; accounts and certificates are the scripts in `versitygw/bin`. A swamp model for the lifecycle is
 pending: the registry's `@smith/docker-compose` fails on current swamp and declares neither a repository to report to nor a license to fork under, so a `@dataverket` one is the

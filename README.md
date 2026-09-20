@@ -96,9 +96,10 @@ so that the factory holds no credential for this cluster. Run them from this che
 Flux model and `omnictl` and `talosctl` on `PATH` for the Omni and Talos models:
 
 ```sh
-swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, runner-pods, dataverket-prod-*
+swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, runner-pods, dataverket-prod-*, <namespace>-pods, forgejo-events
 swamp model method run forgejo health
 swamp model method run omni discover                  # the Talos fleet, read-only
+swamp model method run dataverket-prod-kustomizations reconcile --input name=apps --input namespace=flux-system --input withSource=true
 swamp workflow run fleet-volumes                      # every node's disks, partitions and EPHEMERAL usage, read-only
 swamp model method run runner-pods list               # context fabrikk-readers
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
