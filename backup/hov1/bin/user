@@ -1,0 +1,18 @@
+#!/bin/sh
+# Mint one IAM user for one bucket on the running gateway, and print the key pair once.
+# usage: bin/user <bucket>   (the user is named after the bucket; the bucket must exist, created with the root key)
+set -eu
+cd "$(dirname "$0")/.."
+set -a; . ./.env; set +a
+bucket=${1:?bucket}
+secret=$(head -c 30 /dev/urandom | base64 | tr -d '/+=' | head -c 40)
+# The admin API is the plain-HTTP listener on 7071, reachable only inside the container.
+docker compose exec versitygw versitygw admin \
+  -a "$ROOT_ACCESS_KEY" -s "$ROOT_SECRET_KEY" -er http://localhost:7071 \
+  create-user -a "$bucket" -s "$secret" -r user
+# A "user" role account sees only buckets created for it: the bucket is made with the root key and handed over.
+docker compose exec versitygw versitygw admin \
+  -a "$ROOT_ACCESS_KEY" -s "$ROOT_SECRET_KEY" -er http://localhost:7071 \
+  change-bucket-owner -b "$bucket" -o "$bucket"
+echo "access key: $bucket"
+echo "secret key: $secret"

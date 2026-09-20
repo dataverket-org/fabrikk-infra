@@ -1,0 +1,75 @@
+# The hov1 S3 endpoint: versitygw, posix backend, TLS from step-ca on the site (bin/cert issues, step-renew renews).
+# Everything variable is in .env (see .env.example); nothing in here is site-specific.
+name: hov1
+
+services:
+  versitygw:
+    image: versity/versitygw:v1.8.0
+    container_name: hov1-versitygw
+    restart: unless-stopped
+    command:
+      - --port=:7070
+      - --cert=/certs/tls.crt
+      - --key=/certs/tls.key
+      - --iam-dir=/iam
+      - --region=${REGION:-hov1}
+      # The admin API (create-user and friends) is a separate plain-HTTP listener; it is never published, so it is
+      # reachable only from inside the container, which is where bin/user talks to it.
+      - --admin-port=:7071
+      - posix
+      - --versioning-dir=/versions
+      - /data
+    environment:
+      ROOT_ACCESS_KEY: ${ROOT_ACCESS_KEY:?set in .env}
+      ROOT_SECRET_KEY: ${ROOT_SECRET_KEY:?set in .env}
+    ports:
+      - "${LISTEN:-0.0.0.0}:443:7070"
+    volumes:
+      - ${DATA_DIR:?set in .env}:/data
+      - ${VERSIONS_DIR:?set in .env}:/versions
+      - iam:/iam
+      - ./certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "versitygw", "--version"]
+      interval: 1m
+
+  # The site's CA. Initialises itself on first start (root, intermediate, one JWK provisioner named admin), listens
+  # on 9000 inside the compose network only. Its root certificate is what every client of the gateway pins.
+  step-ca:
+    image: smallstep/step-ca:0.30.2
+    container_name: hov1-step-ca
+    restart: unless-stopped
+    environment:
+      DOCKER_STEPCA_INIT_NAME: hov1
+      DOCKER_STEPCA_INIT_DNS_NAMES: step-ca,localhost
+      DOCKER_STEPCA_INIT_PROVISIONER_NAME: admin
+      DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT: "true"
+      DOCKER_STEPCA_INIT_PASSWORD: ${STEP_CA_PASSWORD:?set in .env}
+    volumes:
+      - step:/home/step
+      - ./certs:/certs
+    healthcheck:
+      test: ["CMD", "step", "ca", "health"]
+      interval: 30s
+
+  # Renews the gateway's certificate at two thirds of its lifetime (mTLS with the current one, no password) and
+  # restarts versitygw through the Docker socket, since versitygw reads its certificate at start only.
+  step-renew:
+    image: smallstep/step-cli:0.30.6
+    container_name: hov1-step-renew
+    restart: unless-stopped
+    depends_on:
+      step-ca:
+        condition: service_healthy
+    environment:
+      STEP_CA_URL: https://step-ca:9000
+      STEP_ROOT: /certs/ca.crt
+    command: ["step", "ca", "renew", "--daemon", "--exec", "/renew-hook.sh", "/certs/tls.crt", "/certs/tls.key"]
+    volumes:
+      - ./certs:/certs
+      - ./bin/renew-hook.sh:/renew-hook.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  iam:
+  step:

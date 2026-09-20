@@ -24,3 +24,8 @@ create-zitadel-master-key.sh
 # SOPS vault: plaintext scratch file written during vault put (vaults/*.enc.json is safe to commit)
 vaults/*.plain.tmp
 _bin/
+
+# The home site (backup/hov1): its secrets and the gateway key stay on the host; step-ca's root is committed.
+backup/hov1/.env
+backup/hov1/certs/*
+!backup/hov1/certs/ca.crt
