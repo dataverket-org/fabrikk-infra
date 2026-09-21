@@ -1,0 +1,28 @@
+# Restore test for zitadel-db: a one-instance scratch cluster in the same namespace, recovered from the hov1 archive to the
+# end of WAL. It reads the same ObjectStore and Secrets as production and writes nothing back: no plugins stanza, so
+# no WAL archiving and no base backups from it. Apply, wait for readiness, check the application tables, record the
+# time, delete. Same image as the source: recovery needs the same Postgres major.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: zitadel-db-restore-test
+  namespace: zitadel
+  labels:
+    dataverket.org/purpose: restore-test
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+  storage:
+    size: 5Gi
+  bootstrap:
+    recovery:
+      source: hov1-archive
+      database: zitadel
+      owner: zitadel
+  externalClusters:
+    - name: hov1-archive
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: hov1
+          serverName: zitadel-db
