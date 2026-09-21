@@ -1,6 +1,6 @@
 # Backups
 
-Status: **live since 2026-09-20 21:10 UTC: both Postgres clusters archive WAL to hov1 continuously; daily base backups at 03:00 and 03:30 UTC, the first one taken the same evening.** Design and
+Status: **live since 2026-09-20 21:10 UTC: both Postgres clusters archive WAL to hov1 continuously; daily base backups at 03:00 and 03:30 UTC; first restore test passed 2026-09-21.** Design and
 sequencing: `docs/plans/2026-09-storage-building-blocks.md`, step 1. The gateway's lifecycle is `docker compose` from
 the site directory; accounts and certificates are the scripts in `versitygw/bin`. A swamp model for the lifecycle is
 pending: the registry's `@smith/docker-compose` fails on current swamp and declares neither a repository to report to nor a license to fork under, so a `@dataverket` one is the
@@ -14,7 +14,9 @@ the map: what is copied, by what, to where, how far back, and what fires when it
 
 | Path | Contents | Go here when |
 |---|---|---|
-| `README.md` | Sources, targets, retention, alerts | You need to know what is backed up or where a restore starts |
+| `README.md` | Sources, targets, retention, alerts, restore-test log | You need to know what is backed up or where a restore starts |
+| `cnpg-backups.md` | The kubectl-only operator's guide to the Postgres backups: health check, logs, values, changes, restore, failure signatures | You are on call for the databases |
+| `restore-test/` | The restore-test Cluster manifests, one per production cluster | You run the quarterly restore test |
 | `versitygw/` | The S3 gateway stack (versitygw behind a private CA made with `step`) and its scripts; names no site | You operate the gateway: bring-up, accounts, certificates, recovery |
 | `hov1/` | The first site: `.env` (never committed), `certs/ca.crt` (committed), site facts | You touch the hov1 host or its address |
 
@@ -68,7 +70,12 @@ The Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the rest
 
 ## Restore
 
-The quarterly, timed restore drill is the only proof any of this works. Procedure and targets: the plan, step 1
-(`bootstrap.recovery` into a scratch namespace for each cluster, restic beside it, `psql` shows the application
-tables). Record the timings; the base backup's transfer time over the site's uplink is the number to know before an
-outage.
+The quarterly, timed restore test is the only proof any of it works. Procedure: `cnpg-backups.md`, "Restore";
+manifests: `restore-test/`. A scratch one-instance cluster beside each production cluster, recovered from hov1 to the end
+of WAL, checked with `psql` against production, deleted. Restic joins the restore test when the repositories are backed up.
+
+### Restore-test log
+
+| Date | Archive state | Apply to ready | Check | Result |
+|---|---|---|---|---|
+| 2026-09-21 06:29 UTC | 2 base backups and 113 WAL segments per cluster on hov1, newest base 03:00 and 03:30 UTC | 1 min 49 s, both clusters in parallel | forgejo: 128 public tables, 7 repositories, 4 users, newest action 2026-09-20 21:16 UTC; zitadel: 143 tables in 9 schemas, 1687 events, newest 2026-09-20 15:00 UTC. All equal to production at the same moment | Passed. Torn down 06:33 UTC, PVCs gone in 9 s; production untouched; the restore test wrote nothing to hov1 |

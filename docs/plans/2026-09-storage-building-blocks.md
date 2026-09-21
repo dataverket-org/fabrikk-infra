@@ -122,9 +122,9 @@ a stand-in can do the rest once it is merged.
    secrets, so the Zitadel masterkey, Forgejo's generated
    `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password go into `*.enc.yaml` first; the vault gets a copy
    the day a workflow restores (decision 005).
-   Then a restore drill of both clusters into a scratch namespace (`bootstrap.recovery` via
+   Then a restore test of both clusters into a scratch cluster beside each (`backup/restore-test/`, `bootstrap.recovery` via
    `externalClusters[].plugin`, a new `serverName` for the restored cluster's own archive), restic restored beside
-   it, timings recorded: the drill measures the site's uplink, and the base backup's transfer time is the number to
+   it, timings recorded: the restore test measures the site's uplink, and the base backup's transfer time is the number to
    know before an outage. Check: `psql` on each restored cluster shows the application tables. Stopped here: proven
    backups, off the provider. If the hov1 site proves unreachable too often, a second copy to Nexthop Object
    Storage is the same mechanism with a second `ObjectStore`, not a new plan.
@@ -276,7 +276,7 @@ are large, everything else as user volumes.
 ## Backups
 
 - **Databases:** Barman Cloud plugin to `213.128.185.82:443`, daily base, continuous compressed WAL, 14 days,
-  point-in-time recovery. Quarterly drill, timed. The only copy outside the provider.
+  point-in-time recovery. Quarterly restore test, timed. The only copy outside the provider.
 - **Repositories:** nightly restic of `gitea-shared-storage`, 30 daily and 6 monthly. Its snapshot time is the
   PITR target for the database when both must match.
 - **versitygw volume:** none while it holds only registry blobs (mirrors re-copy, artifacts come from git, product
