@@ -95,7 +95,7 @@ site=hov1; ns=forgejo; bucket=cnpg-forgejo
 ```
 
 Then add both files to `apps/<namespace>/kustomization.yaml` (it lists resources by name), commit, and point the writer
-at them: the CNPG `ObjectStore` reads `s3Credentials` from `s3-<bucket>` and `endpointCA` from `<site>-s3`; restic's
+at them: the CNPG `ObjectStore` reads `s3Credentials` from `s3-<bucket>` and `endpointCA` from `<site>-s3`; kopia's
 environment reads both. `--filename-override`, resolved from the repository root, is what makes sops pick the
 cluster-files rule; run from anywhere else and no rule matches.
 
@@ -105,7 +105,7 @@ another writer.
 ### Rotate a writer key
 
 Same pipeline as [Add a writer](#add-a-writer) with `--rotate` after the namespace, into the same file, then commit at
-once. The old key stops working the moment the new one is minted; WAL archiving and restic retry, so the gap is the
+once. The old key stops working the moment the new one is minted; WAL archiving and kopia retry, so the gap is the
 time until Flux applies the new Secret.
 
 ### Reissue the certificate
@@ -121,7 +121,7 @@ root (compromise, or the root itself expiring): `rm certs/ca.crt certs/ca.key`, 
 2. [Reissue the certificate](#reissue-the-certificate).
 3. For each writing namespace: `bin/site-secret` again into `apps/<namespace>/<site>-s3.yaml`, commit. A plaintext
    diff; no sops edit, since writer Secrets carry no endpoint.
-4. Verify the writers: the next WAL archive and the next restic run succeed.
+4. Verify the writers: the next WAL archive and the next kopia run succeed.
 
 ### Site host lost
 
@@ -179,7 +179,7 @@ Every client signs with `REGION`; the gateway rejects any other region on the da
 
 | Symptom | Likely cause | Action |
 |---|---|---|
-| Cluster alert: WAL archiving failing, restic snapshots stale | Site unreachable: host down, uplink down, port forward lost, address changed | On the host `docker compose ps`; from outside `curl --cacert certs/ca.crt https://$S3_ADDR/health`. Headroom is about a day of WAL |
+| Cluster alert: WAL archiving failing, kopia snapshots stale | Site unreachable: host down, uplink down, port forward lost, address changed | On the host `docker compose ps`; from outside `curl --cacert certs/ca.crt https://$S3_ADDR/health`. Headroom is about a day of WAL |
 | Cluster alert: certificate expires within 30 days | Three years are up, or the root is | [Reissue the certificate](#reissue-the-certificate) |
 | Writers get `403` / `MalformedAuth.IncorrectRegion` | Client region differs from `REGION` | Set the writer's region from the `<site>-s3` Secret |
 | Writer gets `NoSuchBucket` after a host rebuild | `DATA_DIR` lost; buckets are directories in it | [Site host lost](#site-host-lost) step 3 recreates them |

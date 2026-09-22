@@ -11,7 +11,7 @@ the site hov1.
 | Endpoint | `https://213.128.185.82:443`, path-style |
 | Region | `us-east-1` |
 | Trust | The site's private CA root in `certs/ca.crt`, made 2026-09-20 with `step`, valid three years; delivered as Secret `hov1-s3` to `forgejo` and `zitadel` |
-| Buckets | `cnpg-forgejo`, `cnpg-zitadel`, `restic-forgejo`; one account each, named after the bucket |
+| Buckets | `cnpg-forgejo`, `cnpg-zitadel`, `files-forgejo` (planned); one account each, named after the bucket |
 | Host | The hov1 site, Docker Compose 2.24 or newer; port 443 forwarded to the gateway |
 | Data | `DATA_DIR` and `VERSIONS_DIR` per `.env`, on an xattr filesystem |
 | Name | None. `s3.hov1.dvkt.no` through DirectAdmin's DNS API for `dvkt.no` is the day an address change should not touch every client; not needed before |

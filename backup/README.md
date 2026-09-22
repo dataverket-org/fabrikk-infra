@@ -26,8 +26,8 @@ the map: what is copied, by what, to where, how far back, and what fires when it
 |---|---|---|---|---|---|
 | Forgejo's Postgres, `Cluster forgejo-postgres` | `forgejo` | CNPG Barman Cloud plugin | `cnpg-forgejo` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-forgejo`, `hov1-s3` |
 | Zitadel's Postgres, `Cluster zitadel-db` | `zitadel` | CNPG Barman Cloud plugin | `cnpg-zitadel` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-zitadel`, `hov1-s3` |
-| Forgejo's repositories, PVC `gitea-shared-storage` | `forgejo` | restic CronJob, pod-affine to the forgejo pod | `restic-forgejo` | Nightly; 30 daily, 6 monthly | `s3-restic-forgejo`, `hov1-s3`, the restic password |
-| Forgejo's LFS, attachments, packages, once on the in-cluster versitygw | `forgejo` | The same restic CronJob, as a directory tree | `restic-forgejo` | With the repositories | As above |
+| Forgejo's repositories, PVC `gitea-shared-storage` | `forgejo` | kopia CronJob, pod-affine to the forgejo pod; encrypted before it leaves the cluster | `files-forgejo` | Nightly; kopia policy 30 daily, 6 monthly | `s3-files-forgejo`, `hov1-s3`, the kopia repository password |
+| Forgejo's LFS, attachments, packages, once on the in-cluster versitygw | `forgejo` | The same kopia CronJob, as a directory tree | `files-forgejo` | With the repositories | As above |
 | etcd of the three control planes | `kube-system` | Omni | Omni's backup store | Omni's schedule, decision 001 | Omni's |
 
 Account names equal bucket names. Each account owns its bucket and sees nothing else.
@@ -42,7 +42,7 @@ Account names equal bucket names. Each account owns its bucket and sees nothing 
 
 ### Needed for any restore
 
-The Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password. They live in
+The Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the kopia repository password. They live in
 `*.enc.yaml` before the first backup runs; a backup without them restores nothing usable.
 
 ## Targets
@@ -54,7 +54,7 @@ The Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the rest
 
 ### Retention and protection
 
-- Retention is each writer's job: Barman's `retentionPolicy`, restic's `forget`.
+- Retention is each writer's job: Barman's `retentionPolicy`, kopia's policy and maintenance.
 - Bucket versioning is **off**. versitygw 1.8 has no lifecycle rules, so versioning would keep every deleted object
   forever, and a bucket's owner can suspend it anyway.
 - Protection against a leaked writer key is the second copy, or object lock the day it is wanted. Neither exists yet.
@@ -66,13 +66,13 @@ The Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the rest
 | CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so the 4.5 GiB of headroom lasts about a day, some 20 hours after this fires | Reach the site: `versitygw/README.md`, failure modes |
 | CNPG last successful base backup | Older than 36 hours | The `ScheduledBackup` did not complete | `kubectl cnpg status`, then the plugin's Backup objects |
 | Certificate at `213.128.185.82:443` | Expires within 30 days | The three-year certificate or root is running out; nothing at the site renews it | `versitygw/README.md`, runbook "Reissue the certificate" |
-| restic snapshot | Older than 48 hours | The CronJob failed or cannot reach hov1 | The CronJob's last Job logs |
+| kopia snapshot | Older than 48 hours | The CronJob failed or cannot reach hov1 | The CronJob's last Job logs |
 
 ## Restore
 
 The quarterly, timed restore test is the only proof any of it works. Procedure: `cnpg-backups.md`, "Restore";
 manifests: `restore-test/`. A scratch one-instance cluster beside each production cluster, recovered from hov1 to the end
-of WAL, checked with `psql` against production, deleted. Restic joins the restore test when the repositories are backed up.
+of WAL, checked with `psql` against production, deleted. kopia joins the restore test when the repositories are backed up.
 
 ### Restore-test log
 

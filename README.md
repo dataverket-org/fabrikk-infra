@@ -32,7 +32,7 @@ The reasons behind each step are in `docs/decisions/`.
 | `registry.dataverket.org` | Everything that pushes or pulls artifacts: CI, developers, other clusters, cosign | The registry's identity (TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
 | `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 004) |
 | `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to codeberg.org | The source of record |
-| `213.128.185.82:443` | CNPG's Barman Cloud plugin and restic, the backup writers | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |
+| `213.128.185.82:443` | CNPG's Barman Cloud plugin and kopia, the backup writers | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |
 
 ## Secrets
 
