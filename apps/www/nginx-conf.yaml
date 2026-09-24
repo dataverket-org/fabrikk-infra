@@ -1,0 +1,44 @@
+# The served configuration. It is a template, not a finished config: the image's entrypoint runs
+# /docker-entrypoint.d/20-envsubst-on-templates.sh over /etc/nginx/templates/*.template and writes the result to
+# /etc/nginx/conf.d/. Only names that exist in the environment are substituted, so ${SIGNAL_GROUP_LINK} is replaced
+# from the Secret while nginx's own $host and $request_uri survive untouched.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: www-nginx
+  namespace: www
+data:
+  default.conf.template: |
+    # signal.dataverket.org — a short, memorable link to the Dataverket Signal group.
+    #
+    # This is a pod rather than a Gateway API RequestRedirect filter because a Signal invite carries its payload in
+    # the URL fragment (https://signal.group/#...), and RequestRedirect can rewrite scheme, hostname, path, port and
+    # status code but has no fragment field. nginx puts the fragment in the Location header verbatim.
+    server {
+        listen 8080;
+        server_name signal.dataverket.org;
+
+        # Keep the quotes. Unquoted, nginx treats the invite's "#" as the start of a comment and silently
+        # redirects to a bare https://signal.group/ with the group payload stripped.
+        location / {
+            return 302 "${SIGNAL_GROUP_LINK}";
+        }
+    }
+
+    # Everything else that reaches the pod, and the home of the website when there is one. Replaces the default.conf
+    # the image ships, which the emptyDir over /etc/nginx/conf.d hides anyway.
+    server {
+        listen 8080 default_server;
+        server_name _;
+
+        # Probes arrive addressed to the pod IP, so they land here rather than in the server block above.
+        location = /healthz {
+            access_log off;
+            return 200 "ok\n";
+        }
+
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+        }
+    }
