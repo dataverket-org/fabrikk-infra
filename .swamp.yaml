@@ -5,3 +5,6 @@ tools:
   - claude
   - codex
 gitignoreManaged: true
+trustedCollectives:
+  - swamp
+  - dataverket
