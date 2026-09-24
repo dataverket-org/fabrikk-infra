@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: www
+  namespace: www
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: www
+  template:
+    metadata:
+      labels:
+        app: www
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.29.3-alpine@sha256:5aea7cc516b419e3526f47dd1531be31a56a046cfe44754d94f9383e13e2ee99
+          ports:
+            - name: http
+              containerPort: 8080
+          # SIGNAL_GROUP_LINK, substituted into the config template at start. envFrom is read once per container
+          # start, so rotating the invite needs a rollout: kubectl -n www rollout restart deploy/www.
+          envFrom:
+            - secretRef:
+                name: www-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: templates
+              mountPath: /etc/nginx/templates
+              readOnly: true
+            # The entrypoint renders the template into conf.d, and nginx wants a scratch cache and a place for its
+            # pid file. All three are writable because the root filesystem is not.
+            - name: conf
+              mountPath: /etc/nginx/conf.d
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: templates
+          configMap:
+            name: www-nginx
+        - name: conf
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

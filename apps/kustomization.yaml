@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - forgejo
   - forgejo-runners
+  - www
   - zitadel
   - zot
