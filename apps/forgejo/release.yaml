@@ -39,7 +39,10 @@ spec:
           ENABLE_BASIC_AUTHENTICATION: false
           DISABLE_REGISTRATION: false
           SHOW_REGISTRATION_BUTTON: false
-          ENABLE_NOTIFY_MAIL: true 
+          ENABLE_NOTIFY_MAIL: true
+        ui:
+          DEFAULT_THEME: dataverket-auto
+          THEMES: dataverket-auto,dataverket-light,dataverket-dark
       additionalConfigFromEnvs:
         - name: FORGEJO__DATABASE__PASSWD
           valueFrom:
@@ -56,6 +59,31 @@ spec:
             secretKeyRef:
               name: forgejo-mailer
               key: password
+    # The Dataverket theme (theme.yaml, theme-locale.yaml): four ConfigMaps
+    # mounted straight over Forgejo's own custom-path subdirectories, so a
+    # push to forgejo-theme's main lands without touching this HelmRelease.
+    extraVolumes:
+      - name: theme-css
+        configMap:
+          name: forgejo-theme-css
+      - name: theme-img
+        configMap:
+          name: forgejo-theme-img
+      - name: theme-fonts
+        configMap:
+          name: forgejo-theme-fonts
+      - name: theme-locale
+        configMap:
+          name: forgejo-theme-locale
+    extraContainerVolumeMounts:
+      - name: theme-css
+        mountPath: /data/gitea/public/assets/css
+      - name: theme-img
+        mountPath: /data/gitea/public/assets/img
+      - name: theme-fonts
+        mountPath: /data/gitea/public/assets/fonts
+      - name: theme-locale
+        mountPath: /data/gitea/options/locale
     tcpRoute:
       enabled: true
       parentRefs:

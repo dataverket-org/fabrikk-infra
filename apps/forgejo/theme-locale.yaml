@@ -1,0 +1,102 @@
+# The theme's landing-page copy (options/locale/) can't be tracked in git like
+# the rest of it: it's forgejo-theme's make-theme.py patching the en-US locale
+# extracted from the *exact* Forgejo binary version running here, and that
+# binary lives in this image, not in the forgejo-theme repo. So instead of a
+# Flux-sourced ConfigMap, a CronJob regenerates it in place on a schedule.
+#
+# It re-fetches make-theme.py fresh from git.dataverket.org every run, so a
+# copy change ships on the next tick with nothing to rebuild here. kubectl
+# picks up the pod's own service account automatically (in-cluster config),
+# so the ConfigMap apply needs no credentials handled in this script. apk
+# needs root to install python3/kubectl on this rootless image, hence
+# runAsUser: 0, scoped to this one throwaway Job.
+#
+# release.yaml mounts the resulting ConfigMap at /data/gitea/options/locale.
+# Forgejo loads locale strings at startup, unlike the CSS/logo/font
+# ConfigMaps it serves straight off disk, so a copy change only reaches
+# visitors after the pod's next restart - deliberately not automated here,
+# since that would mean this CronJob restarting the live git host on a timer.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: forgejo-theme-locale
+  namespace: forgejo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: forgejo-theme-locale
+  namespace: forgejo
+rules:
+  # create can't be scoped by resourceNames - the object doesn't exist yet -
+  # so this technically covers any ConfigMap name in the namespace.
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["forgejo-theme-locale"]
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: forgejo-theme-locale
+  namespace: forgejo
+subjects:
+  - kind: ServiceAccount
+    name: forgejo-theme-locale
+    namespace: forgejo
+roleRef:
+  kind: Role
+  name: forgejo-theme-locale
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: forgejo-theme-locale
+  namespace: forgejo
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: forgejo-theme-locale
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 0
+          containers:
+            - name: extract-and-patch
+              # Must match the Forgejo APP version actually running, which is
+              # the chart's appVersion default, not the chart version pinned
+              # in repo.yaml. Check with:
+              #   kubectl -n forgejo get deploy forgejo \
+              #     -o jsonpath='{.spec.template.spec.containers[0].image}'
+              image: code.forgejo.org/forgejo/forgejo:15.0.7-rootless
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  apk add --no-cache python3 curl >/dev/null
+                  curl -fsSLo /usr/local/bin/kubectl \
+                    "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                  chmod +x /usr/local/bin/kubectl
+
+                  curl -fsSLo /tmp/make_theme.py \
+                    https://git.dataverket.org/dataverket/forgejo-theme/raw/branch/main/make-theme.py
+                  python3 <<'PY'
+                  import sys
+                  sys.path.insert(0, '/tmp')
+                  import make_theme
+                  make_theme.locale('/usr/local/bin/forgejo')
+                  PY
+
+                  kubectl create configmap forgejo-theme-locale \
+                    --namespace forgejo \
+                    --from-file=/tmp/options/locale/locale_en-US.ini \
+                    --dry-run=client -o yaml \
+                  | kubectl apply -f -
