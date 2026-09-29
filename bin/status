@@ -9,7 +9,7 @@
 source "${0%/*}/../share/admin/admin.sh" || exit $?
 
 reads="$omniconfig, $kubeconfig, $talosconfig, $clouds,"
-reads="$reads $reader_key_file"
+reads="$reads $reader_key_file, $operator_key_file"
 
 #
 # Prints one line per tier 2 item: who owns it and how long it has left.
@@ -47,6 +47,14 @@ function tier2_status()
 		echo "  Omni reader key file: present, account has $(humanize "$left") left"
 	else
 		echo "  Omni reader key file: absent"
+	fi
+
+	if [[ -s "$operator_key_file" ]]; then
+		left="$(service_account_seconds_left "$id-operator")"
+		echo "  Omni operator key file: present, account has $(humanize "$left")" \
+		     "left; this session can change clusters"
+	else
+		echo "  Omni operator key file: absent, as an ordinary session has it"
 	fi
 
 	credential="$(current_credential_id)"

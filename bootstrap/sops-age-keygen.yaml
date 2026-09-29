@@ -1,7 +1,7 @@
 # The cluster's SOPS age key, generated inside the cluster, once. Applied by bootstrap.sh; Flux never reads this
 # directory. The private key is written straight into Secret flux-system/sops-age and exists nowhere else; the
 # recipient (public key) is published in ConfigMap flux-system/sops-age-recipient for .sops.yaml. A rerun while the
-# Secret exists is a no-op. See docs/decisions/001-sops-key-generated-in-cluster.md.
+# Secret exists is a no-op. See docs/decisions/003-cluster-sops-key-never-leaves-the-cluster.md.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

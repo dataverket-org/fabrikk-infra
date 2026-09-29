@@ -18,7 +18,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `artifacts/<name>/` | Nobody, from git | Sources of OCI config artifacts. Pushed with `artifacts/<name>/push.sh`, pulled by an `OCIRepository` declared under `apps/`. |
 | `bootstrap/` | `bootstrap.sh` | What must exist before the rest can be applied: the cluster's SOPS key, and zot from git until zot serves its own config. |
 | `Taskfile.yml`, `taskfiles/` | `task` | The commands of this repository, one namespace per group, one file per namespace. |
-| `bin/`, `share/admin/` | The `admin:` tasks | The operator's own sitting: the short-lived kube, talos, Omni and OpenStack credentials the models use. Runs as you, never as swamp. |
+| `bin/`, `share/admin/` | The `admin:` tasks | The operator's own session: the short-lived kube, talos, Omni and OpenStack credentials the models use. Runs as you, never as swamp. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
 
 ## Bootstrap and recovery
@@ -30,21 +30,24 @@ The reasons behind each step are in `docs/decisions/`.
 
 ## Commands
 
-`task` lists them. One namespace per group; the `admin:` group is the operator's own sitting on the factory host,
-the credentials the models then use by name. It runs with your Omni and OpenStack logins, writes only config files
-in your home directory, and never touches the swamp vault. The design behind it, and what is not applied yet, is in
-`docs/plans/2026-09-credential-tiers.md`.
+`task` lists them. One namespace per group. The `admin:` group is one *session*: the stretch of a working day in
+which an operator has logged in and the short-lived credentials exist, opened deliberately and closed or expired at
+the end of it. The Proton Pass session, the shell it may open and the Omni login are parts of it, not other things
+with the same name. It runs on the swamp host with your own Omni and OpenStack logins, writes the credentials the
+models then use by name, touches only config files in your home directory, and never reads the swamp vault. The
+design behind it is `docs/plans/2026-09-credential-tiers.md`, and the second door is
+`docs/plans/2026-09-break-glass.md`.
 
 | Task | What |
 |---|---|
-| `task admin:login`, `task admin:logout` | Open and close the sitting: the Proton Pass session and the Omni login key. |
+| `task admin:login`, `task admin:logout` | Open and close the session: the Proton Pass session and the Omni login key. |
 | `task admin:status` | What the CLIs can reach right now: each credential, whether it is ours, and how long it has left. |
 | `task admin:renew` | Every credential of ours, in order, when any one of them is due. `RENEW=1` renews them now. |
 | `task admin:omni-key`, `admin:kube-admin`, `admin:kube-readers`, `admin:talos`, `admin:openstack` | One credential each, to run alone. |
 
 Settings are environment variables, not options: `RENEW=1`, `DEBUG=1`, `TIER2_TTL` for the shared lifetime.
-What this estate is, its cluster and the names its two logins go by, is not a setting but a fact, and
-`taskfiles/admin.yml` sets it; `bin/` and `share/admin/` name no estate of their own.
+What this repository administers, its cluster and the names its two logins go by, is not a setting but a fact,
+and `taskfiles/admin.yml` sets it; `bin/` and `share/admin/` name no cluster and no cloud of their own.
 
 Both logins are named, never addressed, the way a kube context is: the tasks pass `omnictl --context` and
 `openstack --os-cloud`, and each CLI reads the address and the identity out of your own config file. So the two
@@ -62,42 +65,58 @@ If your own config uses other names, export `OMNI_CONTEXT` or `OS_CLOUD`; a shel
 | Name | Used by | Why |
 |---|---|---|
 | `registry.dataverket.org` | Everything that pushes or pulls artifacts: CI, developers, other clusters, cosign | The registry's identity (TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
-| `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 004) |
+| `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 013) |
 | `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to codeberg.org | The source of record |
 | `213.128.185.82:443` | CNPG's Barman Cloud plugin and restic, the backup writers | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |
 
 ## Secrets
 
-Two SOPS setups live here, with different readers and different recipients. `.sops.yaml` holds both, one creation
-rule each, and names every recipient in its comments. Public keys only; the file is safe to commit.
+Two SOPS setups live here, with different readers and different recipients. One key per decrypting process, named
+after the process, and the name is what `.sops.yaml`, the vault config and decision 001 call it. `.sops.yaml` holds
+both stores, one creation rule each, and names every recipient in its comments. Public keys only; the file is safe
+to commit.
 
 | Setup | Files | Who decrypts | Recipients |
 |---|---|---|---|
-| Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | The cluster key (`flux-system/sops-age`, generated in-cluster, decision 001) and each human operator's YubiKey |
-| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | Each human operator's YubiKey and the factory host's soft key |
+| Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | `dataverket-prod` (Secret `flux-system/sops-age`, generated in-cluster, decision 003), `beddari`, `linus` |
+| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/keys.txt` on the swamp host), `beddari`, `linus` |
 
 **Cluster files** are Secret manifests with only `data`/`stringData` encrypted, so kind, name and namespace stay
 readable and diffs stay meaningful. Flux decrypts them on apply; nothing else ever does. Charts and workloads take
 secrets by reference (`existingSecret`, `secretKeyRef`, a mounted Secret), never as inline values. The humans are
-recipients so that the files can be edited and re-encrypted; the factory host is not, so no unattended process can
-read a cluster secret.
+recipients so that the files can be edited and re-encrypted; `swamp-fabrikk-infra` is not. What that buys is
+bounded and worth stating exactly: a leak of the swamp host's key opens the vault files, which are mirrored to
+codeberg with the rest of this repository, but not the cluster manifests beside them, and re-keying after such a
+leak is the vault alone. It does not keep the swamp host away from a live cluster Secret: an admin kubeconfig
+reaches every Secret through the API. What bounds that is decision 001's second invariant, that the credentials
+opening the door are minted, short-lived and logged at Omni, not the recipient list here.
 
-**The swamp vault** holds the credentials the operating models use (decision 006): the forge token, the Omni service
-account keys, the registry push credential. The `@dataverket/sops` vault type keeps one SOPS-encrypted file per
-secret under `vaults/infra/`, so a write touches one file, `git log` on a file is that secret's history, and a
-`put` needs only the recipients' public keys. Its recipient list lives in `vaults/@dataverket/sops/*.yaml`
-(`agePublicKey`) and it ignores `.sops.yaml`; the second rule there repeats the same recipients so that `sops` on a
-file under `vaults/` from a terminal encrypts to the same set. The factory host's soft key is a recipient so that
-scheduled runs decrypt unattended; it is never a recipient of a cluster file. A model whose output schema marks a
-field sensitive writes into this vault too, under a generated key; `swamp vault audit-trail --vault infra` shows
-who wrote what.
+**The swamp vault** holds the credentials the operating models use (decision 005): the forge and codeberg tokens,
+the GitHub mirror token, the registry push credential. Not the Omni keys: those are minted per session into a key
+file the definitions name, because a credential that can mint cluster admin must not sit where the host's own key
+opens it (decision 001). The `@dataverket/sops` vault type keeps one SOPS-encrypted file per secret under
+`vaults/infra/`, so a write touches one file, `git log` on a file is that secret's history, and a `put` needs only
+the recipients' public keys. Its recipient list lives in `vaults/@dataverket/sops/*.yaml` (`agePublicKey`) and it
+ignores `.sops.yaml`; the second rule there repeats the same recipients so that `sops` on a file under `vaults/`
+from a terminal encrypts to the same set. The swamp host's key is a file rather than a YubiKey, and is a recipient
+so that scheduled runs decrypt unattended; it is never a recipient of a cluster file. A model whose output schema
+marks a field sensitive writes into this vault too, under a generated key; `swamp vault audit-trail --vault infra`
+shows who wrote what.
+
+**Moving a value between the stores** is a human step, never an automated one. A value that has to exist in both
+is copied by a person with a YubiKey, from the store where it was born to the other, and the commit message says
+so. Which store is the origin follows from who consumes the value: a credential the cluster uses is born as a
+cluster manifest, one only swamp uses is born in the vault and never touches a cluster file, and one both use is
+born wherever it is created. The origin is the source of record and rotation starts there. Decision 001 states the
+rule and `bin/check-recipients` enforces it.
 
 **Adding an operator** is two edits and one re-encryption: their key in both rules of `.sops.yaml` and in the
 vault's `agePublicKey`, then `sops updatekeys` on every `*.enc.yaml` cluster file and every file under
 `vaults/infra/`, with a YubiKey that is already a recipient. Removing one is the same with the key taken out.
 
-This repository owns a credential. When the software factory needs the same value, it is copied from here into the
-factory's vault, never the other way around (decision 005).
+Decision 006 said the same thing about two repositories: a credential the cluster uses is authored here and the
+software factory copies it, never the other way around. Inside this repository it reads as "origin first", which
+is the rule above.
 
 Not migrated yet: the Forgejo admin, mailer, and OAuth secrets, the Zitadel masterkey, the runner registration
 token, and `cloud.conf` are still created by hand (see `apps/forgejo/*.example.yaml`). They move here one at a time.
@@ -110,7 +129,7 @@ the image pinned by digest; `push.sh` pushes the directory as it is, tagged with
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
 directory straight from the repository, without prune, until zot serves its first artifact, and again whenever a bad
-artifact leaves zot unable to serve (decisions 003 and 004). Nothing outside this cluster and this repository is
+artifact leaves zot unable to serve (decisions 011 and 013). Nothing outside this cluster and this repository is
 needed to recreate the registry. Verification with cosign is a TODO until the platform signing key exists.
 
 ## The registry
@@ -123,7 +142,7 @@ Cinder volume; the zot image itself comes from ghcr.io, pinned by digest.
 
 This repository is also a swamp repository: `models/` holds the instances a human uses to operate what is deployed
 here, `extensions/models/` their custom methods, `workflows/` the release runner, the forge-to-GitHub mirror and the
-fleet disk survey, and `vaults/infra.enc.json` the credentials (decision 006). They came from `fabrikk` on 2026-09-18
+fleet disk survey, and `vaults/infra.enc.json` the credentials (decision 005). They came from `fabrikk` on 2026-09-18
 so that the factory holds no credential for this cluster. Run them from this checkout, with `_bin` on `PATH` for the
 Flux model and `omnictl` and `talosctl` on `PATH` for the Omni and Talos models:
 
@@ -144,9 +163,11 @@ talosconfig are the `talosconfig-dataverket-prod` record that `omni talosconfig`
 so run the workflow rather than the model's methods alone. Its `reset`, `upgrade` and `patchConfig` change machines;
 `volumes`, `version` and `services` do not.
 
-Kube contexts come from your default kubeconfig (`fabrikk-readers` for reading, `dataverket-prod-admin` for
-changes); model definitions name contexts, never paths. The vault decrypts with an operator's YubiKey or the factory host's
-soft key, see Secrets above; `swamp vault list-keys infra` shows what it holds.
+Kube contexts come from your default kubeconfig (`dataverket-prod-readers` for reading, `dataverket-prod-admin`
+for changes), and `task admin:renew` mints both for the working day. A model definition names a context, or a key
+file the same session wrote, and never a secret value. The vault holds what a process consumes and decrypts with
+an operator's YubiKey or the swamp host's key, see Secrets above; `swamp vault list-keys infra` shows what it
+holds.
 
 ## Decisions
 

@@ -6,7 +6,7 @@
 
 #
 # Prints the URL the named omniconfig context reaches; nothing when the file or
-# the context is absent. This is where the estate answers, read from your own
+# the context is absent. This is where our Omni answers, read from your own
 # config rather than named by this repository, as the cloud's address is read
 # from your clouds.yaml entry.
 #
@@ -28,7 +28,7 @@ function require_omni_context()
 	case "$omni_url" in
 		""|null)
 			error "Omni context $omni_context is not in $omniconfig"
-			error "Create it once with: omnictl config new --url <this estate's Omni>"
+			error "Create it once with: omnictl config new --url <our Omni>"
 			error "The address is in this repository's README"
 			return 1
 			;;
@@ -90,15 +90,18 @@ function omni_login_expires()
 }
 
 #
-# Runs omnictl with the Reader key. With a service account key set, omnictl
-# ignores the omniconfig and takes its address from OMNI_ENDPOINT.
+# Runs omnictl with a service account key file. With a service account key set,
+# omnictl ignores the omniconfig and takes its address from OMNI_ENDPOINT.
 #
-function omni_as_reader()
+function omni_as_service_account()
 {
-	[[ -s "$reader_key_file" ]] || return 1
+	local file="$1"
+	shift
+
+	[[ -s "$file" ]] || return 1
 
 	OMNI_ENDPOINT="$omni_url" \
-	OMNI_SERVICE_ACCOUNT_KEY="$(cat "$reader_key_file")" \
+	OMNI_SERVICE_ACCOUNT_KEY="$(cat "$file")" \
 	run omnictl "$@"
 }
 
@@ -172,13 +175,14 @@ function service_account_seconds_left()
 }
 
 #
-# Writes the key out of omnictl's create output to the key file. It prints
+# Writes the key out of omnictl's create output to a key file. It prints
 # OMNI_ENDPOINT= and OMNI_SERVICE_ACCOUNT_KEY=<key> once, on stdout, and
 # everything else on stderr.
 #
-function write_reader_key()
+function write_key_file()
 {
 	local output="$1"
+	local file="$2"
 	local key
 
 	key="$(printf '%s\n' "$output" | sed -n 's/^OMNI_SERVICE_ACCOUNT_KEY=//p')"
@@ -188,10 +192,10 @@ function write_reader_key()
 		return 1
 	fi
 
-	mkdir -p "${reader_key_file%/*}" || return $?
-	printf '%s' "$key" >"$reader_key_file.tmp" || return $?
-	mv "$reader_key_file.tmp" "$reader_key_file" || return $?
-	log "Wrote $reader_key_file"
+	mkdir -p "${file%/*}" || return $?
+	printf '%s' "$key" >"$file.tmp" || return $?
+	mv "$file.tmp" "$file" || return $?
+	log "Wrote $file"
 }
 
 #
@@ -201,16 +205,18 @@ function write_reader_key()
 # as "recreate it" rather than as a failure. `retried` stops that at one
 # destroy, so a name Omni keeps refusing fails loudly instead of looping.
 #
-function create_reader_account()
+function create_service_account()
 {
 	local name="$1"
-	local retried="${2:-0}"
+	local role="$2"
+	local file="$3"
+	local retried="${4:-0}"
 	local output
 
 	if output="$(omni serviceaccount create "$name" \
-	             --use-user-role=false --role Reader --ttl "$tier2_ttl" 2>&1)"
+	             --use-user-role=false --role "$role" --ttl "$tier2_ttl" 2>&1)"
 	then
-		write_reader_key "$output" || return $?
+		write_key_file "$output" "$file" || return $?
 		return
 	fi
 
@@ -223,7 +229,7 @@ function create_reader_account()
 			warn "$name exists in Omni but the listing does not show it"
 			warn "Destroying and recreating it under the same name ..."
 			omni serviceaccount destroy "$name" >/dev/null || return $?
-			create_reader_account "$name" 1 || return $?
+			create_service_account "$name" "$role" "$file" 1 || return $?
 			;;
 		*)
 			error "$output"
@@ -233,25 +239,64 @@ function create_reader_account()
 }
 
 #
-# Renews the Reader service account by destroying and recreating it, and
-# writes its new key file. Not `omnictl serviceaccount renew`: that ignores
+# Renews a service account by destroying and recreating it, and writes its new
+# key file. Not `omnictl serviceaccount renew`: that ignores
 # --ttl and registers a one-year key (seen 2026-09-28), and Omni cannot drop
 # a single key, so a destroy is the only way to keep one short-lived key.
 # If the create fails after the destroy, the account is gone and the key file
 # is dead; the next run takes the create path and converges.
 #
-function renew_reader_account()
+function renew_service_account()
 {
 	local name="$1"
+	local role="$2"
+	local file="$3"
 
 	omni serviceaccount destroy "$name" >/dev/null || return $?
-	create_reader_account "$name" 1 || return $?
+	create_service_account "$name" "$role" "$file" 1 || return $?
 }
 
 #
-# Checks that the Reader key file authenticates.
+# Brings a service account and its key file to current: created when Omni does
+# not list it, renewed when it is due or when the key file no longer
+# authenticates, left alone otherwise. Safe to call at any time.
 #
-function reader_key_works()
+function ensure_service_account()
 {
-	omni_as_reader get clusters >/dev/null 2>&1
+	local name="$1"
+	local role="$2"
+	local file="$3"
+
+	local left reason
+
+	log "Omni service account $name, role $role, $tier2_ttl ..."
+
+	if ! service_account_listed "$name"; then
+		log "Creating $name ..."
+		create_service_account "$name" "$role" "$file" || return $?
+	else
+		left="$(service_account_seconds_left "$name")"
+
+		if reason="$(renew_now "$left")"; then
+			log "$name $reason; renewing ..."
+			renew_service_account "$name" "$role" "$file" || return $?
+		elif ! service_account_works "$file"; then
+			log "$file is missing or does not authenticate; renewing ..."
+			renew_service_account "$name" "$role" "$file" || return $?
+		else
+			log "$name has $(humanize "$left") left and its key file answers"
+		fi
+	fi
+
+	service_account_works "$file"
+}
+
+#
+# Checks that a service account key file authenticates.
+#
+function service_account_works()
+{
+	local file="$1"
+
+	omni_as_service_account "$file" get clusters >/dev/null 2>&1
 }

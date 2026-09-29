@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#
+# The Omni Operator service account for this repository and its key file, which
+# only the mutating omni model names. It is tier 2 like the Reader key and
+# under the same lifetime, but it is minted deliberately rather than with the
+# rest: an ordinary session holds no key that can change a cluster, and
+# `task admin:logout` removes this one. Run it when you are about to change a
+# cluster. Safe to rerun at any time.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+announce_files "$omniconfig" "$operator_key_file"
+require_tools omnictl || exit $?
+require_omni_context || exit $?
+
+warn "This key can change every cluster at $omni_url"
+warn "It lives $tier2_ttl and is removed by task admin:logout"
+
+ensure_service_account "$id-operator" Operator "$operator_key_file" ||
+	fail "The Operator key does not list clusters at $omni_url!"
+log "Operator key answers at $omni_url; omni-cluster methods can run"

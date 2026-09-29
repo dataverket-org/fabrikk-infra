@@ -1,5 +1,10 @@
 # shellcheck shell=bash
 #
+# Logging for every script in bin/, sourced and never run. Four functions print
+# one string: log to stdout, warn and error to stderr, debug only when
+# enable_debug is 1. run calls debug then the command, so --debug shows every
+# external call. fail prints and exits, and is the one function here that does.
+#
 # Prints a log message.
 #
 function log()

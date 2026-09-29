@@ -1,7 +1,7 @@
 #!/bin/sh
 # The complete bootstrap of dataverket-prod, and its recovery. Every step checks state and skips what is done, so
 # this one script is the fresh-cluster path, the recovery path, and the documentation of both. It needs kubectl,
-# flux, sops, git, and an attester's YubiKey; nothing else. Why each step is shaped as it is: docs/decisions/.
+# flux, sops, git, and an operator's YubiKey; nothing else. Why each step is shaped as it is: docs/decisions/.
 set -eu
 cd "$(dirname "$0")"
 
@@ -12,6 +12,9 @@ step() { printf '\n== %s\n' "$*"; }
 for tool in kubectl flux sops git; do
   command -v "$tool" >/dev/null || { echo "$tool not on PATH (fabrikk pins flux under _tools/bin)" >&2; exit 1; }
 done
+
+step "Recipients: every encrypted file matches its rule in .sops.yaml (decision 002)"
+bin/check-recipients
 
 step "Flux, reading git.dataverket.org (codeberg.org is a push mirror)"
 if k -n flux-system get kustomization flux-system >/dev/null 2>&1; then

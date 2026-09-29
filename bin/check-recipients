@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+#
+# Every encrypted file in this repository is encrypted to the recipients its
+# rule in .sops.yaml names, and to nobody else. This says so out loud, so that
+# decision 009 does not depend on anyone remembering it: one key per decrypting
+# process, and neither store's key on the other store's files.
+#
+# It reads the identities and the creation rules from .sops.yaml, matches every
+# *.enc.yaml and *.enc.json to the first rule that matches its path, as sops
+# does, and compares the file's own recipient list with that rule's. Public
+# keys only: nothing here decrypts anything, so it runs anywhere, unattended,
+# with no YubiKey and no cluster.
+#
+
+# shellcheck source=share/logging.sh
+source "${0%/*}/../share/logging.sh" || exit $?
+
+repo_dir="$(cd "${0%/*}/.." && pwd)" || exit $?
+config="$repo_dir/.sops.yaml"
+failures=0
+
+#
+# Prints the identity names and their age keys, one "name key" per line.
+#
+function identities()
+{
+	yq -r '.identities // {} | to_entries | .[] | .key + " " + .value' "$config"
+}
+
+#
+# Prints the name of an age key, or the key itself when .sops.yaml does not
+# name it, which is itself worth seeing in a message.
+#
+function name_of()
+{
+	local key="$1"
+	local name value
+
+	while read -r name value; do
+		[[ "$value" == "$key" ]] && { echo -n "$name"; return; }
+	done <<<"$(identities)"
+
+	echo -n "$key (not in identities)"
+}
+
+#
+# Prints the path_regex of every creation rule, one per line, in order.
+#
+function rule_patterns()
+{
+	yq -r '.creation_rules[].path_regex' "$config"
+}
+
+#
+# Prints the age recipients a rule names, one per line. key_groups is the form
+# this repository uses; a flat comma-separated `age` is accepted too, since
+# that is what sops writes by hand and what this file used before.
+#
+function rule_recipients()
+{
+	local index="$1"
+
+	# explode(.) resolves the anchors: without it yq hands back the alias text
+	# (*beddari) rather than the key it stands for.
+	IDX="$index" yq -r '
+		explode(.) | .creation_rules[env(IDX) | tonumber] |
+		(.key_groups[]?.age[]?, (.age? // "" | split(",")[])) // ""' \
+		"$config" | tr -d ' ' | grep -v '^$'
+}
+
+#
+# Prints the age recipients a file is actually encrypted to, one per line.
+#
+function file_recipients()
+{
+	local file="$1"
+
+	case "$file" in
+		*.json)	jq -r '.sops.age[]?.recipient' "$file" 2>/dev/null ;;
+		*)	yq -r '.sops.age[]?.recipient' "$file" 2>/dev/null ;;
+	esac
+}
+
+#
+# Prints a sorted, newline-separated set as one line, by name.
+#
+function named_set()
+{
+	local key
+
+	while read -r key; do
+		[[ -n "$key" ]] || continue
+		name_of "$key"
+		echo
+	done | sort | tr '\n' ' '
+}
+
+#
+# Checks one file against the first rule whose path matches it, as sops does.
+#
+function check_file()
+{
+	local file="$1"
+	local relative index pattern expected actual
+
+	relative="${file#"$repo_dir"/}"
+	index=0
+
+	while read -r pattern; do
+		if [[ "$relative" =~ $pattern ]]; then
+			expected="$(rule_recipients "$index" | named_set)"
+			actual="$(file_recipients "$file" | named_set)"
+
+			if [[ -z "$actual" ]]; then
+				error "$relative: no sops recipients; is it encrypted?"
+				return 1
+			fi
+
+			if [[ "$expected" != "$actual" ]]; then
+				error "$relative is encrypted to: $actual"
+				error "  its rule ($pattern) names: $expected"
+				return 1
+			fi
+
+			debug "$relative: $actual"
+			return 0
+		fi
+		index=$(( index + 1 ))
+	done <<<"$(rule_patterns)"
+
+	error "$relative matches no rule in .sops.yaml; add one or move the file"
+	return 1
+}
+
+require_yq_and_jq()
+{
+	command -v yq >/dev/null || fail "yq is not on PATH"
+	command -v jq >/dev/null || fail "jq is not on PATH"
+}
+
+require_yq_and_jq
+[[ -f "$config" ]] || fail "$config does not exist!"
+
+while read -r file; do
+	[[ -n "$file" ]] || continue
+	check_file "$file" || failures=$(( failures + 1 ))
+done <<<"$(find "$repo_dir" \
+	-path "$repo_dir/.git" -prune -o \
+	-path "$repo_dir/.swamp" -prune -o \
+	\( -name '*.enc.yaml' -o -name '*.enc.yml' -o -name '*.enc.json' \) \
+	-print | sort)"
+
+if (( failures )); then
+	fail "$failures encrypted file(s) do not match their rule"
+fi
+
+log "Every encrypted file matches its rule in .sops.yaml"

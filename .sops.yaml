@@ -1,25 +1,59 @@
 # Recipients for encrypted files in this repository. Public keys only; safe to commit.
-# Flux decrypts with the cluster's own key (Secret flux-system/sops-age, generated in-cluster by
-# bootstrap/sops-age-keygen.yaml); humans encrypt with a YubiKey. Only data/stringData are encrypted, so kind, name
-# and namespace stay readable and diffs stay meaningful.
 #
-# - age1yubikey1...  beddari, YubiKey serial 19668198 (PIN once, touch always)
-# - age1g3x9w...      dataverket-prod, Secret flux-system/sops-age, generated in-cluster 2026-09-17
-# - age15d64...      fabrikk, the factory host's soft key; decrypts the swamp vault unattended, never a cluster file
-# - age1yubikey1qwt.. Linus Johansen, YubiKey; the swamp vault and the cluster files, since 2026-09-20
+# One key per decrypting process, named after the process (decision 001). The rule that follows, and that
+# bin/check-recipients enforces: the cluster key is never a recipient of a vault file, and a repository's
+# key is never a recipient of a cluster file. A value that has to exist in both stores is copied by a human with a
+# YubiKey, from the store where it was born, and the commit says so.
 #
-# The swamp vault (vaults/infra/<key>.enc.json, one file per secret, @dataverket/sops) carries the human and
-# factory-host recipients in its own config and ignores this file; the second rule makes `sops vaults/infra/...`
-# from a terminal encrypt to the same set.
+# - dataverket-prod        age1g3x9w...        Secret flux-system/sops-age, generated in-cluster 2026-09-17 by
+#                                              bootstrap/sops-age-keygen.yaml; never leaves the cluster. Decrypts
+#                                              the Flux files and nothing else.
+# - swamp-fabrikk-infra    age15d64...         ~/.config/sops/age/keys.txt on the swamp host, mode 0600.
+#                                              Decrypts the swamp vault unattended, never a cluster file. A second
+#                                              swamp repository gets its own swamp-<repo> key, never a copy.
+# - beddari                age1yubikey1q0d8... YubiKey serial 19668198 (PIN once, touch always)
+# - linus                  age1yubikey1qwt...  YubiKey, since 2026-09-20
+#
+# The two operators are recipients of both stores, for recovery, re-keying and writes from a terminal.
+#
+# break-glass/ is a third store and theirs alone. It is plain sops with no swamp vault behind it, so nothing swamp
+# runs can name it at all, and no process key is a recipient, so only a touch reads it. It holds the permanent,
+# human-only material tier 3 falls back on when a login mechanism fails, the Omni break-glass configs first. A
+# write needs only public keys, so a workflow can still put a value there.
+#
+# Only data/stringData are encrypted in the Flux files, so kind, name and namespace stay readable and diffs stay
+# meaningful. The swamp vault (vaults/infra/<key>.enc.json, one file per secret, @dataverket/sops) carries its
+# recipients in its own config and ignores this file; the second rule makes `sops vaults/infra/...` from a
+# terminal encrypt to the same set.
+# Each identity is written once, above, and every rule names it by alias, so a recipient list is read as names
+# rather than compared character by character. sops ignores the `identities` key and reads only `creation_rules`.
+identities:
+  dataverket-prod: &dataverket_prod age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
+  swamp-fabrikk-infra: &swamp_fabrikk_infra age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
+  beddari: &beddari age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
+  linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+
 creation_rules:
+  # break-glass/ is not a swamp vault and is deliberately not under vaults/:
+  # nothing swamp runs can name it, so no definition can reach it by mistake.
+  # Read it with `sops -d`, and only with a YubiKey. This rule is first,
+  # because sops takes the first match and the vaults/ rule below would
+  # otherwise add swamp-fabrikk-infra to a human-only file.
+  - path_regex: ^break-glass/.*\.enc\.ya?ml$
+    key_groups:
+      - age:
+          - *beddari
+          - *linus
   - path_regex: ^(artifacts|apps|infrastructure)/.*\.enc\.ya?ml$
     encrypted_regex: ^(data|stringData)$
-    age: >-
-      age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,
-      age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy,
-      age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+    key_groups:
+      - age:
+          - *dataverket_prod
+          - *beddari
+          - *linus
   - path_regex: vaults/.*\.enc\.json(\.plain\.tmp)?$
-    age: >-
-      age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,
-      age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v,
-      age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+    key_groups:
+      - age:
+          - *swamp_fabrikk_infra
+          - *beddari
+          - *linus

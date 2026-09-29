@@ -10,7 +10,7 @@
 # does not need swamp on PATH; what swamp keeps in tier 1 is put there by hand.
 #
 # Every tier 2 item has the same lifetime, a working day, and `task admin:renew`
-# renews all of them in one sitting as soon as one is due, so the operator logs
+# renews all of them in one session as soon as one is due, so the operator logs
 # in once at the start of the day instead of once per item.
 #
 # The two logins behind tier 3, Omni and OpenStack, are web credentials kept
@@ -24,15 +24,16 @@
 # names and not command lines. They fall in two groups, and the difference is
 # what the group below the values explains.
 #
-# What this estate is, set in taskfiles/admin.yml and required, not defaulted.
+# What this repository administers, set in taskfiles/admin.yml and required,
+# not defaulted.
 # Every one of them is a name, never an address: the two logins are named the
 # way `kubectl` names a context, and each CLI's own config file says where that
 # name points. Nothing here holds a URL.
 #
 #	SWAMP_REPO	This repository's name, which every provider name is built from
 #	CLUSTER		The cluster
-#	OMNI_CONTEXT	The context in your omniconfig that reaches this estate's Omni
-#	OS_CLOUD	The clouds.yaml entry you log in to this estate's cloud with
+#	OMNI_CONTEXT	The context in your omniconfig that reaches our Omni
+#	OS_CLOUD	The clouds.yaml entry you log in to our cloud with
 #	SWAMP_CLOUD	The clouds.yaml entry we write (default the repo name)
 #
 # Settings for one run, yours to set:
@@ -47,16 +48,16 @@
 
 admin_dir="${BASH_SOURCE[0]%/*}"
 
-source "$admin_dir/logging.sh"
+source "$admin_dir/../logging.sh"
 
 enable_debug="${DEBUG:-0}"
 
 #
-# Stops unless every named variable is set. What this estate is comes from the
-# environment and never from a default here, because a default would be a
-# guess at another estate's cluster or endpoint.
+# Stops unless every named variable is set. What this repository administers
+# comes from the environment and never from a default here, because a default
+# would be a guess at somebody else's cluster or endpoint.
 #
-function require_estate()
+function require_settings()
 {
 	local name
 
@@ -68,19 +69,19 @@ function require_estate()
 	done
 }
 
-# What this estate is: its name in a provider, its cluster, and the two names
-# its logins go by. taskfiles/admin.yml sets these, because the Taskfile is the
+# What this repository administers: its name in a provider, its cluster, and
+# the two names its logins go by. taskfiles/admin.yml sets these, because the Taskfile is the
 # driver and this is the whole of what a second repository would change while
 # reusing bin/ and share/admin/ unchanged. Nothing is defaulted, so there is no
-# guess at another estate to go wrong.
+# guess at somebody else's to go wrong.
 #
 # Both logins are named, not addressed. `omnictl --context <name>` and
 # `openstack --os-cloud <name>` each read the address, and the identity behind
 # it, out of the operator's own config file, exactly as `kubectl --context`
-# does. Where the estate actually answers is therefore stated once in the
+# does. Where these services actually answer is therefore stated once in the
 # README, for a person setting their own config up, and never passed to a CLI
 # by these scripts.
-require_estate SWAMP_REPO CLUSTER OMNI_CONTEXT OS_CLOUD
+require_settings SWAMP_REPO CLUSTER OMNI_CONTEXT OS_CLOUD
 
 repo="$SWAMP_REPO"
 id="swamp-$repo"                    # this repository's name in every provider
@@ -106,6 +107,12 @@ os_password_ref="${OS_PASSWORD_REF:-}"
 
 omniconfig="${OMNICONFIG:-$HOME/.talos/omni/config}"
 reader_key_file="$HOME/.talos/omni/$id-reader.key"
+
+# The Operator key is tier 2 like the reader key and under the same lifetime,
+# but it is minted deliberately, by admin:omni-operator-key and never by
+# admin:renew, and removed at logout: an ordinary session holds no key that can
+# change a cluster. Only the mutating omni model names this file.
+operator_key_file="$HOME/.talos/omni/$id-operator.key"
 clouds="$HOME/.config/openstack/clouds.yaml"
 
 # The one kubeconfig and the one talosconfig, for us and for the CLIs alike:
@@ -136,7 +143,7 @@ clock_slack=300                     # servers and this host disagree a little
 now="$(date +%s)"
 
 # RENEW=1 is what `task admin:renew` sets once it has found an item due, so
-# that the whole sitting is renewed together.
+# that the whole session is renewed together.
 case "${RENEW:-0}" in
 	1|true|yes)	force_renew=1 ;;
 	*)		force_renew=0 ;;

@@ -42,3 +42,19 @@ schema of the CLI (commands, options, arguments) intended for agent
 consumption, run `swamp help [<command>...]` — e.g. `swamp help` returns
 the full tree, and `swamp help model method run` scopes to a subtree.
 <!-- END swamp managed section -->
+
+# Operator rules
+
+These are about credentials and they are not negotiable. Decision 001 says why.
+
+1. **Never add a recipient** to `.sops.yaml`, to a vault's `agePublicKey`, or to
+   `break-glass/`. Adding one changes who can read a store, which is a decision
+   a person makes with their own key, not one an agent makes on their behalf.
+2. **Never run `sops updatekeys`.** Re-keying is a human step with a YubiKey,
+   and doing it unattended is how a store silently loses or gains a reader.
+3. **When a task needs a value from the other store, stop.** Print the exact
+   `sops` or `swamp vault put` command for the human to run, and say which
+   store the value is being copied from and to. Never copy it yourself.
+4. **Definitions name, never carry.** A model definition names a context, a
+   cloud entry, a key file or a vault key. It never holds a credential's value,
+   and a value never reaches an argument, a data record or a log line.

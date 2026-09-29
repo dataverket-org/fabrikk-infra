@@ -2,13 +2,16 @@ version: '3'
 
 #
 # Tier 3 of the credential tiers (docs/plans/2026-09-credential-tiers.md): the
-# operator's sitting on the factory host. Every task here runs as you, with
+# operator's session on the swamp host. Every task here runs as you, with
 # your own Omni and OpenStack logins, and writes only tier 2 files. None of
 # them reads or writes the swamp vault, and none needs swamp on PATH.
 #
 # One task per tier 2 item, each safe to rerun and able to run alone.
 # `admin:renew` asks once whether any item is due and, if one is, renews them
 # all in that order, so they expire together and you log in once a day.
+# `admin:omni-operator-key` is the exception and is not in that list: it mints
+# the one key that can change a cluster, so it is run deliberately, when you
+# are about to, and `admin:logout` removes it.
 #
 # Settings are environment variables, not options:
 #
@@ -16,10 +19,10 @@ version: '3'
 #	DEBUG=1		Print every external command before it runs
 #	TIER2_TTL=8h	The one lifetime of every tier 2 item, whole hours
 #	OS_CLOUD	The clouds.yaml entry you log in with; when it is unset,
-#			the one entry that reaches this estate's Keystone is found
+#			the one entry that reaches our Keystone is found
 #	OS_PASSWORD_REF	pass:// reference to your OpenStack password
 #
-# What this estate is, below, is not a setting: it is the same for every
+# What this repository administers, below, is not a setting: it is the same for every
 # operator, and it is the whole of what another repository would change while
 # reusing bin/ and share/admin/ unchanged. The scripts require it and default
 # nothing, so a missing value stops a run instead of pointing it at the wrong
@@ -30,7 +33,7 @@ version: '3'
 # The two logins are named, never addressed: OMNI_CONTEXT is a context in your
 # omniconfig and OS_CLOUD an entry in your clouds.yaml, exactly as a kube
 # context is named, and each CLI reads the address and the identity out of its
-# own config. Nothing here is a URL. Where this estate answers is in the
+# own config. Nothing here is a URL. Where these services answer is in the
 # README, for a person setting their own config up once.
 #
 
@@ -43,11 +46,11 @@ env:
 tasks:
   status:	{ desc: "What tier 2 holds: each item, its owner, its time left", cmds: [bin/status] }
   due:		{ desc: "Whether any item of ours is due: prints 1 or 0",         cmds: [bin/due] }
-  login:	{ desc: "Open the sitting: Proton Pass and Omni",                 cmds: [bin/login] }
-  logout:	{ desc: "Close the sitting; tier 2 is left to expire",            cmds: [bin/logout] }
+  login:	{ desc: "Open the session: Proton Pass and Omni",                 cmds: [bin/login] }
+  logout:	{ desc: "Close the session; tier 2 is left to expire",            cmds: [bin/logout] }
 
   shell:
-    desc: "Open the sitting and a shell with OS_PASSWORD resolved in it"
+    desc: "Open the session and a shell with OS_PASSWORD resolved in it"
     cmds: [bin/login]
     env:  { SESSION_SHELL: '1' }
 
@@ -56,6 +59,9 @@ tasks:
     vars:
       RENEW: { sh: bin/due }
     cmds:
+      # Before any credential is minted: the encrypted files in this repository
+      # are still encrypted to the right readers (decision 002).
+      - bin/check-recipients
       - task: omni-key
         vars: { RENEW: '{{.RENEW}}' }
       - task: kube-admin
@@ -72,6 +78,11 @@ tasks:
   omni-key:
     desc: "Omni Reader service account and the key file talosctl reads"
     cmds: [bin/omni-key]
+    env:  { RENEW: '{{.RENEW}}' }
+
+  omni-operator-key:
+    desc: "Omni Operator key, deliberately: it can change clusters"
+    cmds: [bin/omni-operator-key]
     env:  { RENEW: '{{.RENEW}}' }
 
   kube-admin:
