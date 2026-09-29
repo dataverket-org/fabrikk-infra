@@ -8,5 +8,5 @@ globalArguments:
   nodes: '${{ data.latest("omni", "talosconfig-dataverket-prod").attributes.nodes }}'
   talosconfigContent: '${{ data.latest("omni",
     "talosconfig-dataverket-prod").attributes.content }}'
-  serviceAccountKeyFile: '~/.talos/omni/swamp-fabrikk-infra-reader.key'
+  serviceAccountKeyFile: '~/.talos/omni/fabrikk-infra-reader.key'
 methods: {}

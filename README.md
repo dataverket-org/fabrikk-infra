@@ -73,9 +73,14 @@ If your own config uses other names, export `OMNI_CONTEXT` or `OS_CLOUD`; a shel
 
 Two operators on one cluster share every file: the same key paths, the same kube context names, the same cloud
 entry, because a model definition in git names them and reads the same for both. What a provider stores under its
-own name carries the operator — `swamp-fabrikk-infra-<you>-reader` in Omni, `swamp-fabrikk-infra-<you>-admin` as a
-kube subject, `swamp-fabrikk-infra-<you>-<timestamp>` as an OpenStack application credential — so its listing says
-who to ask, and renewing yours cannot destroy theirs.
+own name carries the operator — `fabrikk-infra-<you>-reader` in Omni, `fabrikk-infra-<you>-admin` as a kube
+subject, `fabrikk-infra-<you>-<timestamp>` as an OpenStack application credential — so its listing says who to ask,
+and renewing yours cannot destroy theirs.
+
+None of these names says `swamp`. You use these contexts from a terminal exactly as a swamp model method uses them,
+so a name that claimed either one would be wrong half the time. The one thing still called `swamp-fabrikk-infra` is
+the age key that decrypts the vault, which no person reads. When a name here does change, the tasks migrate it:
+they recognise a former name as ours, mint the new one, and remove what the old one left behind.
 
 ## Names
 

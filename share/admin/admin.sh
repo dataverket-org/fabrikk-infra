@@ -86,7 +86,7 @@ function require_settings()
 require_settings SWAMP_REPO CLUSTER OMNI_CONTEXT OS_CLOUD
 
 repo="$SWAMP_REPO"
-id="swamp-$repo"                    # what a definition names: shared, in git
+id="$repo"                          # what a definition names: shared, in git
 
 # Who is running this. A provider-side name carries it, so that two operators
 # never share an account and a provider's own log can tell them apart. What a

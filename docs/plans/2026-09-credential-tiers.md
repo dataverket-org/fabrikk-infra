@@ -91,7 +91,7 @@ Three things in this plan were written before the invariants and do not survive 
 **The Omni operator service account key leaves the vault.** It is in `vaults/infra/omni/` today, it lives a year,
 `omni-cluster` reads it with `vault.get`, and it can mint tier 2 and change every cluster. That is exactly the
 cycle invariant 3 forbids: the host's vault key opens tier 3, tier 3 hands out cluster admin, cluster admin reads
-the rest of tier 3. Under the invariants it becomes a tier 2 item of its own, `swamp-fabrikk-infra-operator`,
+the rest of tier 3. Under the invariants it becomes a tier 2 item of its own, `fabrikk-infra-<operator>-operator`,
 minted with `--role Operator --ttl $TIER2_TTL` into a key file beside the reader key, and `omni-cluster` names the
 file. A task of its own mints it, deliberately, when you are about to change a cluster; `admin:renew` leaves it
 out, so an ordinary session holds no key that can change a cluster, and `task admin:logout` removes it. The
@@ -117,10 +117,10 @@ in this plan, and until it exists, unattended means read-only or nothing.
 | Produces | Root identity | Mechanism | Where the code goes |
 |---|---|---|---|
 | clouds.yaml cloud `fabrikk-infra` | The operator's own OpenStack login: the clouds.yaml entry that reaches our Keystone, found rather than named, `OS_CLOUD` when there is more than one | `openstack application credential create`, then write the entry | `task admin:openstack` |
-| kube contexts `dataverket-prod-readers`, `dataverket-prod-admin` | The operator's own Omni login | `omnictl kubeconfig --cluster dataverket-prod --service-account --user swamp-fabrikk-infra-<role> --ttl <d>`, readers with `--groups fabrikk-readers` | `task admin:kube-admin`, `task admin:kube-readers` |
+| kube contexts `dataverket-prod-readers`, `dataverket-prod-admin` | The operator's own Omni login | `omnictl kubeconfig --cluster dataverket-prod --service-account --user fabrikk-infra-<operator>-<role> --ttl <d>`, readers with `--groups fabrikk-readers` | `task admin:kube-admin`, `task admin:kube-readers` |
 | talos context `dataverket-prod` | The operator's own Omni login | `omnictl talosconfig --cluster dataverket-prod`, renamed to the cluster and merged into `~/.talos/config` | `task admin:talos` |
-| The Omni reader key file | The operator's own Omni login | `omnictl serviceaccount create swamp-fabrikk-infra-reader --use-user-role=false --role Reader --ttl $TIER2_TTL`; renewal is destroy and create, because `serviceaccount renew` ignores `--ttl` | `task admin:omni-key` |
-| The Omni operator key file | The operator's own Omni login | `omnictl serviceaccount create swamp-fabrikk-infra-operator --use-user-role=false --role Operator --ttl $TIER2_TTL`, into a key file, never into a vault | `task admin:omni-operator-key`, run deliberately, outside `admin:renew` |
+| The Omni reader key file | The operator's own Omni login | `omnictl serviceaccount create fabrikk-infra-<operator>-reader --use-user-role=false --role Reader --ttl $TIER2_TTL`; renewal is destroy and create, because `serviceaccount renew` ignores `--ttl` | `task admin:omni-key` |
+| The Omni operator key file | The operator's own Omni login | `omnictl serviceaccount create fabrikk-infra-<operator>-operator --use-user-role=false --role Operator --ttl $TIER2_TTL`, into a key file, never into a vault | `task admin:omni-operator-key`, run deliberately, outside `admin:renew` |
 | The break-glass talosconfig | The cluster's own Talos CA, reached with an Operator key | Signed offline and stored in `break-glass/` | `docs/plans/2026-09-break-glass.md`, by hand: permanent, so tier 3, and not a task |
 
 A *session* is the unit this plan keeps using: the stretch of a working day in which an operator has logged in
@@ -183,7 +183,7 @@ avoid. What swamp needs in tier 3 is put there by hand in step 7.
 
 The tasks never replace what they did not create. A kube context that exists and is not a token for the
 script's own service account (another subject, an OIDC user, a client certificate), a talos context that is not
-Omni-proxied or carries a certificate, or a cloud entry whose credential does not carry the `swamp-<repo>-` prefix,
+Omni-proxied or carries a certificate, or a cloud entry whose credential does not carry the `<repo>-` prefix,
 is hand-made: the task names it, leaves it alone, does not count it as due, and says how to hand it over (delete
 the context, or remove the entry, and rerun). Only entries that carry the scripts' own names are renewed,
 replaced or deleted. An expired credential of ours cannot read its own record, so `admin:openstack` looks it up as
@@ -218,23 +218,35 @@ tier 2, tier 1 does.
 
 | Tool | File | Name the models use | Content | Lifetime |
 |---|---|---|---|---|
-| `openstack` | `~/.config/openstack/clouds.yaml` | cloud `fabrikk-infra` | An application credential named `swamp-fabrikk-infra-<operator>-<timestamp>`, `member` role or the roles of the one it replaces | The shared tier 2 lifetime, 8 hours |
+| `openstack` | `~/.config/openstack/clouds.yaml` | cloud `fabrikk-infra` | An application credential named `fabrikk-infra-<operator>-<timestamp>`, `member` role or the roles of the one it replaces | The shared tier 2 lifetime, 8 hours |
 | `kubectl` | `~/.kube/config` | context `dataverket-prod-readers`, context `dataverket-prod-admin` | An Omni service-account kubeconfig, token signed by Omni, validated by Omni's Kubernetes proxy | The shared tier 2 lifetime, 8 hours |
 | `talosctl` | `~/.talos/config` | context `dataverket-prod` | The Omni-proxied talosconfig, which carries no credential of its own | No credential, so nothing to expire; the key file beside it is what has a lifetime |
-| `talosctl`, `omnictl` | `~/.talos/omni/swamp-fabrikk-infra-reader.key`, beside the omniconfig | the file, through the type's `serviceAccountKeyFile` argument (step 4) | An Omni service account key, `Reader` role | The shared tier 2 lifetime, 8 hours |
-| `omnictl` | `~/.talos/omni/swamp-fabrikk-infra-operator.key`, beside the reader key | the file, the same argument, named only by `omni-cluster` | An Omni service account key, `Operator` role | The shared tier 2 lifetime, minted deliberately and not by `admin:renew` |
+| `talosctl`, `omnictl` | `~/.talos/omni/fabrikk-infra-reader.key`, beside the omniconfig | the file, through the type's `serviceAccountKeyFile` argument (step 4) | An Omni service account key, `Reader` role | The shared tier 2 lifetime, 8 hours |
+| `omnictl` | `~/.talos/omni/fabrikk-infra-operator.key`, beside the reader key | the file, the same argument, named only by `omni-cluster` | An Omni service account key, `Operator` role | The shared tier 2 lifetime, minted deliberately and not by `admin:renew` |
 
 Two of these are already in place under other names: cloud `fabrikk-infra` and the kube contexts `fabrikk-readers`
 and `dataverket-prod-admin`.
 
 Naming splits along one line: what a definition names is shared, what a provider records is not. A model definition,
 a kube context and a file path are in git and read the same for everyone, so they carry the repository and no
-operator — `<cluster>-<role>` for kube contexts, `<cluster>` for the talos context, `swamp-<repo>-<role>` for the
+operator — `<cluster>-<role>` for kube contexts, `<cluster>` for the talos context, `<repo>-<role>` for the
 key files. What a provider stores under its own name is one per operator, so that its listing says who to ask and
-one operator's renewal cannot destroy another's: `swamp-<repo>-<operator>-<role>` for an Omni service account and a
-kube subject, `swamp-<repo>-<operator>-<timestamp>` for an OpenStack application credential. `<operator>` is
+one operator's renewal cannot destroy another's: `<repo>-<operator>-<role>` for an Omni service account and a
+kube subject, `<repo>-<operator>-<timestamp>` for an OpenStack application credential. `<operator>` is
 `$OPERATOR`, or `$USER` when that is unset. Two operators on one cluster therefore share every file name and no
 credential.
+
+No tier 2 name says `swamp`. These credentials are not swamp's: a person runs `kubectl` and `talosctl` with the
+same contexts a model method does, which is invariant 4 seen from the other side, and a name that claimed one of
+the two readers would be wrong half the time. `swamp-<repo>` stays the name of exactly one thing, the age key that
+decrypts the vault and is read by no one, which is what decision 001 means by naming a key after its process.
+
+Renaming is a migration, so the tasks perform it rather than report it. A kube context whose token carries a former
+name of ours is ours, and minting removes the user it pointed at; an Omni account and a key file under a former
+name are destroyed once the current one answers, by exact name and never by pattern, because one Omni account list
+serves every operator; an OpenStack credential under a former name is replaced and pruned like any other. The
+former names are written down in `share/admin/`, each with the date it stopped being used, and a name that no host
+still carries can be deleted from there.
 
 Scope follows the role, not the tool. The readers kubeconfig binds to the `fabrikk-readers` group and nothing more;
 the admin kubeconfig is `system:masters`. Both live as long as everything else in tier 2, because one lifetime
