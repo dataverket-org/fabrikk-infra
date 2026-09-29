@@ -239,26 +239,37 @@ function verify_cloud()
 }
 
 #
-# Lists your application credentials other than the one to keep, one per
-# line as "delete|keep <id> <name>": delete for ours by name prefix, keep for
-# the rest. The listing goes through the cloud entry itself when it answers,
-# a credential may list its user's credentials, and as you otherwise.
+# Lists your application credentials other than the one to keep, one per line
+# as "delete|keep <id> <name>": delete for ours by name, now or before, keep
+# for the rest. The listing goes through the cloud entry itself when it
+# answers, a credential may list its user's credentials, and as you otherwise.
 #
 function other_credentials()
 {
 	local keep="$1"
-	local listing
+	local listing pairs credential name
 
 	listing="$(openstack --os-cloud "$os_cloud" application credential list \
 	           -f json 2>/dev/null)" ||
 	listing="$(openstack --os-cloud "$human_cloud" application credential \
 	           list -f json)" || return $?
 
-	printf '%s' "$listing" |
-	jq -r --arg prefix "$id-" --arg keep "$keep" '
-		.[] | select(.Name != $keep) |
-		(if (.Name | startswith($prefix)) then "delete" else "keep" end)
-		+ " " + .ID + " " + .Name'
+	pairs="$(printf '%s' "$listing" |
+	         jq -r --arg keep "$keep" '
+		.[] | select(.Name != $keep) | .ID + " " + .Name')" || return $?
+
+	# jq lists and credential_is_ours decides, so that "ours" has one
+	# definition: a name this repository used before is pruned by the same
+	# rule that lets it be replaced, and not by a second copy of the prefix.
+	while read -r credential name; do
+		[[ -n "$credential" ]] || continue
+
+		if credential_is_ours "$name"; then
+			echo "delete $credential $name"
+		else
+			echo "keep $credential $name"
+		fi
+	done <<<"$pairs"
 }
 
 #
