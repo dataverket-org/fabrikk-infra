@@ -14,5 +14,5 @@ require_tools omnictl kubectl jq || exit $?
 require_omni_context || exit $?
 
 log "Kube context $cluster-admin, $tier2_ttl ..."
-mint_kube_context "$cluster-admin" "$me-admin" ||
+mint_kube_context "$cluster-admin" admin ||
 	fail "Minting $cluster-admin failed!"

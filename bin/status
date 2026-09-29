@@ -55,24 +55,28 @@ function expires_in()
 #
 function kube_rows()
 {
-	local role name user left file
+	local role name user subject left file
 
 	file="$(short_path "$kubeconfig")"
 
 	for role in admin readers; do
 		name="$cluster-$role"
 		user="$(context_user "$name")"
+		# The subject the token actually carries, not the one a renewal would
+		# write: after a rename the context is still ours under its old name,
+		# and the table says which one until it is next minted.
+		subject="$(context_subject "$name")"
 		left="$(context_seconds_left "$name")"
 
 		if [[ -z "$user" ]]; then
 			row "$file" "$name" absent - - "no such context"
-		elif ! context_is_ours "$name" "$me-$role"; then
+		elif ! context_is_ours "$name" "$role"; then
 			row "$file" "$name" hand-made - - "user $user, left alone"
 		elif (( left > 0 )); then
 			row "$file" "$name" ours "$(humanize "$left")" \
-				"$(expires_in "$left")" "$me-$role"
+				"$(expires_in "$left")" "$subject"
 		else
-			row "$file" "$name" ours expired "$(expires_in "$left")" "$me-$role"
+			row "$file" "$name" ours expired "$(expires_in "$left")" "$subject"
 		fi
 	done
 }

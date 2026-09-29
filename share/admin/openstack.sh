@@ -106,13 +106,17 @@ function credential_name()
 }
 
 #
-# Checks whether a credential name is one this script made: our prefix.
+# Checks whether a credential name is one this script made, now or before.
 #
 function credential_is_ours()
 {
 	local name="$1"
 
-	[[ "$name" == "$id-"* ]]
+	# Also the prefix these names carried until 2026-09-29, so that a
+	# credential made under the old one is replaced and pruned rather than
+	# reported as hand-made and left in Keystone for good. Keystone scopes a
+	# listing to the operator, so this only ever matches your own.
+	[[ "$name" == "$id-"* || "$name" == "swamp-$id-"* ]]
 }
 
 #

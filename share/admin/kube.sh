@@ -71,17 +71,39 @@ function context_subject()
 }
 
 #
+# Checks whether a token subject is one this repository made: the name it uses
+# now, or one it has used before. A subject is ours when it names the
+# repository and ends in the role, with or without an operator in between and
+# with or without the swamp- prefix the names carried until 2026-09-29. Only
+# our own names ever reach a $HOME, so this widening cannot claim another
+# operator's context; what it does is let a rename renew a context instead of
+# declaring it hand-made.
+#
+function subject_is_ours()
+{
+	local subject="$1"
+	local role="$2"
+
+	case "$subject" in
+		"$id-$role"|"$id-"*"-$role")             return 0 ;;
+		"swamp-$id-$role"|"swamp-$id-"*"-$role")  return 0 ;;
+	esac
+
+	return 1
+}
+
+#
 # Checks whether a kube context is ours: absent, or carrying a token whose
-# subject is the given one. A context that exists with any other user, a
-# different subject, an OIDC user, a client certificate, was made by hand.
+# subject is one of ours for this role. A context that exists with any other
+# user, an OIDC user, a client certificate, was made by hand.
 #
 function context_is_ours()
 {
 	local name="$1"
-	local subject="$2"
+	local role="$2"
 
 	[[ -z "$(context_user "$name")" ]] && return
-	[[ "$(context_subject "$name")" == "$subject" ]]
+	subject_is_ours "$(context_subject "$name")" "$role"
 }
 
 #
@@ -94,12 +116,13 @@ function context_is_ours()
 function mint_kube_context()
 {
 	local name="$1"
-	local subject="$2"
+	local role="$2"
 	shift 2
 
-	local left reason current
+	local subject="$me-$role"
+	local left reason current previous
 
-	if ! context_is_ours "$name" "$subject"; then
+	if ! context_is_ours "$name" "$role"; then
 		warn "Context $name is not ours ($(context_user "$name")); left alone"
 		warn "To let this script manage it, delete the context and rerun"
 		return
@@ -113,6 +136,7 @@ function mint_kube_context()
 	fi
 
 	current="$(kubectl config current-context 2>/dev/null)"
+	previous="$(context_user "$name")"
 
 	log "Context $name $reason; minting ..."
 	omni kubeconfig --cluster "$cluster" --service-account --ttl "$tier2_ttl" \
@@ -126,6 +150,14 @@ function mint_kube_context()
 	   kubectl config get-contexts -o name 2>/dev/null | grep -qx "$current"
 	then
 		kubectl config use-context "$current" >/dev/null || return $?
+	fi
+
+	# A rename leaves the user the context pointed at before behind, holding a
+	# token for a subject nothing selects any more. Remove it by the name it
+	# actually had, never by a guess at what it might be called.
+	if [[ -n "$previous" && "$previous" != "$(context_user "$name")" ]]; then
+		kubectl config unset "users.$previous" >/dev/null || return $?
+		log "Removed the superseded user $previous"
 	fi
 
 	run kubectl --context "$name" get --raw=/version >/dev/null || return $?

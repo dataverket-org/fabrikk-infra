@@ -19,7 +19,7 @@ function due_items()
 
 	for role in admin readers; do
 		name="$cluster-$role"
-		context_is_ours "$name" "$me-$role" || continue
+		context_is_ours "$name" "$role" || continue
 		left="$(context_seconds_left "$name")"
 		(( left > renew_before )) || echo "kube context $name"
 	done
