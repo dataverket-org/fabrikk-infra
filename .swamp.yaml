@@ -1,4 +1,4 @@
-swampVersion: 20260918.003339.0
+swampVersion: 20260929.002922.0
 initializedAt: "2026-09-18T09:41:10.774Z"
 repoId: 8cdfd6c7-87a0-45c7-ac14-2c02064ef270
 tools:
@@ -8,3 +8,4 @@ gitignoreManaged: true
 trustedCollectives:
   - swamp
   - dataverket
+upgradedAt: "2026-09-29T11:12:00.566Z"

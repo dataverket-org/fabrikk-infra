@@ -6,5 +6,5 @@ version: 1
 tags: {}
 globalArguments:
   endpoint: 'https://dataverket.eu-central-1.omni.siderolabs.io'
-  serviceAccountKey: '${{ vault.get("infra", "omni/operator_service_account_key") }}'
+  serviceAccountKeyFile: '~/.talos/omni/swamp-fabrikk-infra-operator.key'
 methods: {}
