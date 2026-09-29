@@ -18,7 +18,10 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `artifacts/<name>/` | Nobody, from git | Sources of OCI config artifacts. Pushed with `artifacts/<name>/push.sh`, pulled by an `OCIRepository` declared under `apps/`. |
 | `bootstrap/` | `bootstrap.sh` | What must exist before the rest can be applied: the cluster's SOPS key, and zot from git until zot serves its own config. |
 | `Taskfile.yml`, `taskfiles/` | `task` | The commands of this repository, one namespace per group, one file per namespace. |
-| `bin/`, `share/admin/` | The `admin:` tasks | The operator's own session: the short-lived kube, talos, Omni and OpenStack credentials the models use. Runs as you, never as swamp. |
+| `bin/`, `share/` | The tasks | One executable per task over shared libraries. Nothing here names this cluster, this Omni or this cloud, so another repository reuses them unchanged (decision 008). |
+| `models/`, `workflows/`, `vaults/`, `extensions/` | `swamp` | The swamp repository: the instances a human uses to operate what is deployed here. See Operating models below. |
+| `break-glass/` | Nobody, by design | Human-only material behind the two YubiKeys: plain sops, deliberately not a swamp vault, so nothing swamp runs can name it (decision 004). Empty until the break-glass plan fills it. |
+| `docs/decisions/`, `docs/plans/` | Nobody | Why the repository is shaped as it is, and what is being changed next. `task decisions` lists the records with what is still pending. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
 
 ## Bootstrap and recovery
@@ -35,8 +38,9 @@ which an operator has logged in and the short-lived credentials exist, opened de
 the end of it. The Proton Pass session, the shell it may open and the Omni login are parts of it, not other things
 with the same name. It runs on the swamp host with your own Omni and OpenStack logins, writes the credentials the
 models then use by name, touches only config files in your home directory, and never reads the swamp vault. The
-design behind it is `docs/plans/2026-09-credential-tiers.md`, and the second door is
-`docs/plans/2026-09-break-glass.md`.
+design behind it is `docs/plans/2026-09-credential-tiers.md`. What comes after it, in order: the second door in
+`docs/plans/2026-09-break-glass.md`, then Kubernetes authentication in `docs/plans/2026-09-kubernetes-identity.md`.
+`docs/plans/2026-09-access-requests.md` generalises the session itself and depends on neither.
 
 | Task | What |
 |---|---|
@@ -45,6 +49,7 @@ design behind it is `docs/plans/2026-09-credential-tiers.md`, and the second doo
 | `task admin:renew` | Every credential of ours, in order, when any one of them is due. `RENEW=1` renews them now. |
 | `task admin:omni-key`, `admin:kube-admin`, `admin:kube-readers`, `admin:talos`, `admin:openstack` | One credential each, to run alone. |
 | `task admin:omni-operator-key` | The one key that can change a cluster. Run deliberately; `admin:renew` leaves it out and `admin:logout` removes it. |
+| `task check-recipients` | Every encrypted file is encrypted to the recipients its rule names, and to nobody else. `bootstrap.sh` runs it first, `admin:renew` before it mints anything. |
 
 The `decisions:` group is the records in `docs/decisions/`. `task decisions` lists them with their audit status, so
 what is decided and what is still pending read at a glance; `decisions:new` starts one from the template and opens
@@ -76,15 +81,16 @@ If your own config uses other names, export `OMNI_CONTEXT` or `OS_CLOUD`; a shel
 
 ## Secrets
 
-Two SOPS setups live here, with different readers and different recipients. One key per decrypting process, named
-after the process, and the name is what `.sops.yaml`, the vault config and decision 001 call it. `.sops.yaml` holds
-both stores, one creation rule each, and names every recipient in its comments. Public keys only; the file is safe
-to commit.
+Three SOPS stores live here, with different readers and different recipients. One key per decrypting process,
+named after the process, and the name is what `.sops.yaml`, the vault config and decision 001 call it.
+`.sops.yaml` holds all three, one creation rule each, and names every recipient in its comments. Public keys only;
+the file is safe to commit.
 
 | Setup | Files | Who decrypts | Recipients |
 |---|---|---|---|
 | Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | `dataverket-prod` (Secret `flux-system/sops-age`, generated in-cluster, decision 003), `beddari`, `linus` |
 | Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/keys.txt` on the swamp host), `beddari`, `linus` |
+| Break-glass | `break-glass/*.enc.yaml` | Nothing automated. A person, with a touch | `beddari`, `linus`, and no process key at all |
 
 **Cluster files** are Secret manifests with only `data`/`stringData` encrypted, so kind, name and namespace stay
 readable and diffs stay meaningful. Flux decrypts them on apply; nothing else ever does. Charts and workloads take
@@ -112,11 +118,11 @@ shows who wrote what.
 is copied by a person with a YubiKey, from the store where it was born to the other, and the commit message says
 so. Which store is the origin follows from who consumes the value: a credential the cluster uses is born as a
 cluster manifest, one only swamp uses is born in the vault and never touches a cluster file, and one both use is
-born wherever it is created. The origin is the source of record and rotation starts there. Decision 001 states the
+born wherever it is created. The origin is the source of record and rotation starts there. Decision 002 states the
 rule and `bin/check-recipients` enforces it.
 
-**Adding an operator** is two edits and one re-encryption: their key in both rules of `.sops.yaml` and in the
-vault's `agePublicKey`, then `sops updatekeys` on every `*.enc.yaml` cluster file and every file under
+**Adding an operator** is a few edits and one re-encryption: their key in all three rules of `.sops.yaml` and in
+the vault's `agePublicKey`, then `sops updatekeys` on every `*.enc.yaml` cluster file and every file under
 `vaults/infra/`, with a YubiKey that is already a recipient. Removing one is the same with the key taken out.
 
 Decision 006 said the same thing about two repositories: a credential the cluster uses is authored here and the
@@ -146,10 +152,10 @@ Cinder volume; the zot image itself comes from ghcr.io, pinned by digest.
 ## Operating models (swamp)
 
 This repository is also a swamp repository: `models/` holds the instances a human uses to operate what is deployed
-here, `extensions/models/` their custom methods, `workflows/` the release runner, the forge-to-GitHub mirror and the
-fleet disk survey, and `vaults/infra.enc.json` the credentials (decision 005). They came from `fabrikk` on 2026-09-18
-so that the factory holds no credential for this cluster. Run them from this checkout, with `_bin` on `PATH` for the
-Flux model and `omnictl` and `talosctl` on `PATH` for the Omni and Talos models:
+here, `extensions/models/` their custom methods, `workflows/` the release runner, the forge-to-GitHub mirror and
+the fleet disk survey, and `vaults/infra/` the credentials, one file per secret (decision 005). They came from
+`fabrikk` on 2026-09-18 so that the factory holds no credential for this cluster. Run them from this checkout, with
+`_bin` on `PATH` for the Flux model and `omnictl` and `talosctl` on `PATH` for the Omni and Talos models:
 
 ```sh
 swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, runner-pods, dataverket-prod-*, <namespace>-pods, forgejo-events
@@ -157,7 +163,7 @@ swamp model method run forgejo health
 swamp model method run omni discover                  # the Talos fleet, read-only
 swamp model method run dataverket-prod-kustomizations reconcile --input name=apps --input namespace=flux-system --input withSource=true
 swamp workflow run fleet-volumes                      # every node's disks, partitions and EPHEMERAL usage, read-only
-swamp model method run runner-pods list               # context fabrikk-readers
+swamp model method run runner-pods list               # context dataverket-prod-readers
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
 swamp model method run registry copy --input source=<upstream>@sha256:<digest> --input name=<image> --input tag=<tag>
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
@@ -176,4 +182,14 @@ holds.
 
 ## Decisions
 
-`docs/decisions/`: one numbered record per decision, why and with what consequences. New shape, new record.
+`docs/decisions/`: one record per decision, in the Structured MADR shape Dataverket validates, with a dated audit
+entry saying whether it has actually landed. A number is an identity and nothing else: a new record takes the next
+free one whatever its subject, so the index groups by each record's `category` instead and is generated from them.
+
+```sh
+task decisions        # the set as a table, with what is still pending
+task decisions:new    # the next number, the template, and $EDITOR
+task decisions:index  # rewrite docs/decisions/README.md from the records
+```
+
+New shape, new record: a decision is not edited to change its meaning once accepted.
