@@ -7,4 +7,9 @@ tags: {}
 globalArguments:
   apiUrl: 'https://git.dataverket.org'
   token: '${{ vault.get(infra, forgejo/api_token) }}'
+  # only so the type's own reachable check can run: it hands this straight
+  # to its fetch timeout, and a check receives global arguments without the
+  # schema's defaults, so undefined aborts the request at once. Upstream bug,
+  # github.com/thomas-elliott/swamp-extensions/issues/3; drop this when fixed.
+  httpTimeoutMs: 30000
 methods: {}
