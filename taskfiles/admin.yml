@@ -44,6 +44,7 @@ env:
   OS_CLOUD: nexthop
 
 tasks:
+  default: { cmds: [{ task: status }] }
   status:	{ desc: "What tier 2 holds: each item, its owner, its time left", cmds: [bin/status] }
   due:		{ desc: "Whether any item of ours is due: prints 1 or 0",         cmds: [bin/due] }
   login:	{ desc: "Open the session: Proton Pass and Omni",                 cmds: [bin/login] }

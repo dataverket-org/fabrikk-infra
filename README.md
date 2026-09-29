@@ -40,10 +40,15 @@ design behind it is `docs/plans/2026-09-credential-tiers.md`, and the second doo
 
 | Task | What |
 |---|---|
+| `task admin` | What the CLIs can reach right now, as a table. The same as `admin:status`. |
 | `task admin:login`, `task admin:logout` | Open and close the session: the Proton Pass session and the Omni login key. |
-| `task admin:status` | What the CLIs can reach right now: each credential, whether it is ours, and how long it has left. |
 | `task admin:renew` | Every credential of ours, in order, when any one of them is due. `RENEW=1` renews them now. |
 | `task admin:omni-key`, `admin:kube-admin`, `admin:kube-readers`, `admin:talos`, `admin:openstack` | One credential each, to run alone. |
+| `task admin:omni-operator-key` | The one key that can change a cluster. Run deliberately; `admin:renew` leaves it out and `admin:logout` removes it. |
+
+The `decisions:` group is the records in `docs/decisions/`. `task decisions` lists them with their audit status, so
+what is decided and what is still pending read at a glance; `decisions:new` starts one from the template and opens
+it in `$EDITOR`; `decisions:index` rewrites the generated index.
 
 Settings are environment variables, not options: `RENEW=1`, `DEBUG=1`, `TIER2_TTL` for the shared lifetime.
 What this repository administers, its cluster and the names its two logins go by, is not a setting but a fact,

@@ -12,11 +12,19 @@ reads="$omniconfig, $kubeconfig, $talosconfig, $clouds,"
 reads="$reads $reader_key_file, $operator_key_file"
 
 #
-# Prints one line per tier 2 item: who owns it and how long it has left.
+# Prints one row of the tier 2 table.
 #
-function tier2_status()
+function row()
 {
-	local role name left user credential record
+	printf '%-38s %-11s %-9s %s\n' "$1" "$2" "$3" "$4"
+}
+
+#
+# Prints the two kube contexts: who owns each and how long it has left.
+#
+function kube_rows()
+{
+	local role name user left
 
 	for role in admin readers; do
 		name="$cluster-$role"
@@ -24,38 +32,62 @@ function tier2_status()
 		left="$(context_seconds_left "$name")"
 
 		if [[ -z "$user" ]]; then
-			echo "  kube context $name: absent"
+			row "kube context $name" absent - "no such context"
 		elif ! context_is_ours "$name" "$id-$role"; then
-			echo "  kube context $name: hand-made (user $user), left alone"
+			row "kube context $name" hand-made - "user $user, left alone"
 		elif (( left > 0 )); then
-			echo "  kube context $name: ours, $(humanize "$left") left"
+			row "kube context $name" ours "$(humanize "$left")" "$id-$role"
 		else
-			echo "  kube context $name: ours, expired"
+			row "kube context $name" ours expired "$id-$role"
 		fi
 	done
+}
 
+#
+# Prints the talos context, which carries no credential of its own.
+#
+function talos_row()
+{
 	if ! talos_context_present; then
-		echo "  talos context $cluster: absent"
+		row "talos context $cluster" absent - "no such context"
 	elif talos_context_is_ours; then
-		echo "  talos context $cluster: ours, Omni-proxied, no credential"
+		row "talos context $cluster" ours - "Omni-proxied, no credential"
 	else
-		echo "  talos context $cluster: hand-made, left alone"
+		row "talos context $cluster" hand-made - "left alone"
+	fi
+}
+
+#
+# Prints one Omni service account key file.
+#
+function key_row()
+{
+	local label="$1"
+	local file="$2"
+	local account="$3"
+	local absent="$4"
+	local left
+
+	if [[ ! -s "$file" ]]; then
+		row "$label" absent - "$absent"
+		return
 	fi
 
-	if [[ -s "$reader_key_file" ]]; then
-		left="$(service_account_seconds_left "$id-reader")"
-		echo "  Omni reader key file: present, account has $(humanize "$left") left"
-	else
-		echo "  Omni reader key file: absent"
-	fi
+	left="$(service_account_seconds_left "$account")"
 
-	if [[ -s "$operator_key_file" ]]; then
-		left="$(service_account_seconds_left "$id-operator")"
-		echo "  Omni operator key file: present, account has $(humanize "$left")" \
-		     "left; this session can change clusters"
+	if (( left > 0 )); then
+		row "$label" ours "$(humanize "$left")" "$account"
 	else
-		echo "  Omni operator key file: absent, as an ordinary session has it"
+		row "$label" ours expired "$account"
 	fi
+}
+
+#
+# Prints the cloud entry the openstack models name.
+#
+function cloud_row()
+{
+	local credential record name left
 
 	credential="$(current_credential_id)"
 	record="$(credential_record "$credential")"
@@ -63,16 +95,48 @@ function tier2_status()
 	left="$(credential_seconds_left "$record")"
 
 	if [[ -z "$credential" ]]; then
-		echo "  cloud $os_cloud: absent"
+		row "cloud $os_cloud" absent - "no credential in the entry"
 	elif [[ -z "$record" ]]; then
-		echo "  cloud $os_cloud: credential $credential does not answer for itself" \
-		     "(expired, or gone); the openstack action checks it as you"
+		row "cloud $os_cloud" unknown - \
+			"$credential does not answer for itself; admin:openstack checks it as you"
 	elif ! credential_is_ours "$name"; then
-		echo "  cloud $os_cloud: hand-made credential $name, left alone"
+		row "cloud $os_cloud" hand-made - "$name, left alone"
 	elif (( left > 0 )); then
-		echo "  cloud $os_cloud: ours, credential $name, $(humanize "$left") left"
+		row "cloud $os_cloud" ours "$(humanize "$left")" "$name"
 	else
-		echo "  cloud $os_cloud: ours, credential $name, expired"
+		row "cloud $os_cloud" ours expired "$name"
+	fi
+}
+
+#
+# Prints the whole of tier 2 as a table, and what it adds up to.
+#
+function tier2_status()
+{
+	local table total due
+
+	table="$(kube_rows; talos_row
+		key_row "Omni reader key" "$reader_key_file" "$id-reader" \
+			"a session mints it"
+		key_row "Omni operator key" "$operator_key_file" "$id-operator" \
+			"an ordinary session has none"
+		cloud_row)"
+
+	row ITEM OWNER LEFT DETAIL
+	printf '%s\n' "$table"
+	echo
+
+	# An absent Operator key is the ordinary state, not something to renew; an
+	# expired one is, since that means the account went while the file stayed.
+	total="$(printf '%s\n' "$table" | grep -c .)"
+	due="$(printf '%s\n' "$table" | grep -cE ' expired ')"
+	due=$(( due + $(printf '%s\n' "$table" | grep -v '^Omni operator key' |
+	                grep -cE ' absent ') ))
+
+	if (( due )); then
+		log "$due of $total are expired or absent; task admin:renew"
+	else
+		log "$total items, all current"
 	fi
 }
 
@@ -91,5 +155,5 @@ expires="$(omni_login_expires)"
 
 require_human_cloud || fail "Cannot log in as you through $human_cloud!"
 
-log "Tier 2 as it stands:"
+echo
 tier2_status
