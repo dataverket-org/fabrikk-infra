@@ -52,7 +52,12 @@ function context_seconds_left()
 
 	expiration="$(context_token_payload "$name" | jq -r '.exp // 0' \
 	              2>/dev/null)"
-	echo -n $(( ${expiration:-0} - now ))
+
+	if [[ -z "$expiration" || "$expiration" == 0 ]]; then
+		echo -n 0
+	else
+		echo -n $(( expiration - now ))
+	fi
 }
 
 #
@@ -115,7 +120,11 @@ function mint_kube_context()
 	     >/dev/null || return $?
 	chmod 600 "$kubeconfig" || return $?
 
-	if [[ -n "$current" && "$current" != "$name" ]]; then
+	# Only if it still exists: the context that was current may be the one that
+	# was just deleted, which is what a rename of the subject looks like.
+	if [[ -n "$current" && "$current" != "$name" ]] &&
+	   kubectl config get-contexts -o name 2>/dev/null | grep -qx "$current"
+	then
 		kubectl config use-context "$current" >/dev/null || return $?
 	fi
 
