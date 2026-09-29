@@ -153,8 +153,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/talosctl": {
-    "version": "2026.09.29.2",
-    "pulledAt": "2026-09-29T11:15:11.709Z",
+    "version": "2026.09.29.3",
+    "pulledAt": "2026-09-29T17:32:22.122Z",
     "files": [
       ".swamp/bundles/7c616183/node.js",
       ".swamp/pulled-extensions/@dataverket/talosctl/files/LICENSE.md",
@@ -164,8 +164,8 @@
       ".swamp/pulled-extensions/@dataverket/talosctl/models/node.ts",
       ".swamp/pulled-extensions/@dataverket/talosctl/models/talosctl.ts"
     ],
-    "checksum": "3c53f200bc6d6324ce1be07005a3ab547548dad976300b1c8564d9737ea67aec",
-    "filesChecksum": "ba5592437cd52ee8c68fa5915348406b72a5f7894107258ffcb1b286d17143ca",
+    "checksum": "5580a5053040c1fcf82a412af65822f6f835ce897bd8de71a354e7462b6adc5b",
+    "filesChecksum": "b9ee346c84032aa6707a1b6159aeab72becd8cfff5018d9c5326a75e8956540e",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/sops": {
@@ -203,6 +203,55 @@
     ],
     "checksum": "1f4ce283960e33d463dcda1df0b189bcf0ad32c7ec91e72348c0945741e73810",
     "filesChecksum": "56ba10d5521520d3724cb6ce617912e69b555a31dc4794cbdb507a3477c55cff",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/forgejo": {
+    "version": "2026.09.29.1",
+    "pulledAt": "2026-09-29T17:58:59.434Z",
+    "files": [
+      ".swamp/bundles/86b24583/actions.js",
+      ".swamp/bundles/86b24583/pr_assign.js",
+      ".swamp/bundles/86b24583/push_mirror.js",
+      ".swamp/bundles/86b24583/repo_delete.js",
+      ".swamp/pulled-extensions/@dataverket/forgejo/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/forgejo/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/forgejo/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/actions.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/api.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/pr_assign.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/push_mirror.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/repo_delete.ts"
+    ],
+    "checksum": "3c28e6b2ea561b53ca1de650fe9d2910d25f154313cc612e7a7f3e7321b700ca",
+    "filesChecksum": "fe8d78ade21e9acd95563fb2acdcb730ea8beb62794afb5f85efbf2cb107cad1",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/github": {
+    "version": "2026.09.29.1",
+    "pulledAt": "2026-09-29T17:59:03.681Z",
+    "files": [
+      ".swamp/bundles/500eb522/repo_settings.js",
+      ".swamp/pulled-extensions/@dataverket/github/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/github/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/github/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/github/models/repo_settings.ts"
+    ],
+    "checksum": "e1d9055fe72a042c5a0de6e6b7dda1687a0c73666429eedea80fb55d040446a5",
+    "filesChecksum": "b8e4a0bf9172a8fa9885cf7936eb09274537e8c6f44c95411c6935c632ace8f8",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/flux": {
+    "version": "2026.09.29.1",
+    "pulledAt": "2026-09-29T17:59:07.468Z",
+    "files": [
+      ".swamp/bundles/7a49f082/reset.js",
+      ".swamp/pulled-extensions/@dataverket/flux/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/flux/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/flux/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/flux/models/reset.ts"
+    ],
+    "checksum": "afbd5cd16a6b9bd8c3ab9496c1b95d7facb8de17d05c11533e412d0e585d898d",
+    "filesChecksum": "36b51e68a55d5b2f39e35830a4bbacff26659b17e4802cbe420e4f87ec7b21bd",
     "serverUrl": "https://swamp-club.com"
   }
 }

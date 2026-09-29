@@ -1,5 +1,5 @@
 type: '@dataverket/talosctl/node'
-typeVersion: 2026.09.29.2
+typeVersion: 2026.09.29.3
 id: 278ff9ae-1f9e-4602-8dc2-1dad1922f63b
 name: dataverket-prod-talos
 version: 1
