@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 #
-# Tools on PATH, your Omni and OpenStack logins in place, and what tier 2
-# holds right now: each item, who owns it, and how long it has left. Reads
-# only, except that the Omni login itself writes its key on first use.
+# What tier 2 holds right now: where each credential lives, the name it is
+# selected by, who owns it and when it expires. Reads only. It announces no
+# files, because the table names every one it reads, and it says nothing about
+# the tools or the endpoints unless something is wrong with them.
+#
+# It does authenticate as you, which is the one thing that can write: on a
+# first login omnictl saves a PGP key and says so itself.
 #
 
 # shellcheck source=share/admin/admin.sh
 source "${0%/*}/../share/admin/admin.sh" || exit $?
-
-reads="$omniconfig, $kubeconfig, $talosconfig, $clouds,"
-reads="$reads $reader_key_file, $operator_key_file"
 
 #
 # Prints one row of the tier 2 table: the file it lives in, the name it is
@@ -183,20 +184,16 @@ function tier2_status()
 	fi
 }
 
-announce_files "$reads" "$(omni_login_key) (Omni, on first login)"
-
 require_tools omnictl kubectl talosctl openstack jq yq || exit $?
 require_omni_context || exit $?
-log "Tools present: omnictl kubectl talosctl openstack jq yq"
-
-log "Omni login as you (a browser opens on first use) ..."
-omni serviceaccount list >/dev/null ||
-	fail "Omni at $omni_url did not accept your login!"
-log "$omni_url answers through $omniconfig"
-expires="$(omni_login_expires)"
-[[ -z "$expires" ]] || log "Your Omni login key expires at $expires (tier 3)"
-
 require_human_cloud || fail "Cannot log in as you through $human_cloud!"
 
-echo
+# As you, which is what may open a browser and write a login key.
+omni serviceaccount list >/dev/null ||
+	fail "Omni did not accept your login in context $omni_context!"
+
 tier2_status
+
+# Tier 3's own clock, which is not in the table and often runs out first.
+expires="$(omni_login_expires)"
+[[ -z "$expires" ]] || log "Your Omni login expires at $expires"

@@ -41,7 +41,7 @@ function require_human_cloud()
 		return 1
 	fi
 
-	log "Cloud entry $human_cloud reaches $url"
+	debug "Cloud entry $human_cloud reaches $url"
 }
 
 #
