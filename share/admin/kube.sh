@@ -71,23 +71,24 @@ function context_subject()
 }
 
 #
-# Checks whether a token subject is one this repository made: the name it uses
-# now, or one it has used before. A subject is ours when it names the
-# repository and ends in the role, with or without an operator in between and
-# with or without the swamp- prefix the names carried until 2026-09-29. Only
-# our own names ever reach a $HOME, so this widening cannot claim another
-# operator's context; what it does is let a rename renew a context instead of
-# declaring it hand-made.
+# Checks whether a token subject is one this repository made: under the name it
+# goes by now, or under one of former_ids. A subject is ours when it names the
+# repository and ends in the role, with or without an operator in between. Only
+# our own names ever reach a $HOME, so this cannot claim another operator's
+# context; what it does is let a rename renew a context instead of declaring it
+# hand-made.
 #
 function subject_is_ours()
 {
 	local subject="$1"
 	local role="$2"
+	local prefix
 
-	case "$subject" in
-		"$id-$role"|"$id-"*"-$role")             return 0 ;;
-		"swamp-$id-$role"|"swamp-$id-"*"-$role")  return 0 ;;
-	esac
+	for prefix in "$id" "${former_ids[@]}"; do
+		case "$subject" in
+			"$prefix-$role"|"$prefix-"*"-$role") return 0 ;;
+		esac
+	done
 
 	return 1
 }
@@ -108,10 +109,11 @@ function context_is_ours()
 
 #
 # Mints an Omni service-account kubeconfig into the kubeconfig as a named
-# context for a subject, with the shared lifetime. A hand-made context is
-# left alone. Ours is renewed when renew_now says so. omnictl switches the
-# current context to what it wrote, so the operator's choice is put back.
-# Remaining arguments go to omnictl.
+# context for the role, with the shared lifetime. A hand-made context is left
+# alone; one of ours under a former name is renewed like any other, and what
+# that name left behind is removed. omnictl switches the current context to
+# what it wrote, so the operator's choice is put back. Remaining arguments go
+# to omnictl.
 #
 function mint_kube_context()
 {

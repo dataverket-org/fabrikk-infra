@@ -111,12 +111,17 @@ function credential_name()
 function credential_is_ours()
 {
 	local name="$1"
+	local prefix
 
-	# Also the prefix these names carried until 2026-09-29, so that a
-	# credential made under the old one is replaced and pruned rather than
-	# reported as hand-made and left in Keystone for good. Keystone scopes a
-	# listing to the operator, so this only ever matches your own.
-	[[ "$name" == "$id-"* || "$name" == "swamp-$id-"* ]]
+	# former_ids as well, so that a credential made under a name this
+	# repository has since dropped is replaced and pruned rather than reported
+	# as hand-made and left in Keystone for good. Keystone scopes a listing to
+	# the operator, so this only ever matches your own.
+	for prefix in "$id" "${former_ids[@]}"; do
+		[[ "$name" == "$prefix-"* ]] && return 0
+	done
+
+	return 1
 }
 
 #

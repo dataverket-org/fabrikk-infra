@@ -114,8 +114,8 @@ function omni_as_service_account()
 # account whose keys have all expired drops out of it while its Identity stays
 # (seen 2026-09-29: swamp-fabrikk-infra-reader, the name in use then, created
 # 2026-09-28 with an 8h key, absent here, present in `omnictl get identities`,
-# and refused as AlreadyExists on create). Only create_reader_account concludes anything about
-# existence.
+# and refused as AlreadyExists on create). Only create_service_account
+# concludes anything about existence.
 #
 function service_accounts()
 {
@@ -257,38 +257,42 @@ function renew_service_account()
 }
 
 #
-# Destroys the accounts this repository made for a role under names it used
-# before, once the one it uses now answers. Only exact former names are
-# destroyed, never a pattern: an Omni account list is one list for every
-# operator, and a pattern would reach another operator's account. An account
-# whose keys have all expired is not listed, so it is left to Omni.
+# Destroys the accounts this repository made for a role under a former_ids
+# name, and removes the key files they were written to, once the account in use
+# answers. Only exact former names are destroyed, never a pattern: an Omni
+# account list is one list for every operator, and a pattern would reach
+# another operator's account. An account whose keys have all expired is not
+# listed, so it is left to Omni.
 #
 function destroy_superseded_service_accounts()
 {
 	local keep="$1"
-	local name
+	local prefix name stale
 
 	# The word the account ends in, "reader" or "operator", which is what the
 	# former names ended in too. Not the Omni role, which is capitalised and
 	# appears in no name.
 	local word="${keep##*-}"
-	local stale="${reader_key_file%/*}/swamp-$id-$word.key"
 
-	for name in "swamp-$id-$word" "swamp-$id-$operator-$word"; do
-		[[ "$name" != "$keep" ]]       || continue
-		service_account_listed "$name" || continue
+	for prefix in "${former_ids[@]}"; do
+		for name in "$prefix-$word" "$prefix-$operator-$word"; do
+			[[ "$name" != "$keep" ]]       || continue
+			service_account_listed "$name" || continue
 
-		omni serviceaccount destroy "$name" >/dev/null || return $?
-		log "Destroyed the superseded account $name"
+			omni serviceaccount destroy "$name" >/dev/null || return $?
+			log "Destroyed the superseded account $name"
+		done
+
+		# The key file those accounts were written to, which no definition
+		# names any more. It authenticates nothing once the account is gone,
+		# and tier 2 leaves nothing on disk that nothing selects.
+		stale="${reader_key_file%/*}/$prefix-$word.key"
+
+		if [[ -f "$stale" ]]; then
+			rm -f "$stale" || return $?
+			log "Removed the superseded key file $stale"
+		fi
 	done
-
-	# The key file those accounts were written to, which no definition names
-	# any more. It authenticates nothing once the account is gone, and tier 2
-	# leaves nothing on disk that nothing selects.
-	if [[ -f "$stale" ]]; then
-		rm -f "$stale" || return $?
-		log "Removed the superseded key file $stale"
-	fi
 }
 
 #

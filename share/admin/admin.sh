@@ -24,8 +24,8 @@
 # names and not command lines. They fall in two groups, and the difference is
 # what the group below the values explains.
 #
-# What this repository administers, set in taskfiles/admin.yml and required,
-# not defaulted.
+# What this repository administers, set in taskfiles/admin.yml and required
+# unless a default is named below.
 # Every one of them is a name, never an address: the two logins are named the
 # way `kubectl` names a context, and each CLI's own config file says where that
 # name points. Nothing here holds a URL.
@@ -72,10 +72,11 @@ function require_settings()
 }
 
 # What this repository administers: its name in a provider, its cluster, and
-# the two names its logins go by. taskfiles/admin.yml sets these, because the Taskfile is the
-# driver and this is the whole of what a second repository would change while
-# reusing bin/ and share/admin/ unchanged. Nothing is defaulted, so there is no
-# guess at somebody else's to go wrong.
+# the two names its logins go by. taskfiles/admin.yml sets these, because the
+# Taskfile is the driver and this is the whole of what a second repository
+# would change while reusing bin/ and share/admin/ unchanged. None of the four
+# required here is defaulted, so there is no guess at somebody else's cluster
+# or endpoint to go wrong.
 #
 # Both logins are named, not addressed. `omnictl --context <name>` and
 # `openstack --os-cloud <name>` each read the address, and the identity behind
@@ -96,6 +97,18 @@ id="$repo"                          # what a definition names: shared, in git
 operator="${OPERATOR:-$USER}"
 [[ -n "$operator" ]] || fail "neither OPERATOR nor USER is set; name yourself"
 me="$id-$operator"                  # what a provider records: one per operator
+
+# The names this repository went by in a provider before, newest first. Every
+# provider-side name is built from one of these, so a credential under a former
+# name is recognised as ours, replaced, and what it left behind removed, rather
+# than reported as hand-made and left for good. This list is the whole of what
+# a rename leaves behind: kube, Omni and OpenStack all read it, and none of
+# them writes the rule down a second time. Delete a line once no host carries a
+# credential under it.
+#
+#	swamp-fabrikk-infra	until 2026-09-29, when tier 2 stopped saying swamp
+former_ids=("swamp-$repo")
+
 # shellcheck disable=SC2153  # from the environment, not a misspelt local
 cluster="$CLUSTER"
 # shellcheck disable=SC2153
