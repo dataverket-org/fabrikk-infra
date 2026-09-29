@@ -119,6 +119,8 @@ talosconfig, under the same rule and in the same place.
 
 ## Not in this plan
 
+- Kubernetes authentication. `docs/plans/2026-09-kubernetes-identity.md` moves it to Zitadel and needs the route
+  this plan builds, which is the reason to build the route once and use it twice. It runs after this one.
 - Cilium. The cluster's CNI is Omni-provisioned and nothing in this repository touches it; a CNI change is a
   next-cluster decision and is independent of everything above.
 - Omni's etcd backups, which have no destination configured on this instance. Cluster state and cluster access are

@@ -45,7 +45,7 @@ resort in someone else's hands.
 
 - A replacement must mint credentials with a lifetime on the authority of a human login. If it cannot, tier 2
   falls back to permanent keys and 001 loses its compensating control. That is the first requirement to settle,
-  before the replacement is designed.
+  before the replacement is designed. 015 is where Dataverket first meets it, for Kubernetes.
 - Using an `os:admin` certificate taints the cluster until the Talos CA is rotated, which invalidates the stored
   talosconfig and obliges a re-mint. The obligation lasts only as long as Omni manages the cluster.
 - A second way in is a standing risk taken against a hypothetical outage. While Omni is still here, that is a real

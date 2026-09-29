@@ -19,6 +19,7 @@ what it supersedes.
 | [002](002-two-sops-stores-one-reader-each.md) | Two SOPS stores, one reader each | One key per decrypting process; neither store's key is ever a recipient of the other store's files. | 2026-09-29 |
 | [003](003-cluster-sops-key-never-leaves-the-cluster.md) | The cluster's SOPS key is made in the cluster and never leaves it | A one-shot Job makes the cluster's age key inside the cluster; only the recipient is published. | 2026-09-17 |
 | [004](004-human-only-material-stays-outside-swamp.md) | Human-only material stays outside swamp's reach | Break-glass material is plain sops outside vaults/, so nothing swamp runs can name it. | 2026-09-29 |
+| [015](015-kubernetes-authenticates-against-zitadel.md) | Kubernetes authenticates against Zitadel, not Omni | An OIDC token from Zitadel that lives minutes, and RBAC bound to Zitadel groups, not an Omni flag. | 2026-09-29 |
 
 ## Boundaries and direction
 
