@@ -30,7 +30,9 @@ laptop and copied in, or made where it is used.
 ## Decision
 
 A one-shot Job (`bootstrap/sops-age-keygen.yaml`) runs `age-keygen` inside the cluster and writes the private key
-straight into `flux-system/sops-age`. Only the recipient is published. The key is never copied and never backed
+straight into `flux-system/sops-age`. The identity is `cluster-dataverket-prod`, after the process that decrypts
+with it rather than after the cluster, so a second cluster gets `cluster-<name>` as a second repository gets
+`swamp-<repo>`. Only the recipient is published. The key is never copied and never backed
 up. No separate SOPS operator: kustomize-controller is the decryptor.
 
 ## Consequences

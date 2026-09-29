@@ -88,7 +88,7 @@ the file is safe to commit.
 
 | Setup | Files | Who decrypts | Recipients |
 |---|---|---|---|
-| Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | `dataverket-prod` (Secret `flux-system/sops-age`, generated in-cluster, decision 003), `beddari`, `linus` |
+| Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | `cluster-dataverket-prod` (Secret `flux-system/sops-age`, generated in-cluster, decision 003), `beddari`, `linus` |
 | Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/keys.txt` on the swamp host), `beddari`, `linus` |
 | Break-glass | `break-glass/*.enc.yaml` | Nothing automated. A person, with a touch | `beddari`, `linus`, and no process key at all |
 

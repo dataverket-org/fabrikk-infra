@@ -5,7 +5,7 @@
 # key is never a recipient of a cluster file. A value that has to exist in both stores is copied by a human with a
 # YubiKey, from the store where it was born, and the commit says so.
 #
-# - dataverket-prod        age1g3x9w...        Secret flux-system/sops-age, generated in-cluster 2026-09-17 by
+# - cluster-dataverket-prod  age1g3x9w...      Secret flux-system/sops-age, generated in-cluster 2026-09-17 by
 #                                              bootstrap/sops-age-keygen.yaml; never leaves the cluster. Decrypts
 #                                              the Flux files and nothing else.
 # - swamp-fabrikk-infra    age15d64...         ~/.config/sops/age/keys.txt on the swamp host, mode 0600.
@@ -28,7 +28,7 @@
 # Each identity is written once, above, and every rule names it by alias, so a recipient list is read as names
 # rather than compared character by character. sops ignores the `identities` key and reads only `creation_rules`.
 identities:
-  dataverket-prod: &dataverket_prod age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
+  cluster-dataverket-prod: &cluster_dataverket_prod age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
   swamp-fabrikk-infra: &swamp_fabrikk_infra age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
   beddari: &beddari age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
   linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
@@ -48,7 +48,7 @@ creation_rules:
     encrypted_regex: ^(data|stringData)$
     key_groups:
       - age:
-          - *dataverket_prod
+          - *cluster_dataverket_prod
           - *beddari
           - *linus
   - path_regex: vaults/.*\.enc\.json(\.plain\.tmp)?$

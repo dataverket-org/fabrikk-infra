@@ -35,7 +35,8 @@ recipient of the vault, whenever a value is wanted in both places.
 One key per decrypting process, named after the process, and the name is what `.sops.yaml`, the vault config and
 the plans call it.
 
-- `dataverket-prod` decrypts the Flux files and nothing else.
+- `cluster-dataverket-prod` decrypts the Flux files and nothing else. A second cluster gets its own
+  `cluster-<name>` key.
 - `swamp-fabrikk-infra` decrypts the vault and nothing else. A second swamp repository gets its own `swamp-<repo>`
   key, never a copy of this one.
 - A value that has to exist in both stores is copied by a human with a YubiKey, from the store where it was born,

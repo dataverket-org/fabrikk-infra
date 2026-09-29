@@ -252,7 +252,7 @@ A process key is named after the process, and the name is what `.sops.yaml`, the
 
 | Key name | Identity | Where the private key is | Decrypts |
 |---|---|---|---|
-| `dataverket-prod` | `age1g3x9w…` | Secret `flux-system/sops-age`, generated in-cluster, never leaves it (decision 003) | The Flux files |
+| `cluster-dataverket-prod` | `age1g3x9w…` | Secret `flux-system/sops-age`, generated in-cluster, never leaves it (decision 003) | The Flux files |
 | `swamp-fabrikk-infra` | `age15d64a…` | `~/.config/sops/age/keys.txt` on the swamp host | The `infra` vault |
 | `beddari`, `linus` | `age1yubikey1…` | The YubiKeys | Both, for recovery, re-keying and writes from a terminal |
 
@@ -351,18 +351,18 @@ every encrypted file and fails when a key appears on the wrong side. Steps 8 to 
    themselves are 001; `docs/decisions/README.md` maps the old numbers.
 
 9. **README, Secrets section.** Done 2026-09-29. Three changes. The recipients table names the keys
-   (`dataverket-prod`,
-   `swamp-fabrikk-infra`, the operators) instead of describing them. The sentence "the swamp host is not, so no
-   unattended process can read a cluster secret" becomes what the rule delivers: the host's key opens no cluster
-   file, so a leak of it costs the vault and not the manifests, and a live Secret is a different door. A new short
-   paragraph, "Moving a value between the stores", says who does it, with what, that the origin store is the
-   source of record and the direction follows from it, and that the commit message says so; it points at decision
-   009 and at the check in step 10. The 005 sentence at the end of the section is rewritten the same way.
+   (`cluster-dataverket-prod`, `swamp-fabrikk-infra`, the operators) instead of describing them. The sentence "the
+   swamp host is not, so no unattended process can read a cluster secret" becomes what the rule delivers: the
+   host's key opens no cluster file, so a leak of it costs the vault and not the manifests, and a live Secret is a
+   different door. A new short paragraph, "Moving a value between the stores", says who does it, with what, that
+   the origin store is the source of record and the direction follows from it, and that the commit message says so;
+   it points at decision 002 and at the check in step 10. The 005 sentence at the end of the section is rewritten
+   the same way.
 10. **`.sops.yaml` and the check.** Done 2026-09-29. Each identity is declared once as a YAML anchor under a
     top-level `identities:` key that sops ignores, and every rule names it by alias inside `key_groups`, whose
     `age:` is a list, so a recipient list reads as names. Verified by encrypting one file per rule and reading
-    back who it went to: `break-glass/` to the two operators, a Flux file to `dataverket-prod` and the two
-    operators, a vault file to `swamp-fabrikk-infra` and the two operators. `bin/check-recipients` reads the
+    back who it went to: `break-glass/` to the two operators, a Flux file to `cluster-dataverket-prod` and
+    the two operators, a vault file to `swamp-fabrikk-infra` and the two operators. `bin/check-recipients` reads the
     identities and the rules, matches every `*.enc.yaml` and `*.enc.json` to the first rule that matches its path
     as sops does, and compares. It decrypts nothing, so it runs unattended with no YubiKey. `bootstrap.sh` runs it
     as its first step and `admin:renew` before it mints anything; `task check-recipients` runs it by hand. Proved
@@ -383,7 +383,7 @@ every encrypted file and fails when a key appears on the wrong side. Steps 8 to 
 | Omni operator key | The shared tier 2 lifetime | `task admin:omni-operator-key`, before changing a cluster; never by `admin:renew` | `task admin:status` lists it when present; `omnictl serviceaccount list` shows the expiry |
 | Break-glass talosconfig, `break-glass/` | Until the Talos CA is rotated | Never; using it obliges a CA rotation and a re-mint | `docs/plans/2026-09-break-glass.md` |
 | Repo key `swamp-fabrikk-infra` | Until the host is rebuilt | A human: new key, `sops updatekeys` over `vaults/infra/`, new name if the repo moves | Never automatic |
-| Cluster key `dataverket-prod` | The cluster's life | `bootstrap.sh` on a new cluster (decision 003) | A new cluster |
+| Cluster key `cluster-dataverket-prod` | The cluster's life | `bootstrap.sh` on a new cluster (decision 003) | A new cluster |
 
 For tier 2 the signal is `admin:status`, which reads the expiry out of each kubeconfig token, the service account
 listing and the credential's own record, in one place. For tier 3 the signals are still "the next run fails",
