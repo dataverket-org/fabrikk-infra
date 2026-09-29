@@ -6,5 +6,5 @@ version: 1
 tags: {}
 globalArguments:
   namespace: forgejo-runners
-  context: fabrikk-readers
+  context: dataverket-prod-readers
 methods: {}
