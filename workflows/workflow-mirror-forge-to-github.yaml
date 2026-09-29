@@ -90,7 +90,7 @@ jobs:
             name: ${{ self.repo.attributes.name }}
             remoteAddress: ${{ "https://github.com/" + inputs.githubOwner + "/" + self.repo.attributes.name + ".git" }}
             remoteUsername: ${{ inputs.githubUsername }}
-            remotePassword: ${{ vault.get(infra, github/mirror_token) }}
+            remotePassword: "${{ vault.get('infra', 'github/mirror_token') }}"
             interval: ${{ inputs.interval }}
             syncOnCommit: true
   - name: defaults

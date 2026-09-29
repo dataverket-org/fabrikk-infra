@@ -10,6 +10,6 @@ tags: {}
 globalArguments:
   registry: registry.dataverket.org
   namespace: mirror
-  username: '${{ vault.get(infra, registry/ci_username) }}'
-  password: '${{ vault.get(infra, registry/ci_password) }}'
+  username: "${{ vault.get('infra', 'registry/ci_username') }}"
+  password: "${{ vault.get('infra', 'registry/ci_password') }}"
 methods: {}

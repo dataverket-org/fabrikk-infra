@@ -7,5 +7,5 @@ tags: {}
 globalArguments:
   owner: dataverket-org
   isOrg: true
-  token: '${{ vault.get("infra", "github/mirror_token") }}'
+  token: "${{ vault.get('infra', 'github/mirror_token') }}"
 methods: {}

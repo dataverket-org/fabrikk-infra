@@ -255,5 +255,35 @@
     "checksum": "bf5da2a75f90533054c5069da26ca92978f20d268a1cf0bc5d872d5b505e7eea",
     "filesChecksum": "ad7c43189b69950423eb1148801507175331161dce8a118c0abf05e62b9b2146",
     "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/zitadel": {
+    "version": "2026.09.29.2",
+    "pulledAt": "2026-09-29T19:17:35.266Z",
+    "files": [
+      ".swamp/bundles/0fedae52/action.js",
+      ".swamp/bundles/0fedae52/app.js",
+      ".swamp/bundles/0fedae52/grant.js",
+      ".swamp/bundles/0fedae52/org.js",
+      ".swamp/bundles/0fedae52/project.js",
+      ".swamp/bundles/0fedae52/settings.js",
+      ".swamp/bundles/0fedae52/user.js",
+      ".swamp/pulled-extensions/@dataverket/zitadel/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/zitadel/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/zitadel/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/action.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/api.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/app.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/common.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/grant.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/lookup.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/org.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/project.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/schema.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/settings.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/user.ts"
+    ],
+    "checksum": "cf7415f1f445b89106f85fd61d4ee3789a202332eac9c46d6d0d026754a02b09",
+    "filesChecksum": "62cce41888060b78c07446099fc72b9563492937bc3599c2201157f063a6e547",
+    "serverUrl": "https://swamp-club.com"
   }
 }

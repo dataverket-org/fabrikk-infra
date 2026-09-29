@@ -1,0 +1,10 @@
+type: '@dataverket/zitadel/org'
+typeVersion: 2026.09.29.1
+id: ab39d470-1be3-425e-b342-fc1c99a0ff38
+name: zitadel-org
+version: 1
+tags: {}
+globalArguments:
+  apiUrl: 'https://zitadel.dataverket.org'
+  keyJson: "${{ vault.get('infra', 'zitadel/key_json') }}"
+methods: {}

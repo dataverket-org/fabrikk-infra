@@ -6,7 +6,7 @@ version: 1
 tags: {}
 globalArguments:
   apiUrl: 'https://codeberg.org'
-  token: '${{ vault.get(infra, codeberg/api_token) }}'
+  token: "${{ vault.get('infra', 'codeberg/api_token') }}"
   # only so the type's own reachable check can run: it hands this straight
   # to its fetch timeout, and a check receives global arguments without the
   # schema's defaults, so undefined aborts the request at once. Upstream bug,

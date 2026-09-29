@@ -1,0 +1,10 @@
+type: '@dataverket/zitadel/user'
+typeVersion: 2026.09.29.1
+id: 0ebd1dee-ca16-4e2f-a976-4f781cc178c4
+name: zitadel-user
+version: 1
+tags: {}
+globalArguments:
+  apiUrl: 'https://zitadel.dataverket.org'
+  keyJson: "${{ vault.get('infra', 'zitadel/key_json') }}"
+methods: {}

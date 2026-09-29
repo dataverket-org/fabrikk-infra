@@ -102,7 +102,8 @@ that exists without touching the real instance.
 3. **Publish** `swamp extension push manifest.yaml --yes` from `~/kode/swamp-extensions/zitadel`, then
    `swamp extension pull @dataverket/zitadel --yes` here.
 4. **Model definitions** under `models/@dataverket/zitadel/`, one per type, all pointing at
-   `https://zitadel.dataverket.org` and `${{ vault.get(infra, zitadel/key_json) }}`.
+   `https://zitadel.dataverket.org` and `${{ vault.get('infra', 'zitadel/key_json') }}` — quoted arguments,
+   which is the spelling `swamp model validate` recognizes.
 5. **Verify against the instance**: the read methods first, then the write path on a throwaway project, walking
    the deletes back down and checking that a wrong `confirm` is refused and `dryRun` changes nothing. The same
    suite runs against a real instance by pointing the models at it, though the destructive batches want a project
