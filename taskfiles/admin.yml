@@ -1,0 +1,95 @@
+version: '3'
+
+#
+# Tier 3 of the credential tiers (docs/plans/2026-09-credential-tiers.md): the
+# operator's sitting on the factory host. Every task here runs as you, with
+# your own Omni and OpenStack logins, and writes only tier 2 files. None of
+# them reads or writes the swamp vault, and none needs swamp on PATH.
+#
+# One task per tier 2 item, each safe to rerun and able to run alone.
+# `admin:renew` asks once whether any item is due and, if one is, renews them
+# all in that order, so they expire together and you log in once a day.
+#
+# Settings are environment variables, not options:
+#
+#	RENEW=1		Renew every item of ours now, not only when due
+#	DEBUG=1		Print every external command before it runs
+#	TIER2_TTL=8h	The one lifetime of every tier 2 item, whole hours
+#	OS_CLOUD	The clouds.yaml entry you log in with; when it is unset,
+#			the one entry that reaches this estate's Keystone is found
+#	OS_PASSWORD_REF	pass:// reference to your OpenStack password
+#
+# What this estate is, below, is not a setting: it is the same for every
+# operator, and it is the whole of what another repository would change while
+# reusing bin/ and share/admin/ unchanged. The scripts require it and default
+# nothing, so a missing value stops a run instead of pointing it at the wrong
+# cluster. A shell that exports one of these wins over what is set here, which
+# is how an operator whose own config uses other names, or a test pointing
+# somewhere else, gets its way for one run.
+#
+# The two logins are named, never addressed: OMNI_CONTEXT is a context in your
+# omniconfig and OS_CLOUD an entry in your clouds.yaml, exactly as a kube
+# context is named, and each CLI reads the address and the identity out of its
+# own config. Nothing here is a URL. Where this estate answers is in the
+# README, for a person setting their own config up once.
+#
+
+env:
+  SWAMP_REPO: fabrikk-infra
+  CLUSTER: dataverket-prod
+  OMNI_CONTEXT: default
+  OS_CLOUD: nexthop
+
+tasks:
+  status:	{ desc: "What tier 2 holds: each item, its owner, its time left", cmds: [bin/status] }
+  due:		{ desc: "Whether any item of ours is due: prints 1 or 0",         cmds: [bin/due] }
+  login:	{ desc: "Open the sitting: Proton Pass and Omni",                 cmds: [bin/login] }
+  logout:	{ desc: "Close the sitting; tier 2 is left to expire",            cmds: [bin/logout] }
+
+  shell:
+    desc: "Open the sitting and a shell with OS_PASSWORD resolved in it"
+    cmds: [bin/login]
+    env:  { SESSION_SHELL: '1' }
+
+  renew:
+    desc: "Every tier 2 item, in order, when any one of them is due"
+    vars:
+      RENEW: { sh: bin/due }
+    cmds:
+      - task: omni-key
+        vars: { RENEW: '{{.RENEW}}' }
+      - task: kube-admin
+        vars: { RENEW: '{{.RENEW}}' }
+      - task: kube-readers
+        vars: { RENEW: '{{.RENEW}}' }
+      - task: talos
+        vars: { RENEW: '{{.RENEW}}' }
+      - task: openstack
+        vars: { RENEW: '{{.RENEW}}' }
+      - cmd: echo ">>> Tier 2 on this host is current"
+        silent: true
+
+  omni-key:
+    desc: "Omni Reader service account and the key file talosctl reads"
+    cmds: [bin/omni-key]
+    env:  { RENEW: '{{.RENEW}}' }
+
+  kube-admin:
+    desc: "Kube context <cluster>-admin, system:masters"
+    cmds: [bin/kube-admin]
+    env:  { RENEW: '{{.RENEW}}' }
+
+  kube-readers:
+    desc: "Kube context <cluster>-readers, the readers group only"
+    cmds: [bin/kube-readers]
+    env:  { RENEW: '{{.RENEW}}' }
+
+  talos:
+    desc: "Talos context <cluster>, Omni-proxied, no credential of its own"
+    cmds: [bin/talos]
+    env:  { RENEW: '{{.RENEW}}' }
+
+  openstack:
+    desc: "Cloud entry <repo> in clouds.yaml and its application credential"
+    cmds: [bin/openstack]
+    env:  { RENEW: '{{.RENEW}}' }

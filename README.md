@@ -17,6 +17,9 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `apps/` | Kustomization `apps` (after `infrastructure`) | Forgejo, its runners, Zitadel, and the pointer to zot. |
 | `artifacts/<name>/` | Nobody, from git | Sources of OCI config artifacts. Pushed with `artifacts/<name>/push.sh`, pulled by an `OCIRepository` declared under `apps/`. |
 | `bootstrap/` | `bootstrap.sh` | What must exist before the rest can be applied: the cluster's SOPS key, and zot from git until zot serves its own config. |
+| `Taskfile.yml`, `taskfiles/` | `task` | The commands of this repository, one namespace per group, one file per namespace. |
+| `bin/`, `share/admin/` | The `admin:` tasks | The operator's own sitting: the short-lived kube, talos, Omni and OpenStack credentials the models use. Runs as you, never as swamp. |
+| `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
 
 ## Bootstrap and recovery
 
@@ -24,6 +27,35 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 and the record of both. It stops once on a new cluster, when the freshly generated SOPS recipient must be put in
 `.sops.yaml` and every `*.enc.yaml` re-encrypted with a YubiKey. It needs kubectl, flux, sops, git, and a YubiKey.
 The reasons behind each step are in `docs/decisions/`.
+
+## Commands
+
+`task` lists them. One namespace per group; the `admin:` group is the operator's own sitting on the factory host,
+the credentials the models then use by name. It runs with your Omni and OpenStack logins, writes only config files
+in your home directory, and never touches the swamp vault. The design behind it, and what is not applied yet, is in
+`docs/plans/2026-09-credential-tiers.md`.
+
+| Task | What |
+|---|---|
+| `task admin:login`, `task admin:logout` | Open and close the sitting: the Proton Pass session and the Omni login key. |
+| `task admin:status` | What the CLIs can reach right now: each credential, whether it is ours, and how long it has left. |
+| `task admin:renew` | Every credential of ours, in order, when any one of them is due. `RENEW=1` renews them now. |
+| `task admin:omni-key`, `admin:kube-admin`, `admin:kube-readers`, `admin:talos`, `admin:openstack` | One credential each, to run alone. |
+
+Settings are environment variables, not options: `RENEW=1`, `DEBUG=1`, `TIER2_TTL` for the shared lifetime.
+What this estate is, its cluster and the names its two logins go by, is not a setting but a fact, and
+`taskfiles/admin.yml` sets it; `bin/` and `share/admin/` name no estate of their own.
+
+Both logins are named, never addressed, the way a kube context is: the tasks pass `omnictl --context` and
+`openstack --os-cloud`, and each CLI reads the address and the identity out of your own config file. So the two
+addresses below are yours to put there once, and no script here ever passes a URL:
+
+| Your file | Name the tasks use | Where it points |
+|---|---|---|
+| `~/.talos/omni/config` | context `default` | `https://dataverket.eu-central-1.omni.siderolabs.io`, with `omnictl config new --url <that>` |
+| `~/.config/openstack/clouds.yaml` | cloud `nexthop` | `https://identity-api.nexthop.no:5000/v3`, your own Keystone login, never an application credential |
+
+If your own config uses other names, export `OMNI_CONTEXT` or `OS_CLOUD`; a shell wins over the Taskfile.
 
 ## Names
 

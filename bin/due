@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+#
+# Whether the tier 2 sitting is due. Prints 1 on stdout when any item of ours
+# is due or absent and 0 when none is, and names what it found on stderr. The
+# admin:renew task reads that answer once and hands it to every item, so the
+# whole sitting is renewed together and expires together. Hand-made items are
+# never renewed, so they never make a sitting due either.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+#
+# Prints the tier 2 items of ours that are due or absent, one per line.
+#
+function due_items()
+{
+	local role name left credential record
+
+	for role in admin readers; do
+		name="$cluster-$role"
+		context_is_ours "$name" "$id-$role" || continue
+		left="$(context_seconds_left "$name")"
+		(( left > renew_before )) || echo "kube context $name"
+	done
+
+	left="$(service_account_seconds_left "$id-reader")"
+	(( left > renew_before )) || echo "Omni reader key"
+
+	credential="$(current_credential_id)"
+	record="$(credential_record "$credential")"
+
+	if [[ -z "$record" ]]; then
+		# Absent, or a credential that cannot read itself: expired, or not.
+		# The openstack action tells them apart as you; here it counts as due.
+		echo "cloud entry $os_cloud"
+	elif credential_is_ours "$(credential_name "$record" "$credential")"; then
+		left="$(credential_seconds_left "$record")"
+		(( left > renew_before )) || echo "cloud entry $os_cloud"
+	fi
+}
+
+if (( force_renew )); then
+	log "RENEW is set; every item of ours is renewed" >&2
+	echo 1
+	exit
+fi
+
+if ! require_tools omnictl kubectl openstack jq yq || ! require_omni_context
+then
+	# Each item says the same thing for itself, and more precisely.
+	echo 0
+	exit
+fi
+
+due="$(due_items)"
+
+if [[ -z "$due" ]]; then
+	log "Nothing is due; every item of ours has more than a quarter left" >&2
+	echo 0
+	exit
+fi
+
+log "Due or absent: $(echo "$due" | tr '\n' ',' | sed 's/,$//; s/,/, /g')" >&2
+log "Renewing every item of ours together, so they stay in step" >&2
+echo 1

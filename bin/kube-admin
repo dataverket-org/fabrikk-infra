@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# Kube context <cluster>-admin: an Omni service-account kubeconfig,
+# system:masters, with the shared lifetime. Renewed with the rest. Safe to
+# rerun at any time.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+announce_files "$omniconfig, $kubeconfig" \
+               "$kubeconfig (context $cluster-admin)"
+require_tools omnictl kubectl jq || exit $?
+require_omni_context || exit $?
+
+log "Kube context $cluster-admin, $tier2_ttl ..."
+mint_kube_context "$cluster-admin" "$id-admin" ||
+	fail "Minting $cluster-admin failed!"

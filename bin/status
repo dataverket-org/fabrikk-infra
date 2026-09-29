@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+#
+# Tools on PATH, your Omni and OpenStack logins in place, and what tier 2
+# holds right now: each item, who owns it, and how long it has left. Reads
+# only, except that the Omni login itself writes its key on first use.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+reads="$omniconfig, $kubeconfig, $talosconfig, $clouds,"
+reads="$reads $reader_key_file"
+
+#
+# Prints one line per tier 2 item: who owns it and how long it has left.
+#
+function tier2_status()
+{
+	local role name left user credential record
+
+	for role in admin readers; do
+		name="$cluster-$role"
+		user="$(context_user "$name")"
+		left="$(context_seconds_left "$name")"
+
+		if [[ -z "$user" ]]; then
+			echo "  kube context $name: absent"
+		elif ! context_is_ours "$name" "$id-$role"; then
+			echo "  kube context $name: hand-made (user $user), left alone"
+		elif (( left > 0 )); then
+			echo "  kube context $name: ours, $(humanize "$left") left"
+		else
+			echo "  kube context $name: ours, expired"
+		fi
+	done
+
+	if ! talos_context_present; then
+		echo "  talos context $cluster: absent"
+	elif talos_context_is_ours; then
+		echo "  talos context $cluster: ours, Omni-proxied, no credential"
+	else
+		echo "  talos context $cluster: hand-made, left alone"
+	fi
+
+	if [[ -s "$reader_key_file" ]]; then
+		left="$(service_account_seconds_left "$id-reader")"
+		echo "  Omni reader key file: present, account has $(humanize "$left") left"
+	else
+		echo "  Omni reader key file: absent"
+	fi
+
+	credential="$(current_credential_id)"
+	record="$(credential_record "$credential")"
+	name="$(credential_name "$record" "$credential")"
+	left="$(credential_seconds_left "$record")"
+
+	if [[ -z "$credential" ]]; then
+		echo "  cloud $os_cloud: absent"
+	elif [[ -z "$record" ]]; then
+		echo "  cloud $os_cloud: credential $credential does not answer for itself" \
+		     "(expired, or gone); the openstack action checks it as you"
+	elif ! credential_is_ours "$name"; then
+		echo "  cloud $os_cloud: hand-made credential $name, left alone"
+	elif (( left > 0 )); then
+		echo "  cloud $os_cloud: ours, credential $name, $(humanize "$left") left"
+	else
+		echo "  cloud $os_cloud: ours, credential $name, expired"
+	fi
+}
+
+announce_files "$reads" "$(omni_login_key) (Omni, on first login)"
+
+require_tools omnictl kubectl talosctl openstack jq yq || exit $?
+require_omni_context || exit $?
+log "Tools present: omnictl kubectl talosctl openstack jq yq"
+
+log "Omni login as you (a browser opens on first use) ..."
+omni serviceaccount list >/dev/null ||
+	fail "Omni at $omni_url did not accept your login!"
+log "$omni_url answers through $omniconfig"
+expires="$(omni_login_expires)"
+[[ -z "$expires" ]] || log "Your Omni login key expires at $expires (tier 3)"
+
+require_human_cloud || fail "Cannot log in as you through $human_cloud!"
+
+log "Tier 2 as it stands:"
+tier2_status

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#
+# Talos context <cluster>: the Omni-proxied talosconfig, which names an
+# identity and Omni's proxy and carries no credential. talosctl authenticates
+# with the Reader key file from `task admin:omni-key` at call time. A context
+# under that name with a client certificate, or pointing anywhere but Omni, is
+# hand-made and left alone. Safe to rerun at any time; the current context is
+# left alone and an unchanged context is not rewritten.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+announce_files "$omniconfig, $reader_key_file" "$talosconfig (context $cluster)"
+require_tools omnictl talosctl yq jq || exit $?
+require_omni_context || exit $?
+
+if ! talos_context_is_ours; then
+	warn "Talos context $cluster is not Omni-proxied, or carries a certificate"
+	warn "Hand-made; left alone. Remove it from $talosconfig to hand it over"
+	exit
+fi
+
+tmp="$(mktemp)" || fail "Could not create a temporary file!"
+trap 'rm -f "$tmp"' EXIT
+
+log "Talos context $cluster from Omni ..."
+fetch_talosconfig "$tmp"   || fail "Fetching $cluster's talosconfig failed!"
+outcome="$(write_talos_context "$tmp")" ||
+	fail "Writing $cluster into $talosconfig failed!"
+talos_context_present      || fail "Context $cluster is not in $talosconfig!"
+current="$(yq -r .context "$talosconfig")"
+log "Context $cluster $outcome in $talosconfig; current is $current"
+
+if [[ ! -s "$reader_key_file" ]]; then
+	warn "No Reader key file yet; run task admin:omni-key, then rerun to verify"
+	exit
+fi
+
+node="$(first_node)"
+
+if [[ -z "$node" ]]; then
+	warn "Could not pick a node from Omni; not verified"
+	exit
+fi
+
+verify_talos_context "$node" || fail "$node did not answer with the Reader key!"
+log "$node answers with the Reader key"

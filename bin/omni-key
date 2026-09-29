@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#
+# The Omni Reader service account for this repository and its key file, which
+# talosctl and the read-only omni models use. Created when the account is
+# missing; renewed with the rest, when due, or when the key file is missing or
+# no longer authenticates; otherwise left alone. Safe to rerun at any time.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+announce_files "$omniconfig" "$reader_key_file"
+require_tools omnictl || exit $?
+require_omni_context || exit $?
+
+account="$id-reader"
+
+log "Omni service account $account, role Reader, $tier2_ttl ..."
+
+if ! service_account_listed "$account"; then
+	log "Creating $account ..."
+	create_reader_account "$account" || fail "Creating $account failed!"
+else
+	left="$(service_account_seconds_left "$account")"
+
+	if reason="$(renew_now "$left")"; then
+		log "$account $reason; renewing ..."
+		renew_reader_account "$account" || fail "Renewing $account failed!"
+	elif ! reader_key_works; then
+		log "$reader_key_file is missing or does not authenticate; renewing ..."
+		renew_reader_account "$account" || fail "Renewing $account failed!"
+	else
+		log "$account has $(humanize "$left") left and the key file authenticates"
+	fi
+fi
+
+reader_key_works || fail "The Reader key does not list clusters at $omni_url!"
+log "Reader key lists clusters at $omni_url"

@@ -153,8 +153,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/talosctl": {
-    "version": "2026.09.19.2",
-    "pulledAt": "2026-09-19T20:09:45.141Z",
+    "version": "2026.09.29.1",
+    "pulledAt": "2026-09-29T10:17:54.622Z",
     "files": [
       ".swamp/bundles/7c616183/node.js",
       ".swamp/pulled-extensions/@dataverket/talosctl/files/LICENSE.md",
@@ -164,8 +164,8 @@
       ".swamp/pulled-extensions/@dataverket/talosctl/models/node.ts",
       ".swamp/pulled-extensions/@dataverket/talosctl/models/talosctl.ts"
     ],
-    "checksum": "a7a89684c9c06dcb716510b441991d6ae43a0f5feb9605262e5923af6007fe3f",
-    "filesChecksum": "62b30f616a8b3030a2d47190632c228221bb09a1fd6056e69d3400bc8421c464",
+    "checksum": "eb27a546fc67c70448a6d85c07ceff30e8bda389e3855958c02a3bceea08ee33",
+    "filesChecksum": "082726727a8588a8b6e4741aa665d0a1687e3775ebc5006f91b0a30f3c021295",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/sops": {
@@ -185,8 +185,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/omnictl": {
-    "version": "2026.09.20.1",
-    "pulledAt": "2026-09-20T17:44:41.863Z",
+    "version": "2026.09.29.1",
+    "pulledAt": "2026-09-29T10:17:58.892Z",
     "files": [
       ".swamp/bundles/c94a60e9/cluster.js",
       ".swamp/bundles/c94a60e9/inventory.js",
@@ -201,8 +201,8 @@
       ".swamp/pulled-extensions/@dataverket/omnictl/models/transform.ts",
       ".swamp/pulled-extensions/@dataverket/omnictl/models/util.ts"
     ],
-    "checksum": "17ca6bf5a2cacec1a8ee53a64148521a6bb876b3c2ef21b204dee28878d0763c",
-    "filesChecksum": "b94d87e5b968c6c7bc828b2d3e0cb53ccd31488604e6ce880938d3479c9d5926",
+    "checksum": "1f4ce283960e33d463dcda1df0b189bcf0ad32c7ec91e72348c0945741e73810",
+    "filesChecksum": "56ba10d5521520d3724cb6ce617912e69b555a31dc4794cbdb507a3477c55cff",
     "serverUrl": "https://swamp-club.com"
   }
 }

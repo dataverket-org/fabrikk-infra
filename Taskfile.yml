@@ -1,0 +1,14 @@
+version: '3'
+
+#
+# Commands for this repository. One namespace per group, one file per
+# namespace under taskfiles/. A task that needs conditionals, loops or
+# computed variables becomes a script in bin/.
+#
+
+includes:
+  admin: taskfiles/admin.yml
+
+tasks:
+  default: { cmds: [{ task: help }] }
+  help:    { desc: "This list",  cmds: [task --list], silent: true }

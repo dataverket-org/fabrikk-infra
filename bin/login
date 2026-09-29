@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#
+# Tier 3 session up. Opens the two logins the sitting needs: Proton Pass,
+# whose session the CLI keeps, and Omni, which issues a login key that lives
+# a few hours. With OS_PASSWORD_REF set, the openstack action then resolves
+# the OpenStack password from Proton Pass for its own run only, so nothing
+# prompts and no password is ambient. `task admin:logout` closes what this
+# opened. With SESSION_SHELL=1, the task admin:shell variant, it ends in a
+# shell where OS_PASSWORD is already resolved and therefore ambient.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+#
+# Checks that Proton Pass has a session; logs in through the browser if not.
+#
+function proton_pass_login()
+{
+	if pass-cli info >/dev/null 2>&1; then
+		log "Proton Pass session is open"
+		return
+	fi
+
+	log "Proton Pass: web login ..."
+	run pass-cli login || return $?
+	pass-cli info >/dev/null 2>&1 || return 1
+	log "Proton Pass session is open"
+}
+
+#
+# Checks that the Omni login key is present and not expired; logs in through
+# the browser if not, by making any authenticated call.
+#
+function omni_login()
+{
+	local expiry
+
+	expiry="$(omni_login_expiry)"
+
+	if [[ -n "$expiry" ]] && (( expiry > now )); then
+		log "Omni login key is good until $(omni_login_expires)"
+		return
+	fi
+
+	log "Omni: browser login ..."
+	omni serviceaccount list >/dev/null || return $?
+	log "Omni login key is good until $(omni_login_expires)"
+}
+
+want_shell="${SESSION_SHELL:-0}"
+
+writes="$(omni_login_key) (Omni writes it on login)"
+announce_files "$omniconfig" "$writes, and $omniconfig if missing"
+require_tools pass-cli omnictl gpg yq || exit $?
+require_omni_context || exit $?
+
+if [[ -n "$ADMIN_SESSION" ]]; then
+	warn "You are already in a session shell (since $ADMIN_SESSION)"
+	warn "exit it, or run task admin:logout, before logging in again"
+	exit 1
+fi
+
+proton_pass_login || fail "Proton Pass login failed!"
+omni_login        || fail "Omni login failed!"
+
+if [[ -z "$os_password_ref" ]]; then
+	warn "OS_PASSWORD_REF is not set; the openstack action asks for the password"
+else
+	log "OS_PASSWORD_REF is set; it is resolved per run, nothing prompts"
+fi
+
+if [[ "$want_shell" != 1 ]]; then
+	log "Logged in. Next: task admin:renew"
+	exit
+fi
+
+warn "Opening a session shell ($SHELL) with OS_PASSWORD ambient in it"
+warn "Everything started from it inherits the password; exit ends that"
+if [[ -n "$os_password_ref" ]]; then
+	OS_PASSWORD="$os_password_ref" OS_CLOUD="$human_cloud" ADMIN_PASS_RUN=1 \
+	ADMIN_SESSION="$(date +%H:%M)" exec pass-cli run -- "$SHELL"
+else
+	OS_CLOUD="$human_cloud" ADMIN_SESSION="$(date +%H:%M)" exec "$SHELL"
+fi

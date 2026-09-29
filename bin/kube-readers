@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# Kube context <cluster>-readers: an Omni service-account kubeconfig in the
+# readers group only, with the shared lifetime. What the read-only kubernetes
+# models name. Renewed with the rest. Safe to rerun at any time.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+announce_files "$omniconfig, $kubeconfig" \
+               "$kubeconfig (context $cluster-readers)"
+require_tools omnictl kubectl jq || exit $?
+require_omni_context || exit $?
+
+log "Kube context $cluster-readers, group $readers_group, $tier2_ttl ..."
+mint_kube_context "$cluster-readers" "$id-readers" --groups "$readers_group" ||
+	fail "Minting $cluster-readers failed!"

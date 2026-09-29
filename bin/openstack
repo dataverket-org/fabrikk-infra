@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#
+# Cloud <repo> in clouds.yaml: an application credential with the shared
+# lifetime, created through the clouds.yaml entry you log in with (OS_CLOUD)
+# and carrying the roles of the credential it replaces, or OS_ROLES. Only
+# credentials this script made, recognised by their name prefix, are ever
+# replaced or deleted; a hand-made entry is reported and left alone. Ours is
+# renewed with the rest or when due. An expired credential cannot read its
+# own record, so it is looked up as you before anything is decided. Safe to
+# rerun at any time.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+with_proton_pass
+require_tools openstack jq yq || exit $?
+
+require_human_cloud || fail "Cannot log in as you through $human_cloud!"
+announce_files "$clouds (entry $human_cloud)" "$clouds (entry $os_cloud)"
+
+log "Cloud entry $os_cloud in $clouds ..."
+
+# Two names: the cloud entry the models name stays "$os_cloud"; the credential
+# behind it in Keystone is "$id-<timestamp>", so a listing there says who made
+# it and rotation can create the next one before deleting the last.
+credential="$(current_credential_id)"
+record="$(credential_record "$credential")"
+
+if [[ -n "$credential" && -z "$record" ]]; then
+	log "Credential $credential does not answer for itself; asking as you ..."
+	human_login
+	record="$(credential_record_as_you "$credential")"
+
+	if [[ -z "$record" ]]; then
+		warn "Keystone no longer has credential $credential; making a new one"
+		credential=""
+	fi
+fi
+
+name="$(credential_name "$record" "$credential")"
+left="$(credential_seconds_left "$record")"
+
+if [[ -z "$credential" ]]; then
+	log "No usable credential in the cloud entry"
+elif ! credential_is_ours "$name"; then
+	warn "Credential $name is hand-made; left alone"
+	warn "To let this script manage the entry, remove it from $clouds and rerun"
+	exit
+elif reason="$(renew_now "$left")"; then
+	log "Credential $name $reason; replacing ..."
+else
+	log "Credential $name has $(humanize "$left") left; keeping it"
+	log "Credentials $name supersedes ..."
+	prune_application_credentials "$name" || fail "Pruning failed!"
+	exit
+fi
+
+roles="${OS_ROLES:-$(credential_roles "$record")}"
+roles="${roles:-$os_role}"
+new_name="$id-$(date -u +%Y%m%d-%H%M%S)"
+
+log "Creating credential $new_name with roles: $roles"
+log "Logging in through cloud entry $human_cloud, once ..."
+human_login
+# shellcheck disable=SC2086  # roles is a space-separated list on purpose
+record="$(create_application_credential "$new_name" $roles)" ||
+	fail "Creating $new_name failed!"
+write_cloud "$record" || fail "Writing cloud entry $os_cloud failed!"
+verify_cloud          || fail "Cloud entry $os_cloud does not issue a token!"
+log "Wrote $clouds: entry $os_cloud now uses credential $new_name"
+
+log "Credentials $new_name supersedes ..."
+prune_application_credentials "$new_name" || fail "Pruning failed!"
