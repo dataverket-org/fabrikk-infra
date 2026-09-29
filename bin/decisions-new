@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+#
+# Starts a decision: the next free number, a filename from the title, the
+# frontmatter Dataverket validates, and the six sections with a line of
+# guidance in each. Opens it in $EDITOR and rebuilds the index afterwards.
+#
+# Settings, as everywhere here, are environment variables:
+#
+#	TITLE		What is decided, as a statement. Asked for when unset.
+#	CATEGORY	security, architecture, infrastructure, data, api,
+#			integration, migration or testing (default architecture)
+#	AUTHOR		Default dataverket
+#
+
+# shellcheck source=share/logging.sh
+source "${0%/*}/../share/logging.sh" || exit $?
+# shellcheck source=share/decisions.sh
+source "${0%/*}/../share/decisions.sh" || exit $?
+
+command -v yq >/dev/null || fail "yq is not on PATH"
+
+title="${TITLE:-}"
+
+if [[ -z "$title" ]]; then
+	[[ -t 0 ]] || fail "TITLE is not set and there is no terminal to ask on"
+	read -r -p "What is decided, as a statement: " title
+fi
+
+[[ -n "$title" ]] || fail "A decision needs a title!"
+
+category="${CATEGORY:-architecture}"
+
+case "$category" in
+	security|architecture|infrastructure|data|api|integration|migration|testing) ;;
+	*) fail "CATEGORY '$category' is not one the policy schema allows" ;;
+esac
+
+number="$(next_number)"
+today="$(date +%Y-%m-%d)"
+file="$dir/$number-$(slugify "$title").md"
+
+[[ -e "$file" ]] && fail "$file already exists!"
+
+cat >"$file" <<RECORD
+---
+title: "$title"
+description: "One sentence a reader can carry away. Shown in the index."
+type: adr
+category: $category
+tags:
+  - tag
+status: proposed
+created: $today
+updated: $today
+author: ${AUTHOR:-dataverket}
+project: plattform
+---
+# $number: $title
+
+## Status
+
+Proposed
+
+## Context
+
+<!-- What forced the decision. What was landing wherever was convenient, what
+     broke, or what a reader would otherwise undo without knowing why. Three or
+     four lines. -->
+
+## Decision
+
+<!-- What is decided, in the present tense. A table or a short list where the
+     decision has parts. Not the reasoning; that is above. -->
+
+## Consequences
+
+<!-- Bullets. What this costs as well as what it buys: the honest ones are the
+     reason the record is worth keeping. -->
+
+## Decision Outcome
+
+<!-- What the decision produces in practice, once it is in place. -->
+
+## Audit
+
+### $today
+
+**Status:** Pending
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| Awaiting implementation | - | pending |
+
+**Summary:** Record created.
+
+**Action Required:** <!-- What has to happen for this to be implemented. -->
+RECORD
+
+log "Wrote $file"
+log "Sections are the six Dataverket validates; the comments are hints, delete them"
+log "Set status: accepted when it is agreed, and append an Audit entry when it lands"
+
+"${EDITOR:-vi}" "$file" || warn "$EDITOR exited non-zero; the file is still there"
+
+"${0%/*}/decisions-index" >/dev/null || warn "Could not rebuild the index"
+log "Index rebuilt. task decisions:list shows the set"

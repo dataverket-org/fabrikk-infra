@@ -28,7 +28,7 @@ the map: what is copied, by what, to where, how far back, and what fires when it
 | Zitadel's Postgres, `Cluster zitadel-db` | `zitadel` | CNPG Barman Cloud plugin | `cnpg-zitadel` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-zitadel`, `hov1-s3` |
 | Forgejo's repositories, PVC `gitea-shared-storage` | `forgejo` | restic CronJob, pod-affine to the forgejo pod | `restic-forgejo` | Nightly; 30 daily, 6 monthly | `s3-restic-forgejo`, `hov1-s3`, the restic password |
 | Forgejo's LFS, attachments, packages, once on the in-cluster versitygw | `forgejo` | The same restic CronJob, as a directory tree | `restic-forgejo` | With the repositories | As above |
-| etcd of the three control planes | `kube-system` | Omni | Omni's backup store | Omni's schedule, decision 001 | Omni's |
+| etcd of the three control planes | `kube-system` | Omni | Omni's backup store | Omni's schedule, decision 003 | Omni's |
 
 Account names equal bucket names. Each account owns its bucket and sees nothing else.
 

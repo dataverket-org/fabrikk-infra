@@ -1,0 +1,25 @@
+version: '3'
+
+#
+# The decision records in docs/decisions/: what is decided here and why.
+#
+# A number is an identity and nothing more, so the grouping in the index comes
+# from each record's `category:` and not from the order of the numbers. The
+# index is generated; edit the decisions, not docs/decisions/README.md.
+#
+# The format is Structured MADR as Dataverket validates it, in builder-hugo's
+# config/smadr-validator.yaml. Validating is that build's job; these tasks only
+# write and read.
+#
+# Settings for `new`, as everywhere here, are environment variables:
+#
+#	TITLE		What is decided, as a statement. Asked for when unset.
+#	CATEGORY	security, architecture, infrastructure, data, api,
+#			integration, migration or testing (default architecture)
+#
+
+tasks:
+  default: { cmds: [{ task: list }] }
+  list:    { desc: "The decisions as a table, and what is still pending", cmds: [bin/decisions-list] }
+  index:   { desc: "Rewrite docs/decisions/README.md from the records",   cmds: [bin/decisions-index] }
+  new:     { desc: "Start a decision from the template and open it",      cmds: [bin/decisions-new] }

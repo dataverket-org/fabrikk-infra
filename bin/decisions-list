@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#
+# The decisions as a table: number, status, whether the audit says it is
+# implemented, category, when it was accepted, and what it decided.
+#
+
+# shellcheck source=share/logging.sh
+source "${0%/*}/../share/logging.sh" || exit $?
+# shellcheck source=share/decisions.sh
+source "${0%/*}/../share/decisions.sh" || exit $?
+
+command -v yq >/dev/null || fail "yq is not on PATH"
+
+table
+echo
+log "$(summary)"

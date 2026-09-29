@@ -8,7 +8,7 @@ versitygw with the posix backend in Docker (`backup/versitygw`, instantiated as 
 Object Storage; the
 in-cluster versitygw of building block 3 keeps its role. Reviewed adversarially again the same day; what it found
 (the admin API signs with the region, the sops rule path, SIGHUP reloads versitygw's certificate, versioning without
-lifecycle, the WAL rate) is folded in. Nothing is applied. Decision 007 is
+lifecycle, the WAL rate) is folded in. Nothing is applied. Decision 014 is
 the mechanism under the databases.
 
 ## Building blocks
@@ -108,7 +108,7 @@ a stand-in can do the rest once it is merged.
    the seconds it takes; Flux decrypts it with the cluster key like every `*.enc.yaml`, and the writer reads it by
    name. The site's public facts, root, endpoint and region, come in clear as `apps/<namespace>/hov1-s3.yaml`
    from `bin/site-secret`, so an address change is a plaintext diff. Both files are listed in the namespace's
-   `kustomization.yaml`. Nothing goes into the `infra` vault until a workflow needs it (decision 005); rotation is
+   `kustomization.yaml`. Nothing goes into the `infra` vault until a workflow needs it (decision 006); rotation is
    `bin/user --rotate` and a commit at once, since the writer fails from the delete until the new Secret lands.
    Bucket versioning stays off: versitygw 1.8 has no lifecycle rules, so it would keep every deleted object
    forever, and an account that owns a bucket can suspend it anyway; retention is the writers' job, and the second
@@ -121,7 +121,7 @@ a stand-in can do the rest once it is merged.
    `gitea-shared-storage` to the `restic-forgejo` bucket, pod-affine to the forgejo pod. A restore needs the application
    secrets, so the Zitadel masterkey, Forgejo's generated
    `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password go into `*.enc.yaml` first; the vault gets a copy
-   the day a workflow restores (decision 005).
+   the day a workflow restores (decision 006).
    Then a restore test of both clusters into a scratch cluster beside each (`backup/restore-test/`, `bootstrap.recovery` via
    `externalClusters[].plugin`, a new `serverName` for the restored cluster's own archive), restic restored beside
    it, timings recorded: the restore test measures the site's uplink, and the base backup's transfer time is the number to
@@ -185,7 +185,7 @@ a stand-in can do the rest once it is merged.
    Check after the third swap: three workers, `serverGroups` non-empty on each, three distinct `hostId` values
    across them, which is the placement the group promised, observed; the patch on the machine set. Stopped here: empty user volumes on three placed workers, nothing
    uses them.
-3. **Provisioner (decision 007).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
+3. **Provisioner (decision 014).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), classes `pg-zitadel-storage` and `pg-forgejo-storage` on
    the two mount patterns, `WaitForFirstConsumer`. Check: three `local` PVs per class, one per worker, capacity
    just under the partition size.
@@ -206,10 +206,10 @@ a stand-in can do the rest once it is merged.
    Check: three instances on three workers, `fsGroup 26` ownership on the mounts with no init container, app logs
    in, first backup completed; then delete the six retained PV objects and their Cinder volumes by hand. Stopped
    here: layout 1.
-5. **versitygw and zot.** Plain manifests in `infrastructure/versitygw/` (decision 002 style): a 100 GB PVC on a new
+5. **versitygw and zot.** Plain manifests in `infrastructure/versitygw/` (decision 012 style): a 100 GB PVC on a new
    `csi-cinder-standard-retain` class (`parameters.type: Standard`, `csi.storage.k8s.io/fstype: xfs`; xattrs hold
    the metadata), one replica, `Recreate`, root credentials from an encrypted Secret, `--iam-dir` and a versioning
-   directory on the volume outside the gateway root, ClusterIP only, plain HTTP as decision 004 allows. An init
+   directory on the volume outside the gateway root, ClusterIP only, plain HTTP as decision 013 allows. An init
    container creates the `zot` bucket (a top-level directory); `bootstrap.sh` checks
    for it. `infrastructure/` only orders "applied", so add a `healthChecks` entry for the versitygw Deployment to
    `clusters/production/infrastructure.yaml`. Then zot: `storageDriver` `name: s3` with `regionendpoint` on the
@@ -221,7 +221,7 @@ a stand-in can do the rest once it is merged.
    so apply from git explicitly). Delete the old `Retain` volume after a month. Check: a pull succeeds and the blob is
    a file in the bucket
    directory. Stopped here: layout 2.
-6. **Records and models.** Decision 007 is the mechanism. New decisions for: workers placed by a Nova server
+6. **Records and models.** Decision 014 is the mechanism. New decisions for: workers placed by a Nova server
    group and replaced through Omni, never changed in place; databases replicated on worker disks; the 16 GiB
    EPHEMERAL standard; versitygw as in-cluster S3; backups on the hov1 site over the public internet. README layout table;
    `bootstrap.sh` for the credentials and versitygw ordering. The models this plan runs on are published and
@@ -314,8 +314,8 @@ their placement: they are in no server group either, and placing one is an etcd 
 | versitygw | gateway root, IAM dir, versioning dir | Cinder | `csi-cinder-standard-retain`, Standard, xfs | 100 GB | Cinder ×3 | see rows above |
 | zot | blobs | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | none, rebuildable |
 | zot | working dir | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | none |
-| Runner, org | docker-lib cache | Cinder, or root disk if local | SSD, or decision 007 | 20 GB | disposable | none |
+| Runner, org | docker-lib cache | Cinder, or root disk if local | SSD, or decision 014 | 20 GB | disposable | none |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | Cinder ×3 | none |
-| Control planes ×3 | Talos, etcd | flavor root disk, EPHEMERAL default | c5.large | 3 × 25 GiB | etcd ×3 | Omni etcd backups (decision 001) |
+| Control planes ×3 | Talos, etcd | flavor root disk, EPHEMERAL default | c5.large | 3 × 25 GiB | etcd ×3 | Omni etcd backups (decision 003) |
 | Workers ×3, anti-affinity group | Talos, images | flavor root disk, EPHEMERAL 16 GiB | m5.large, one per hypervisor | 3 × 30 GiB | none needed | none |
 | Backups | CNPG archives, restic repos | versitygw at the hov1 site, `213.128.185.82:443` | posix, `backup/hov1` | ~15 GB | one disk, versioned buckets | is the backup |

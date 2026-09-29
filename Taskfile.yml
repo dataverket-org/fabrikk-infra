@@ -8,7 +8,9 @@ version: '3'
 
 includes:
   admin: taskfiles/admin.yml
+  decisions: taskfiles/decisions.yml
 
 tasks:
-  default: { cmds: [{ task: help }] }
-  help:    { desc: "This list",  cmds: [task --list], silent: true }
+  default:           { cmds: [{ task: help }] }
+  help:              { desc: "This list",                                    cmds: [task --list], silent: true }
+  check-recipients:  { desc: "Every encrypted file matches its rule in .sops.yaml", cmds: [bin/check-recipients] }
