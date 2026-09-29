@@ -61,7 +61,7 @@ function omni_login_key()
 #
 # Prints the epoch seconds at which your Omni login key expires, read out of
 # the PGP key; nothing when gpg or the key is absent. Omni issues these for a
-# few hours, which is the lifetime of tier 3.
+# few hours, which is the lifetime of tier 1.
 #
 function omni_login_expiry()
 {

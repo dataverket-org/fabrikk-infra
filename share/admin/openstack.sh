@@ -17,7 +17,7 @@ function require_human_cloud()
 
 	if [[ "$human_cloud" == "$os_cloud" ]]; then
 		error "Cloud entry $human_cloud is the one this repository writes"
-		error "Tier 3 logs in as you; set OS_CLOUD to your own entry"
+		error "Tier 1 logs in as you; set OS_CLOUD to your own entry"
 		return 1
 	fi
 
@@ -37,7 +37,7 @@ function require_human_cloud()
 
 	if [[ "$type" == "v3applicationcredential" ]]; then
 		error "Cloud entry $human_cloud is an application credential"
-		error "That is a machine's credential; tier 3 logs in as you"
+		error "That is a machine's credential; tier 1 logs in as you"
 		return 1
 	fi
 
@@ -149,7 +149,7 @@ function credential_seconds_left()
 # call: when neither OS_PASSWORD nor the entry carries a password, asks once
 # and exports it for the rest of the run. Call it at top level, not inside a
 # command substitution, or the export dies with the subshell. A password in
-# clouds.yaml is a tier 3 root credential on disk and is pointed out.
+# clouds.yaml is a tier 1 root credential on disk and is pointed out.
 #
 function human_login()
 {
@@ -157,7 +157,7 @@ function human_login()
 
 	if yq -e ".clouds.\"$human_cloud\".auth.password" "$clouds" \
 	   >/dev/null 2>&1; then
-		warn "Entry $human_cloud keeps a password in $clouds; tier 3 should not"
+		warn "Entry $human_cloud keeps a password in $clouds; tier 1 should not"
 		return
 	fi
 

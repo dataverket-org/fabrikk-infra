@@ -23,7 +23,7 @@ Accepted
 
 ## Context
 
-Tier 3 is the code an operator runs by hand to get the day's credentials. It could be a pile of scripts with
+Tier 1 is the code an operator runs by hand to get the day's credentials. It could be a pile of scripts with
 flags, a swamp workflow, or a driver with the logic inside it. Whatever it is, another repository will want to
 reuse it, and an agent will read it before it runs it.
 

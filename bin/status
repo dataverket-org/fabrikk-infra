@@ -153,6 +153,83 @@ function cloud_row()
 }
 
 #
+# Prints what you logged in with: tier 1 on this host, which is never a
+# credential of its own but what one login left behind.
+#
+function tier1_rows()
+{
+	local key identity expiry left
+
+	# The name is the Omni context, as everywhere else in these tables: the
+	# file is named after it and you never name the file yourself.
+	key="$(omni_login_key)"
+	identity="${key##*/}"
+	identity="${identity#"$omni_context-"}"
+	identity="${identity%.pgp}"
+
+	if [[ -f "$key" ]]; then
+		expiry="$(omni_login_expiry)"
+		left=$(( ${expiry:-0} - now ))
+		if (( left > 0 )); then
+			row "$(short_path "${key%/*}")/" "$omni_context" you \
+				"$(humanize "$left")" "$(expires_in "$left")" \
+				"Omni login as $identity"
+		else
+			row "$(short_path "${key%/*}")/" "$omni_context" you expired - \
+				"Omni login as $identity"
+		fi
+	else
+		row "$(short_path "${key%/*}")/" "$omni_context" absent - - \
+			"no Omni login on this host"
+	fi
+
+	if ! command -v pass-cli >/dev/null; then
+		row "(Proton Pass)" session absent - - "pass-cli is not installed"
+	elif pass-cli info >/dev/null 2>&1; then
+		row "(Proton Pass)" session you - - "open; admin:logout closes it"
+	else
+		row "(Proton Pass)" session absent - - "closed"
+	fi
+}
+
+#
+# Prints what processes hold: tier 3, which is permanent by definition, so the
+# lifetime columns are empty for every row of it.
+#
+function tier3_rows()
+{
+	local vault_keys flux_files glass_files
+
+	vault_keys="$(find "$repo_dir/vaults/infra" -name '*.enc.json' 2>/dev/null |
+	              grep -c . || true)"
+	flux_files="$(find "$repo_dir/apps" "$repo_dir/artifacts" \
+	              "$repo_dir/infrastructure" -name '*.enc.yaml' 2>/dev/null |
+	              grep -c . || true)"
+	glass_files="$(find "$repo_dir/break-glass" -name '*.enc.yaml' 2>/dev/null |
+	               grep -c . || true)"
+
+	row "vaults/infra/" "$vault_keys secrets" swamp - - \
+		"swamp-fabrikk-infra decrypts it, unattended"
+	row "apps, artifacts, infrastructure/" "$flux_files manifests" cluster - - \
+		"dataverket-prod decrypts them, in-cluster"
+	if (( glass_files )); then
+		row "break-glass/" "$glass_files files" humans - - \
+			"the two YubiKeys and nothing else"
+	else
+		row "break-glass/" empty humans - - \
+			"the two YubiKeys; 2026-09-break-glass.md fills it"
+	fi
+
+	if [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
+		row "$(short_path "$HOME/.config/sops/age/keys.txt")" \
+			swamp-fabrikk-infra swamp - - "the key that opens the vault"
+	else
+		row "$(short_path "$HOME/.config/sops/age/keys.txt")" \
+			swamp-fabrikk-infra absent - - "nothing here decrypts the vault"
+	fi
+}
+
+#
 # Prints the whole of tier 2 as a table, and what it adds up to.
 #
 function tier2_status()
@@ -165,8 +242,19 @@ function tier2_status()
 			"an ordinary session has none"
 		cloud_row)"
 
+	echo "TIER 1  what you logged in with"
+	row PATH NAME OWNER LEFT EXPIRES DETAIL
+	tier1_rows
+	echo
+
+	echo "TIER 2  what it minted, and what a definition names"
 	row PATH NAME OWNER LEFT EXPIRES DETAIL
 	printf '%s\n' "$table"
+	echo
+
+	echo "TIER 3  what processes hold, and never expires"
+	row PATH NAME OWNER LEFT EXPIRES DETAIL
+	tier3_rows
 	echo
 
 	# An absent Operator key is the ordinary state, not something to renew; an
@@ -178,9 +266,9 @@ function tier2_status()
 	                grep -cE ' absent ') ))
 
 	if (( due )); then
-		log "$due of $total are expired or absent; task admin:renew"
+		log "tier 2: $due of $total are expired or absent; task admin:renew"
 	else
-		log "$total items, all current"
+		log "tier 2: $total items, all current"
 	fi
 }
 
@@ -193,7 +281,3 @@ omni serviceaccount list >/dev/null ||
 	fail "Omni did not accept your login in context $omni_context!"
 
 tier2_status
-
-# Tier 3's own clock, which is not in the table and often runs out first.
-expires="$(omni_login_expires)"
-[[ -z "$expires" ]] || log "Your Omni login expires at $expires"

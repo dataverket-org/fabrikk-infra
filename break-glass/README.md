@@ -1,6 +1,6 @@
 # break-glass
 
-Permanent, human-only material: what tier 3 falls back on when a login mechanism fails. The Omni break-glass
+Permanent, human-only material: what tier 1 falls back on when a login mechanism fails. The Omni break-glass
 talosconfig and kubeconfig first, and later the same for other services.
 
 **Empty as of 2026-09-29.** What fills it is `docs/plans/2026-09-break-glass.md`: a WireGuard interface in the

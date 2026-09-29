@@ -3,7 +3,7 @@
 Written 2026-09-27 from the live repository (the model definitions, `vaults/`, `.sops.yaml`, the vault audit trail)
 and from the swamp host as it stands (`~/.config/sops/age/keys.txt`, `~/.config/openstack/clouds.yaml`,
 `~/.kube/config`, `~/.talos/config`), read against swamp 20260918's vault and access-control design documents. The
-rule it applies is decision 001; the request model that generalises tier 3 afterwards is
+rule it applies is decision 001; the request model that generalises tier 1 afterwards is
 `docs/plans/2026-09-access-requests.md`, and the second door is `docs/plans/2026-09-break-glass.md`. Every step
 here is applied, on 2026-09-29, bar the CI wiring noted in step 10.
 
@@ -19,36 +19,36 @@ else.
 Decision 001 states these and why; they are repeated here in one line each because everything below cites them.
 A step that breaks one is wrong even where it is convenient.
 
-1. **A tier 3 secret is never on disk.** A value may live in this repository only if reading it requires one of
+1. **A tier 1 secret is never on disk.** A value may live in this repository only if reading it requires one of
    the mechanisms; a reference to where a value lives may live here always.
-2. **Tier 2 is on disk and always expires.** Anything permanent is tier 1 with a named human owner instead.
-3. **Tier 2 never enters the swamp vault.** That would put the key to tier 1 inside tier 1.
+2. **Tier 2 is on disk and always expires.** Anything permanent is tier 3 with a named human owner instead.
+3. **Tier 2 never enters the swamp vault.** That would put the key to tier 3 inside tier 3.
 4. **Agents reach tier 2 by using it, never by reading it.** Never an argument, a data record or a log line.
-5. **Tier 1 is what processes hold.** The vaults, the Flux files and the cluster's live Secrets alike.
+5. **Tier 3 is what processes hold.** The vaults, the Flux files and the cluster's live Secrets alike.
 
 ## The three tiers
 
 | Tier | What | Decrypted or read by | Where it lives | Made by |
 |---|---|---|---|---|
-| 1 | What processes hold: machine secrets, permanent | A process: Flux in the cluster, swamp on the swamp host, the cluster itself | The `infra` vault (`vaults/infra/<key>.enc.json`), `break-glass/` for what only a person may read, the Flux files (`*.enc.yaml` under `artifacts/`, `apps/`, `infrastructure/`), and the cluster's live Secrets | A human with a YubiKey, or a workflow that mints a value and `put`s it |
-| 2 | Ambient credentials, referenced by name, minted with a lifetime and never permanent | The CLIs the models wrap: `openstack`, `kubectl`, `talosctl`, `omnictl` | The standard config files on the swamp host, mode 0600, and nowhere else | Tier 3 |
-| 3 | The code and procedures that turn an external login into tier 2 | A human, with the human's own logins; never swamp | `Taskfile.yml`, `bin/`, `share/admin/`; the secrets themselves are outside this host | This repository |
+| 1 | The code and procedures that turn an external login into tier 2 | A human, with the human's own logins; never swamp | `Taskfile.yml`, `bin/`, `share/admin/`; the secrets themselves are outside this host | This repository |
+| 2 | Ambient credentials, referenced by name, minted with a lifetime and never permanent | The CLIs the models wrap: `openstack`, `kubectl`, `talosctl`, `omnictl` | The standard config files on the swamp host, mode 0600, and nowhere else | Tier 1 |
+| 3 | What processes hold: machine secrets, permanent | A process: Flux in the cluster, swamp on the swamp host, the cluster itself | The `infra` vault (`vaults/infra/<key>.enc.json`), `break-glass/` for what only a person may read, the Flux files (`*.enc.yaml` under `artifacts/`, `apps/`, `infrastructure/`), and the cluster's live Secrets | A human with a YubiKey, or a workflow that mints a value and `put`s it |
 
 ### Who holds what
 
 Three kinds of consumer use these tiers, and they meet them in different places. Writing that down is what keeps
 the design from being read as if it were only about the person at the keyboard.
 
-| Consumer | Tier 1 | Tier 2 | Tier 3 | Identity of its own |
+| Consumer | Tier 3 | Tier 2 | Tier 1 | Identity of its own |
 |---|---|---|---|---|
 | A human operator | Through a YubiKey, deliberately | Holds it for the working day, through the CLIs | This is theirs | Yes, at each service |
 | swamp on the swamp host, and the agents that drive it | Reads the `infra` vault with the repo key | Uses the files the session wrote, by name and never by value | Never | No |
 | Flux in the cluster | Decrypts the Flux files with the cluster's own key | Never | Never | Yes, the cluster's |
 | A workflow or a runner that reaches the cluster | Through swamp as above | Uses the session's contexts | Never | No |
 
-Flux is the one consumer that lives entirely inside tier 1, which is why nothing in this plan touches it: it holds
+Flux is the one consumer that lives entirely inside tier 3, which is why nothing in this plan touches it: it holds
 a key that never leaves the cluster and reconciles what the repository says. Everything else that runs on the
-swamp host, swamp and the agents included, sits one tier lower than the person: it reads tier 1 for the tokens a
+swamp host, swamp and the agents included, stands downstream of the person: it reads tier 3 for the tokens a
 process consumes, and it uses tier 2 by name for everything that talks to a cluster or a cloud.
 
 That leaves one property worth naming rather than discovering. Swamp has no identity of its own here. It acts
@@ -69,8 +69,8 @@ puts the Omni service account keys, the talosconfig and the application credenti
 What cannot be tier 2 is the material that mints those, and anything signed from it that works when Omni does
 not: the Talos PKI in the cluster, an `os:admin` talosconfig signed from it, and the cluster's own SOPS age key.
 They carry CA-signed certificates or raw key material with no lifetime worth the name, so by invariant 2 they are
-tier 1, with a named human owner, and what is extracted from them goes in `break-glass/` behind the two YubiKeys.
-A cluster therefore has both: a permanent root in tier 1 that only a human with a touch can reach, and a minted
+tier 3, with a named human owner, and what is extracted from them goes in `break-glass/` behind the two YubiKeys.
+A cluster therefore has both: a permanent root in tier 3 that only a human with a touch can reach, and a minted
 admin credential in tier 2 that everything else uses.
 
 ### The second door is a separate plan
@@ -90,8 +90,8 @@ Three things in this plan were written before the invariants and do not survive 
 
 **The Omni operator service account key leaves the vault.** It is in `vaults/infra/omni/` today, it lives a year,
 `omni-cluster` reads it with `vault.get`, and it can mint tier 2 and change every cluster. That is exactly the
-cycle invariant 3 forbids: the host's vault key opens tier 1, tier 1 hands out cluster admin, cluster admin reads
-the rest of tier 1. Under the invariants it becomes a tier 2 item of its own, `swamp-fabrikk-infra-operator`,
+cycle invariant 3 forbids: the host's vault key opens tier 3, tier 3 hands out cluster admin, cluster admin reads
+the rest of tier 3. Under the invariants it becomes a tier 2 item of its own, `swamp-fabrikk-infra-operator`,
 minted with `--role Operator --ttl $TIER2_TTL` into a key file beside the reader key, and `omni-cluster` names the
 file. A task of its own mints it, deliberately, when you are about to change a cluster; `admin:renew` leaves it
 out, so an ordinary session holds no key that can change a cluster, and `task admin:logout` removes it. The
@@ -101,7 +101,7 @@ move costs nothing now. The old vault entries, `omni/operator_service_account_ke
 `omni/service_account_key`, are then deleted rather than renamed.
 
 **The reader key file stops being an improvement and becomes required.** Step 4's `serviceAccountKeyFile` argument
-is what lets a model name a tier 2 file instead of pulling a value out of tier 1, so steps 4 and 5 are the ones
+is what lets a model name a tier 2 file instead of pulling a value out of tier 3, so steps 4 and 5 are the ones
 that make invariant 3 true; until they land, every omni and talos method breaks it on every run. The interim named
 in step 4, the key in the swamp process's environment, breaks invariant 4 as well and is a stopgap for hours, not
 days.
@@ -112,97 +112,7 @@ possible under these invariants without a different answer: a machine identity o
 with its own short-lived credential and its own audit, not a longer-lived file on this host. That answer is not
 in this plan, and until it exists, unattended means read-only or nothing.
 
-### Tier 1: one key per decrypting process
-
-Every tier 1 store is encrypted to the process that decrypts it plus the two operators' YubiKeys, and to nothing
-else.
-A process key is named after the process, and the name is what `.sops.yaml`, the vault config and this plan call it.
-
-| Key name | Identity | Where the private key is | Decrypts |
-|---|---|---|---|
-| `dataverket-prod` | `age1g3x9w…` | Secret `flux-system/sops-age`, generated in-cluster, never leaves it (decision 003) | The Flux files |
-| `swamp-fabrikk-infra` | `age15d64a…` | `~/.config/sops/age/keys.txt` on the swamp host | The `infra` vault |
-| `beddari`, `linus` | `age1yubikey1…` | The YubiKeys | Both, for recovery, re-keying and writes from a terminal |
-
-The rule that follows: the cluster key is never a vault recipient and the repo key is never a Flux recipient. That
-is already true in `.sops.yaml`; the plan makes it a stated invariant and gives the repo key its name. A second swamp
-repository gets a second key, `swamp-<repo>`, never a copy of this one.
-
-The vault holds today: the forge token, the GitHub mirror token, the registry push credential (copied from the
-cluster, decision 006), the runner registration token, two Omni service account keys, and two Kubernetes Secret
-payloads the release runner writes. Both Omni keys leave: they mint tier 2 and change clusters, which invariant 3
-puts outside tier 1 altogether. What stays in `infra` is what a process consumes and nothing that opens a door.
-
-**Break-glass values are tier 1 with a smaller recipient list, and no vault at all.** The `@dataverket/sops` vault
-encrypts every value to the vault's whole recipient list, so a value only a human may read cannot sit in `infra`.
-It does not go in a second vault either: a vault is a thing a definition can name, and `vault.get("human", …)` is
-a line someone could write. `break-glass/` is plain sops instead, outside `vaults/`, with the two YubiKeys as its
-only recipients. Nothing swamp runs can name it; encryption needs only public keys, so a workflow can still write
-there, and only a touch reads it. It is empty until the break-glass plan fills it.
-
-### The two stores never share a reader
-
-The cluster key is never a recipient of a vault file and `swamp-<repo>` is never a recipient of a cluster file. A
-value that has to exist in both stores is copied by a human with a YubiKey, from the store where it was born to
-the other, and the commit says so. The origin is the source of record and rotation starts there. Which store is
-the origin follows from who consumes the value: a credential the cluster uses is born as a cluster manifest, one
-only swamp uses is born in the vault and never touches a cluster file, and one both use is born wherever it is
-created, the registry push credential in zot's manifest, a token a workflow mints in the vault. Decision 006's
-direction, cluster repository first and the factory copies, was about two repositories; inside this one it reads
-as "origin first".
-
-Swamp can still write a cluster file, because encryption needs only public keys, and it reads the vault on every
-run. What it cannot do is move a value from one store to the other, or run `sops updatekeys` over cluster files
-when a cluster is added or an operator leaves. Those stay human steps, and `bootstrap.sh` already stops and says so.
-
-Stated at its true size, the rule bounds three things. A leaked swamp key opens the vault files, which are mirrored
-to codeberg with the rest of the repository, but not the cluster manifests beside them. Re-keying after such a leak
-is the vault alone, not every encrypted file. And the copy stays rare and reviewed because a person does it.
-The rule does not keep the swamp host from reading a live cluster Secret: an admin kubeconfig reaches every
-Secret through the API, and a minted Operator key reaches the PKI behind it. Live Secrets are tier 1 too
-(invariant 5), so what actually bounds this is not the recipient rule but invariant 2: the credentials that open
-that door are minted, short-lived and logged at Omni. The README today claims the larger thing; step 9 corrects it.
-
-The rule is written down in five places and checked in one, so that it does not depend on anyone remembering it:
-decision 002, the README's Secrets section, the header of `.sops.yaml`, an operator-rules section in `CLAUDE.md`
-and `AGENTS.md` for the agents that work here, and `bin/check-recipients`, which reads the recipient list out of
-every encrypted file and fails when a key appears on the wrong side. Steps 8 to 11, all done 2026-09-29.
-
-### Tier 2: files by name, presumed present
-
-A model definition names a context and nothing more. No `vault.get`, no path to a key, no environment variable
-that holds a value. If the file is missing the CLI fails and the method fails with it; the models do not check for
-tier 2, tier 3 does.
-
-| Tool | File | Name the models use | Content | Lifetime |
-|---|---|---|---|---|
-| `openstack` | `~/.config/openstack/clouds.yaml` | cloud `fabrikk-infra` | An application credential named `swamp-fabrikk-infra-<timestamp>`, `member` role or the roles of the one it replaces | The shared tier 2 lifetime, 8 hours |
-| `kubectl` | `~/.kube/config` | context `dataverket-prod-readers`, context `dataverket-prod-admin` | An Omni service-account kubeconfig, token signed by Omni, validated by Omni's Kubernetes proxy | The shared tier 2 lifetime, 8 hours |
-| `talosctl` | `~/.talos/config` | context `dataverket-prod` | The Omni-proxied talosconfig, which carries no credential of its own | No credential, so nothing to expire; the key file beside it is what has a lifetime |
-| `talosctl`, `omnictl` | `~/.talos/omni/swamp-fabrikk-infra-reader.key`, beside the omniconfig | the file, through the type's `serviceAccountKeyFile` argument (step 4) | An Omni service account key, `Reader` role | The shared tier 2 lifetime, 8 hours |
-| `omnictl` | `~/.talos/omni/swamp-fabrikk-infra-operator.key`, beside the reader key | the file, the same argument, named only by `omni-cluster` | An Omni service account key, `Operator` role | The shared tier 2 lifetime, minted deliberately and not by `admin:renew` |
-
-Two of these are already in place under other names: cloud `fabrikk-infra` and the kube contexts `fabrikk-readers`
-and `dataverket-prod-admin`. Naming is `<cluster>-<role>` for kube contexts, `<cluster>` for the talos context, and
-`swamp-<repo>` or `swamp-<repo>-<role>` for anything created in a provider on this repository's behalf, so that the
-provider's own listing says who owns it.
-
-Scope follows the role, not the tool. The readers kubeconfig binds to the `fabrikk-readers` group and nothing more;
-the admin kubeconfig is `system:masters`. Both live as long as everything else in tier 2, because one lifetime
-means one session; the admin context is not shorter. The Omni reader key can list machines and fetch talosconfigs
-and can change nothing, and it is in every session. The operator key that can change things is tier 2 as well,
-under the same lifetime, but it is minted by a task of its own when a change is about to be made, and it goes at
-logout, so an ordinary session holds no key that can mutate Omni. Tier 3 itself never uses either: it runs on the
-operator's own login.
-
-The Omni case needs one sentence more. An Omni-issued talosconfig authenticates with whatever `talosctl` finds in
-`OMNI_SERVICE_ACCOUNT_KEY`, so today the talos and omni model definitions pull an Omni key out of the vault on
-every run, which is the clearest breach of invariant 3 in the repository. Under the plan they name a key file
-instead: the reader key for everything that only looks, the operator key file for `applyPatch`, `addMachine`,
-`removeMachine`, `reset` and `upgrade`, which is the one file a session mints deliberately. Neither is a vault
-value, and a method that cannot find its file fails rather than falling back to one.
-
-### Tier 3: the session, and the code behind it
+### Tier 1: the session, and the code behind it
 
 | Produces | Root identity | Mechanism | Where the code goes |
 |---|---|---|---|
@@ -211,15 +121,15 @@ value, and a method that cannot find its file fails rather than falling back to 
 | talos context `dataverket-prod` | The operator's own Omni login | `omnictl talosconfig --cluster dataverket-prod`, renamed to the cluster and merged into `~/.talos/config` | `task admin:talos` |
 | The Omni reader key file | The operator's own Omni login | `omnictl serviceaccount create swamp-fabrikk-infra-reader --use-user-role=false --role Reader --ttl $TIER2_TTL`; renewal is destroy and create, because `serviceaccount renew` ignores `--ttl` | `task admin:omni-key` |
 | The Omni operator key file | The operator's own Omni login | `omnictl serviceaccount create swamp-fabrikk-infra-operator --use-user-role=false --role Operator --ttl $TIER2_TTL`, into a key file, never into a vault | `task admin:omni-operator-key`, run deliberately, outside `admin:renew` |
-| The break-glass talosconfig | The cluster's own Talos CA, reached with an Operator key | Signed offline and stored in `break-glass/` | `docs/plans/2026-09-break-glass.md`, by hand: permanent, so tier 1, and not a task |
+| The break-glass talosconfig | The cluster's own Talos CA, reached with an Operator key | Signed offline and stored in `break-glass/` | `docs/plans/2026-09-break-glass.md`, by hand: permanent, so tier 3, and not a task |
 
 A *session* is the unit this plan keeps using: the stretch of a working day in which an operator has logged in
 and tier 2 exists. It is opened on purpose, it holds every credential for the same lifetime, and it ends by being
 closed or by expiring. The Proton Pass session, the shell `admin:shell` may open and the Omni login key are not
 other meanings of the word but parts of this one, opened inside it and closed with it.
 
-Tier 3 is a Taskfile. `Taskfile.yml` at the root includes `taskfiles/admin.yml`, and its tasks are the whole of
-tier 3: `task --list` is the list of what an operator does here. `admin:login` and `admin:logout` open and close
+Tier 1 is a Taskfile. `Taskfile.yml` at the root includes `taskfiles/admin.yml`, and its tasks are the whole of
+tier 1: `task --list` is the list of what an operator does here. `admin:login` and `admin:logout` open and close
 the session, `admin:status` reports what tier 2 holds, and one task per tier 2 item acquires it: `admin:omni-key`,
 `admin:kube-admin`, `admin:kube-readers`, `admin:talos`, `admin:openstack`. `admin:renew` runs those five in that
 order, after `admin:due` has said once whether any of them is due. Behind each task is one executable in `bin/`,
@@ -267,9 +177,9 @@ in once at the start of the working day. `RENEW=1 task admin:renew` forces the s
 first setup, rotation and recovery. They run as the operator on the swamp host with the operator's own logins,
 Omni in the browser and OpenStack through your own clouds.yaml entry, need `task`, `omnictl`,
 `kubectl`, `talosctl`, `openstack`, `jq` and `yq`, all of them in the repository's `Brewfile`, and write files
-with mode 0600. They never read or write the swamp vault and do not need swamp on PATH: a tier 3 script that
-needed a tier 1 value would make the host's vault key a root credential, and that is the thing tier 3 exists to
-avoid. What swamp needs in tier 1 is put there by hand in step 7.
+with mode 0600. They never read or write the swamp vault and do not need swamp on PATH: a tier 1 script that
+needed a tier 3 value would make the host's vault key a root credential, and that is the thing tier 1 exists to
+avoid. What swamp needs in tier 3 is put there by hand in step 7.
 
 The tasks never replace what they did not create. A kube context that exists and is not a token for the
 script's own service account (another subject, an OIDC user, a client certificate), a talos context that is not
@@ -279,37 +189,127 @@ the context, or remove the entry, and rerun). Only entries that carry the script
 replaced or deleted. An expired credential of ours cannot read its own record, so `admin:openstack` looks it up as
 you before deciding, which is what makes the first run of a day work.
 
-Tier 3 itself lives for a working day at most, because it only ever acquires tier 2 and does no operations of
+Tier 1 itself lives for a working day at most, because it only ever acquires tier 2 and does no operations of
 its own. The Omni browser login is a PGP key that Omni issues for four hours (`~/.talos/keys/<context>-<you>.pgp`,
 expiry inside the key). The OpenStack password is typed once per run, kept in that process's environment and
-never written; the Keystone token behind it lasts an hour and is not cached. Nothing in tier 3 is a file that
-outlives the session, and that is what allows tier 3 to hold the powers tier 2 must not.
+never written; the Keystone token behind it lasts an hour and is not cached. Nothing in tier 1 is a file that
+outlives the session, and that is what allows tier 1 to hold the powers tier 2 must not.
 
 Invariant 1 is about the secret, not about every byte a login leaves behind, and it is worth being exact about
 what does land here. The passwords and passkeys are in Proton Pass and on the YubiKeys, and this host never sees
 them. What the host holds is the Omni login key above and the Proton Pass session the CLI keeps, both artifacts of
 a login that a person completed in a browser, both revocable at the far end, both removed by `task admin:logout`.
-That is the whole of tier 3 on disk, and the thing that must stay untrue is a file or a vault entry from which a
-tier 3 login could be reconstructed without a person: a Proton Pass personal access token, a stored password, an
+That is the whole of tier 1 on disk, and the thing that must stay untrue is a file or a vault entry from which a
+tier 1 login could be reconstructed without a person: a Proton Pass personal access token, a stored password, an
 Omni service account with the user's own role. The first is the reason `pass-cli` tokens are refused, the last is
 why every service account this repository mints passes `--use-user-role=false`.
 
 Behind both logins stands Proton Pass, where the Omni and Nexthop web credentials live. That makes the Proton
-Pass session the root of tier 3: Omni's credential is filled by the browser extension, and OpenStack's reaches the
+Pass session the root of tier 1: Omni's credential is filled by the browser extension, and OpenStack's reaches the
 scripts as `OS_PASSWORD`, typed once per run or handed over by `pass-cli run` from a `pass://` reference for the
 duration of that one process. The CLI's personal access tokens are not used; a token that lets `pass-cli` answer
-without a person present would make tier 3 unattended, which is the property the tiers exist to prevent.
+without a person present would make tier 1 unattended, which is the property the tiers exist to prevent.
+
+### Tier 2: files by name, presumed present
+
+A model definition names a context and nothing more. No `vault.get`, no path to a key, no environment variable
+that holds a value. If the file is missing the CLI fails and the method fails with it; the models do not check for
+tier 2, tier 1 does.
+
+| Tool | File | Name the models use | Content | Lifetime |
+|---|---|---|---|---|
+| `openstack` | `~/.config/openstack/clouds.yaml` | cloud `fabrikk-infra` | An application credential named `swamp-fabrikk-infra-<timestamp>`, `member` role or the roles of the one it replaces | The shared tier 2 lifetime, 8 hours |
+| `kubectl` | `~/.kube/config` | context `dataverket-prod-readers`, context `dataverket-prod-admin` | An Omni service-account kubeconfig, token signed by Omni, validated by Omni's Kubernetes proxy | The shared tier 2 lifetime, 8 hours |
+| `talosctl` | `~/.talos/config` | context `dataverket-prod` | The Omni-proxied talosconfig, which carries no credential of its own | No credential, so nothing to expire; the key file beside it is what has a lifetime |
+| `talosctl`, `omnictl` | `~/.talos/omni/swamp-fabrikk-infra-reader.key`, beside the omniconfig | the file, through the type's `serviceAccountKeyFile` argument (step 4) | An Omni service account key, `Reader` role | The shared tier 2 lifetime, 8 hours |
+| `omnictl` | `~/.talos/omni/swamp-fabrikk-infra-operator.key`, beside the reader key | the file, the same argument, named only by `omni-cluster` | An Omni service account key, `Operator` role | The shared tier 2 lifetime, minted deliberately and not by `admin:renew` |
+
+Two of these are already in place under other names: cloud `fabrikk-infra` and the kube contexts `fabrikk-readers`
+and `dataverket-prod-admin`. Naming is `<cluster>-<role>` for kube contexts, `<cluster>` for the talos context, and
+`swamp-<repo>` or `swamp-<repo>-<role>` for anything created in a provider on this repository's behalf, so that the
+provider's own listing says who owns it.
+
+Scope follows the role, not the tool. The readers kubeconfig binds to the `fabrikk-readers` group and nothing more;
+the admin kubeconfig is `system:masters`. Both live as long as everything else in tier 2, because one lifetime
+means one session; the admin context is not shorter. The Omni reader key can list machines and fetch talosconfigs
+and can change nothing, and it is in every session. The operator key that can change things is tier 2 as well,
+under the same lifetime, but it is minted by a task of its own when a change is about to be made, and it goes at
+logout, so an ordinary session holds no key that can mutate Omni. Tier 1 itself never uses either: it runs on the
+operator's own login.
+
+The Omni case needs one sentence more. An Omni-issued talosconfig authenticates with whatever `talosctl` finds in
+`OMNI_SERVICE_ACCOUNT_KEY`, so today the talos and omni model definitions pull an Omni key out of the vault on
+every run, which is the clearest breach of invariant 3 in the repository. Under the plan they name a key file
+instead: the reader key for everything that only looks, the operator key file for `applyPatch`, `addMachine`,
+`removeMachine`, `reset` and `upgrade`, which is the one file a session mints deliberately. Neither is a vault
+value, and a method that cannot find its file fails rather than falling back to one.
+
+### Tier 3: one key per decrypting process
+
+Every tier 3 store is encrypted to the process that decrypts it plus the two operators' YubiKeys, and to nothing
+else.
+A process key is named after the process, and the name is what `.sops.yaml`, the vault config and this plan call it.
+
+| Key name | Identity | Where the private key is | Decrypts |
+|---|---|---|---|
+| `dataverket-prod` | `age1g3x9w…` | Secret `flux-system/sops-age`, generated in-cluster, never leaves it (decision 003) | The Flux files |
+| `swamp-fabrikk-infra` | `age15d64a…` | `~/.config/sops/age/keys.txt` on the swamp host | The `infra` vault |
+| `beddari`, `linus` | `age1yubikey1…` | The YubiKeys | Both, for recovery, re-keying and writes from a terminal |
+
+The rule that follows: the cluster key is never a vault recipient and the repo key is never a Flux recipient. That
+is already true in `.sops.yaml`; the plan makes it a stated invariant and gives the repo key its name. A second swamp
+repository gets a second key, `swamp-<repo>`, never a copy of this one.
+
+The vault holds today: the forge token, the GitHub mirror token, the registry push credential (copied from the
+cluster, decision 006), the runner registration token, two Omni service account keys, and two Kubernetes Secret
+payloads the release runner writes. Both Omni keys leave: they mint tier 2 and change clusters, which invariant 3
+puts outside tier 3 altogether. What stays in `infra` is what a process consumes and nothing that opens a door.
+
+**Break-glass values are tier 3 with a smaller recipient list, and no vault at all.** The `@dataverket/sops` vault
+encrypts every value to the vault's whole recipient list, so a value only a human may read cannot sit in `infra`.
+It does not go in a second vault either: a vault is a thing a definition can name, and `vault.get("human", …)` is
+a line someone could write. `break-glass/` is plain sops instead, outside `vaults/`, with the two YubiKeys as its
+only recipients. Nothing swamp runs can name it; encryption needs only public keys, so a workflow can still write
+there, and only a touch reads it. It is empty until the break-glass plan fills it.
+
+### The two stores never share a reader
+
+The cluster key is never a recipient of a vault file and `swamp-<repo>` is never a recipient of a cluster file. A
+value that has to exist in both stores is copied by a human with a YubiKey, from the store where it was born to
+the other, and the commit says so. The origin is the source of record and rotation starts there. Which store is
+the origin follows from who consumes the value: a credential the cluster uses is born as a cluster manifest, one
+only swamp uses is born in the vault and never touches a cluster file, and one both use is born wherever it is
+created, the registry push credential in zot's manifest, a token a workflow mints in the vault. Decision 006's
+direction, cluster repository first and the factory copies, was about two repositories; inside this one it reads
+as "origin first".
+
+Swamp can still write a cluster file, because encryption needs only public keys, and it reads the vault on every
+run. What it cannot do is move a value from one store to the other, or run `sops updatekeys` over cluster files
+when a cluster is added or an operator leaves. Those stay human steps, and `bootstrap.sh` already stops and says so.
+
+Stated at its true size, the rule bounds three things. A leaked swamp key opens the vault files, which are mirrored
+to codeberg with the rest of the repository, but not the cluster manifests beside them. Re-keying after such a leak
+is the vault alone, not every encrypted file. And the copy stays rare and reviewed because a person does it.
+The rule does not keep the swamp host from reading a live cluster Secret: an admin kubeconfig reaches every
+Secret through the API, and a minted Operator key reaches the PKI behind it. Live Secrets are tier 3 too
+(invariant 5), so what actually bounds this is not the recipient rule but invariant 2: the credentials that open
+that door are minted, short-lived and logged at Omni. The README today claims the larger thing; step 9 corrects it.
+
+The rule is written down in five places and checked in one, so that it does not depend on anyone remembering it:
+decision 002, the README's Secrets section, the header of `.sops.yaml`, an operator-rules section in `CLAUDE.md`
+and `AGENTS.md` for the agents that work here, and `bin/check-recipients`, which reads the recipient list out of
+every encrypted file and fails when a key appears on the wrong side. Steps 8 to 11, all done 2026-09-29.
 
 ## Steps
 
 1. **Name the repo key and close its permissions.** Done 2026-09-29. `chmod 600 ~/.config/sops/age/keys.txt` (it is
    0664 today).
    Add a `# name: swamp-fabrikk-infra` line beside `age-keygen`'s `# public key:` comment. Rewrite the recipient
-   comments in `.sops.yaml` and the Secrets section of `README.md` with the names in the tier 1 table.
+   comments in `.sops.yaml` and the Secrets section of `README.md` with the names in the tier 3 table.
 2. **Turn on read auditing.** Done 2026-09-29. `auditReads: true` in `vaults/@dataverket/sops/29f189c7-….yaml`. Every
    `vault.get`
    then leaves a line in `.swamp/audit/vault-audit-<date>.jsonl` naming the model and method, and
-   `swamp vault audit-trail --action get` shows which definitions still reach into tier 1. That list is the
+   `swamp vault audit-trail --action get` shows which definitions still reach into tier 3. That list is the
    checklist for step 5.
 3. **Create the `break-glass/` store.** Done 2026-09-29. Plain sops, not a swamp vault: a vault is addressable
    by a definition and this must not be, so it is a directory with a rule in `.sops.yaml` naming the two YubiKeys
@@ -386,7 +386,7 @@ without a person present would make tier 3 unattended, which is the property the
 | Cluster key `dataverket-prod` | The cluster's life | `bootstrap.sh` on a new cluster (decision 003) | A new cluster |
 
 For tier 2 the signal is `admin:status`, which reads the expiry out of each kubeconfig token, the service account
-listing and the credential's own record, in one place. For tier 1 the signals are still "the next run fails",
+listing and the credential's own record, in one place. For tier 3 the signals are still "the next run fails",
 which is acceptable while a human runs the models.
 
 ## Not in this plan
@@ -404,4 +404,4 @@ which is acceptable while a human runs the models.
 - The second door, its route and its credential: `docs/plans/2026-09-break-glass.md`.
 - Bare metal. The metal under the cluster is the provider's, which is the shape Dataverket is built around, and
   our root begins at the OpenStack API, so there is
-  no third root identity to acquire and nothing below the cloud for tier 3 to reach.
+  no third root identity to acquire and nothing below the cloud for tier 1 to reach.

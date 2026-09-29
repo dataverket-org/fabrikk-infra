@@ -18,7 +18,7 @@
 #
 # break-glass/ is a third store and theirs alone. It is plain sops with no swamp vault behind it, so nothing swamp
 # runs can name it at all, and no process key is a recipient, so only a touch reads it. It holds the permanent,
-# human-only material tier 3 falls back on when a login mechanism fails, the Omni break-glass configs first. A
+# human-only material tier 1 falls back on when a login mechanism fails, the Omni break-glass configs first. A
 # write needs only public keys, so a workflow can still put a value there.
 #
 # Only data/stringData are encrypted in the Flux files, so kind, name and namespace stay readable and diffs stay

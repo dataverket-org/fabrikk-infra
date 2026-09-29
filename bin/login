@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Tier 3 session up. Opens the two logins the session needs: Proton Pass,
+# Tier 1 session up. Opens the two logins the session needs: Proton Pass,
 # whose session the CLI keeps, and Omni, which issues a login key that lives
 # a few hours. With OS_PASSWORD_REF set, the openstack action then resolves
 # the OpenStack password from Proton Pass for its own run only, so nothing

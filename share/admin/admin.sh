@@ -3,21 +3,21 @@
 # Shared by bin/*: names, the one lifetime, and the helpers every action uses.
 # Sourced, never run.
 #
-# Tier 3 (docs/plans/2026-09-credential-tiers.md) runs as the operator with
+# Tier 1 (docs/plans/2026-09-credential-tiers.md) runs as the operator with
 # the operator's own identities, the Omni browser login and the OpenStack
 # login, and writes only tier 2 files: kube and talos contexts, an Omni Reader
 # key file, a clouds.yaml cloud. It never reads or writes the swamp vault and
-# does not need swamp on PATH; what swamp keeps in tier 1 is put there by hand.
+# does not need swamp on PATH; what swamp keeps in tier 3 is put there by hand.
 #
 # Every tier 2 item has the same lifetime, a working day, and `task admin:renew`
 # renews all of them in one session as soon as one is due, so the operator logs
 # in once at the start of the day instead of once per item.
 #
-# The two logins behind tier 3, Omni and OpenStack, are web credentials kept
+# The two logins behind tier 1, Omni and OpenStack, are web credentials kept
 # in Proton Pass. Omni's is used in the browser, where the extension fills it.
 # OpenStack's reaches the scripts as OS_PASSWORD, typed once per run, or
 # resolved by `pass-cli run` from a pass:// reference for that one run (see
-# Taskfile.yml). Never a personal access token: that would let tier 3 run
+# Taskfile.yml). Never a personal access token: that would let tier 1 run
 # unattended, which is the one thing it must not do.
 #
 # Everything is an environment variable, because the entry points are task
@@ -47,6 +47,7 @@
 #
 
 admin_dir="${BASH_SOURCE[0]%/*}"
+repo_dir="$(cd "$admin_dir/../.." && pwd)"
 
 source "$admin_dir/../logging.sh"
 
@@ -152,7 +153,7 @@ esac
 umask 077
 
 # A service account key in the environment would silently replace your own
-# identity in omnictl; tier 3 runs as you.
+# identity in omnictl; tier 1 runs as you.
 unset OMNI_SERVICE_ACCOUNT_KEY
 
 source "$admin_dir/omni.sh"

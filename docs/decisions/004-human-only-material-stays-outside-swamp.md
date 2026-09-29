@@ -38,7 +38,7 @@ is not a swamp vault and has no vault config, so nothing swamp runs can name it 
 Two rules bound what may go in it, and they hold for any store of this kind:
 
 1. Nothing here may complete a routine login. If the everyday way into a service could be rebuilt from this
-   repository plus a touch, tier 3 would be reconstructible without the mechanism it rests on.
+   repository plus a touch, tier 1 would be reconstructible without the mechanism it rests on.
 2. Nothing here may be needed to recover what hosts it. The forge's own break-glass belongs somewhere that does
    not depend on the forge being up.
 

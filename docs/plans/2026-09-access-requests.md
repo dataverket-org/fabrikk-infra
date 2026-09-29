@@ -1,9 +1,9 @@
 # Plan: access requests
 
-Written 2026-09-29, after the invariants in decision 001 and the tier 3 session that
+Written 2026-09-29, after the invariants in decision 001 and the tier 1 session that
 `docs/plans/2026-09-credential-tiers.md` builds. That plan makes this repository's credentials obey the tiers.
 This one
-generalises the way a person enters tier 3, from five tasks that know one cluster and one cloud by name into a
+generalises the way a person enters tier 1, from five tasks that know one cluster and one cloud by name into a
 request over a list of services. Nothing is applied.
 
 It is deliberately a second plan. The first is finishable and worth finishing before this one starts: the request
@@ -61,12 +61,12 @@ begins at the OpenStack API, and there is no rack of our own to reach. It stays 
 hosts and a CA behind them. Bare metal joins tier 2 only as a certificate with a
 lifetime, which means a CA that signs one for the session; a permanent private key in `~/.ssh/` would be a
 permanent credential on disk, which invariant 2 forbids outright. A host that can only be reached with a permanent
-key is not tier 2 at all: it is tier 1 with a human owner, reached the way break-glass is reached, and saying so
+key is not tier 2 at all: it is tier 3 with a human owner, reached the way break-glass is reached, and saying so
 is more useful than pretending the key is short-lived.
 
 ## The mechanisms, and what the repository may hold
 
-Tier 3 has no credentials of its own. It has mechanisms, and a mechanism authenticates a human without the thing
+Tier 1 has no credentials of its own. It has mechanisms, and a mechanism authenticates a human without the thing
 that authenticates them ever being on this host: a YubiKey that signs without revealing its key, a browser session
 at an OIDC provider, a password manager behind a web login (Proton Pass here, Bitwarden or passwordstore.org for
 someone else), sops with an age key on that YubiKey. Each service entry names the mechanism its human access goes
@@ -79,12 +79,12 @@ That separates two things this repository is otherwise tempted to confuse. A ref
 is useless without the mechanism, so it is not a secret, and it belongs in the plain service list where it can be
 read and reviewed. A value authenticates. Invariant 1 is the line between them.
 
-## Then a human-only store, for tier 3 as well?
+## Then a human-only store, for tier 1 as well?
 
 `break-glass/` is plain sops: age, the two YubiKeys as its only recipients, a directory in this repository and
 deliberately not a swamp vault, because a vault is something a definition can name and this must not be. That
 makes it one instance of one of the mechanisms and not a tier of its own, and it is a convenience rather than a
-requirement. Tier 3 does not depend on it. A service's human-only material may sit wherever that
+requirement. Tier 1 does not depend on it. A service's human-only material may sit wherever that
 service's access is naturally guarded: in Proton Pass or Bitwarden behind a web login, in a pass store, with the
 identity provider, in a safe. Which source a given service uses follows from what access it guards, and the
 request names the mechanism, not the store.
@@ -92,11 +92,11 @@ request names the mechanism, not the store.
 What `break-glass/` is good for is the material that is already about this repository's own infrastructure and
 gains from travelling with it: the Omni break-glass talosconfig and kubeconfig, and the same for other services
 later. It is reviewable, `.sops.yaml` states its recipients in the open, encryption needs only public keys so a
-workflow can still write there, and a read needs a touch. All of it is tier 1 by invariant 2, since none of it can be
+workflow can still write there, and a read needs a touch. All of it is tier 3 by invariant 2, since none of it can be
 minted with a lifetime, and all of it is read by a person and never by a process.
 
 Two lines keep it honest, and they hold for any source, not only this one. Nothing in it may complete a routine
-login: if the everyday way into a service could be rebuilt from the repository plus a touch, tier 3 would be
+login: if the everyday way into a service could be rebuilt from the repository plus a touch, tier 1 would be
 reconstructible without the mechanism it is supposed to rest on. Break-glass passes that test because it goes
 around the service instead of logging in to it, and because using it is an incident that leaves a trace; a stored
 identity-provider password would fail it. And nothing may go in it that would be needed to recover what hosts it:
@@ -121,7 +121,7 @@ What a service has to provide to be reachable at tier 2:
    one that has to be designed in rather than bolted on: tokens that carry an expiry and are refused after it,
    issued per session, listable and revocable, so the service can answer who holds one right now. A service that
    can only issue a permanent token cannot be tier 2, and every session that touches it becomes an exception
-   carried as tier 1 with a named human owner.
+   carried as tier 3 with a named human owner.
 4. **Roles that `read` and `admin` can map onto.** Two is enough for a person to say, and the entry translates.
 5. **A config file of its own for the artifact**, the one its CLI or its swamp model already reads, mode 0600.
    Then invariants 3 and 4 need nothing special: the model names the file, never the value.

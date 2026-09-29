@@ -27,7 +27,7 @@ administrative credential that does not depend on anyone.
    plane, so that it is there precisely when the cluster is broken.
 4. **Built from powers this repository already has**, which today is an Omni Operator key minted per session and a
    config patch. Nothing here waits on a vendor.
-5. **The credential stays tier 1 and human-only**, in `break-glass/` behind the two YubiKeys, with its use
+5. **The credential stays tier 3 and human-only**, in `break-glass/` behind the two YubiKeys, with its use
    deliberate, rare and traceable.
 6. **Useful after Omni, not only during it.** The overlay and the `os:admin` credential are the parts of a
    replacement that have to exist whatever else changes, so building them now is work that carries forward rather

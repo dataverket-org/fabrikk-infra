@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Tier 3 session down. Closes the Proton Pass session and removes the Omni
+# Tier 1 session down. Closes the Proton Pass session and removes the Omni
 # login key from this host. Tier 2 is left alone: it dies by itself within its
 # lifetime, and that is the design. If you are inside the session shell that
 # task admin:shell opened, exit it afterwards; OS_PASSWORD lives only there.
