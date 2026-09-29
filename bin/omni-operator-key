@@ -18,6 +18,6 @@ require_omni_context || exit $?
 warn "This key can change every cluster at $omni_url"
 warn "It lives $tier2_ttl and is removed by task admin:logout"
 
-ensure_service_account "$id-operator" Operator "$operator_key_file" ||
+ensure_service_account "$me-operator" Operator "$operator_key_file" ||
 	fail "The Operator key does not list clusters at $omni_url!"
 log "Operator key answers at $omni_url; omni-cluster methods can run"

@@ -55,7 +55,8 @@ The `decisions:` group is the records in `docs/decisions/`. `task decisions` lis
 what is decided and what is still pending read at a glance; `decisions:new` starts one from the template and opens
 it in `$EDITOR`; `decisions:index` rewrites the generated index.
 
-Settings are environment variables, not options: `RENEW=1`, `DEBUG=1`, `TIER2_TTL` for the shared lifetime.
+Settings are environment variables, not options: `RENEW=1`, `DEBUG=1`, `TIER2_TTL` for the shared lifetime,
+and `OPERATOR` for the name a provider records you under, which defaults to `$USER`.
 What this repository administers, its cluster and the names its two logins go by, is not a setting but a fact,
 and `taskfiles/admin.yml` sets it; `bin/` and `share/admin/` name no cluster and no cloud of their own.
 
@@ -69,6 +70,12 @@ addresses below are yours to put there once, and no script here ever passes a UR
 | `~/.config/openstack/clouds.yaml` | cloud `nexthop` | `https://identity-api.nexthop.no:5000/v3`, your own Keystone login, never an application credential |
 
 If your own config uses other names, export `OMNI_CONTEXT` or `OS_CLOUD`; a shell wins over the Taskfile.
+
+Two operators on one cluster share every file: the same key paths, the same kube context names, the same cloud
+entry, because a model definition in git names them and reads the same for both. What a provider stores under its
+own name carries the operator — `swamp-fabrikk-infra-<you>-reader` in Omni, `swamp-fabrikk-infra-<you>-admin` as a
+kube subject, `swamp-fabrikk-infra-<you>-<timestamp>` as an OpenStack application credential — so its listing says
+who to ask, and renewing yours cannot destroy theirs.
 
 ## Names
 

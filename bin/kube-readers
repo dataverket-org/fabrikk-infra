@@ -14,5 +14,5 @@ require_tools omnictl kubectl jq || exit $?
 require_omni_context || exit $?
 
 log "Kube context $cluster-readers, group $readers_group, $tier2_ttl ..."
-mint_kube_context "$cluster-readers" "$id-readers" --groups "$readers_group" ||
+mint_kube_context "$cluster-readers" "$me-readers" --groups "$readers_group" ||
 	fail "Minting $cluster-readers failed!"

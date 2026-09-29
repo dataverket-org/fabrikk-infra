@@ -15,6 +15,8 @@ version: '3'
 #
 # Settings are environment variables, not options:
 #
+#	OPERATOR	You, in the names a provider records (default $USER); a
+#			file name or a kube context never carries it
 #	RENEW=1		Renew every item of ours now, not only when due
 #	DEBUG=1		Print every external command before it runs
 #	TIER2_TTL=8h	The one lifetime of every tier 2 item, whole hours

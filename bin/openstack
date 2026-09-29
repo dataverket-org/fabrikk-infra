@@ -22,7 +22,7 @@ announce_files "$clouds (entry $human_cloud)" "$clouds (entry $os_cloud)"
 log "Cloud entry $os_cloud in $clouds ..."
 
 # Two names: the cloud entry the models name stays "$os_cloud"; the credential
-# behind it in Keystone is "$id-<timestamp>", so a listing there says who made
+# behind it in Keystone is "$me-<timestamp>", so a listing there says who made
 # it and rotation can create the next one before deleting the last.
 credential="$(current_credential_id)"
 record="$(credential_record "$credential")"
@@ -58,7 +58,7 @@ fi
 
 roles="${OS_ROLES:-$(credential_roles "$record")}"
 roles="${roles:-$os_role}"
-new_name="$id-$(date -u +%Y%m%d-%H%M%S)"
+new_name="$me-$(date -u +%Y%m%d-%H%M%S)"
 
 log "Creating credential $new_name with roles: $roles"
 log "Logging in through cloud entry $human_cloud, once ..."

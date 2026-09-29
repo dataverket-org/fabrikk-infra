@@ -13,6 +13,6 @@ announce_files "$omniconfig" "$reader_key_file"
 require_tools omnictl || exit $?
 require_omni_context || exit $?
 
-ensure_service_account "$id-reader" Reader "$reader_key_file" ||
+ensure_service_account "$me-reader" Reader "$reader_key_file" ||
 	fail "The Reader key does not list clusters at $omni_url!"
 log "Reader key lists clusters at $omni_url"

@@ -218,16 +218,23 @@ tier 2, tier 1 does.
 
 | Tool | File | Name the models use | Content | Lifetime |
 |---|---|---|---|---|
-| `openstack` | `~/.config/openstack/clouds.yaml` | cloud `fabrikk-infra` | An application credential named `swamp-fabrikk-infra-<timestamp>`, `member` role or the roles of the one it replaces | The shared tier 2 lifetime, 8 hours |
+| `openstack` | `~/.config/openstack/clouds.yaml` | cloud `fabrikk-infra` | An application credential named `swamp-fabrikk-infra-<operator>-<timestamp>`, `member` role or the roles of the one it replaces | The shared tier 2 lifetime, 8 hours |
 | `kubectl` | `~/.kube/config` | context `dataverket-prod-readers`, context `dataverket-prod-admin` | An Omni service-account kubeconfig, token signed by Omni, validated by Omni's Kubernetes proxy | The shared tier 2 lifetime, 8 hours |
 | `talosctl` | `~/.talos/config` | context `dataverket-prod` | The Omni-proxied talosconfig, which carries no credential of its own | No credential, so nothing to expire; the key file beside it is what has a lifetime |
 | `talosctl`, `omnictl` | `~/.talos/omni/swamp-fabrikk-infra-reader.key`, beside the omniconfig | the file, through the type's `serviceAccountKeyFile` argument (step 4) | An Omni service account key, `Reader` role | The shared tier 2 lifetime, 8 hours |
 | `omnictl` | `~/.talos/omni/swamp-fabrikk-infra-operator.key`, beside the reader key | the file, the same argument, named only by `omni-cluster` | An Omni service account key, `Operator` role | The shared tier 2 lifetime, minted deliberately and not by `admin:renew` |
 
 Two of these are already in place under other names: cloud `fabrikk-infra` and the kube contexts `fabrikk-readers`
-and `dataverket-prod-admin`. Naming is `<cluster>-<role>` for kube contexts, `<cluster>` for the talos context, and
-`swamp-<repo>` or `swamp-<repo>-<role>` for anything created in a provider on this repository's behalf, so that the
-provider's own listing says who owns it.
+and `dataverket-prod-admin`.
+
+Naming splits along one line: what a definition names is shared, what a provider records is not. A model definition,
+a kube context and a file path are in git and read the same for everyone, so they carry the repository and no
+operator — `<cluster>-<role>` for kube contexts, `<cluster>` for the talos context, `swamp-<repo>-<role>` for the
+key files. What a provider stores under its own name is one per operator, so that its listing says who to ask and
+one operator's renewal cannot destroy another's: `swamp-<repo>-<operator>-<role>` for an Omni service account and a
+kube subject, `swamp-<repo>-<operator>-<timestamp>` for an OpenStack application credential. `<operator>` is
+`$OPERATOR`, or `$USER` when that is unset. Two operators on one cluster therefore share every file name and no
+credential.
 
 Scope follows the role, not the tool. The readers kubeconfig binds to the `fabrikk-readers` group and nothing more;
 the admin kubeconfig is `system:masters`. Both live as long as everything else in tier 2, because one lifetime

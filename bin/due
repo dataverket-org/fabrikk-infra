@@ -19,12 +19,12 @@ function due_items()
 
 	for role in admin readers; do
 		name="$cluster-$role"
-		context_is_ours "$name" "$id-$role" || continue
+		context_is_ours "$name" "$me-$role" || continue
 		left="$(context_seconds_left "$name")"
 		(( left > renew_before )) || echo "kube context $name"
 	done
 
-	left="$(service_account_seconds_left "$id-reader")"
+	left="$(service_account_seconds_left "$me-reader")"
 	(( left > renew_before )) || echo "Omni reader key"
 
 	credential="$(current_credential_id)"

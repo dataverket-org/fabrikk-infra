@@ -41,6 +41,7 @@
 #	RENEW		1 renews every item of ours now, not only when due
 #	DEBUG		1 prints every external command before it runs
 #	TIER2_TTL	The one lifetime, whole hours (default 8h)
+#	OPERATOR	You, in the names providers record (default $USER)
 #	OS_ROLES	Roles for a new application credential, space separated
 #	OS_PASSWORD	Your OpenStack password, else asked for once per run
 #	OS_PASSWORD_REF	pass:// reference to it, resolved per run
@@ -85,7 +86,16 @@ function require_settings()
 require_settings SWAMP_REPO CLUSTER OMNI_CONTEXT OS_CLOUD
 
 repo="$SWAMP_REPO"
-id="swamp-$repo"                    # this repository's name in every provider
+id="swamp-$repo"                    # what a definition names: shared, in git
+
+# Who is running this. A provider-side name carries it, so that two operators
+# never share an account and a provider's own log can tell them apart. What a
+# definition names does not, because a definition is committed and shared: the
+# key file keeps one path for everyone and is already per-person by living in
+# $HOME, and the kube and cloud entries keep one name each.
+operator="${OPERATOR:-$USER}"
+[[ -n "$operator" ]] || fail "neither OPERATOR nor USER is set; name yourself"
+me="$id-$operator"                  # what a provider records: one per operator
 # shellcheck disable=SC2153  # from the environment, not a misspelt local
 cluster="$CLUSTER"
 # shellcheck disable=SC2153

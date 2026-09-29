@@ -66,13 +66,13 @@ function kube_rows()
 
 		if [[ -z "$user" ]]; then
 			row "$file" "$name" absent - - "no such context"
-		elif ! context_is_ours "$name" "$id-$role"; then
+		elif ! context_is_ours "$name" "$me-$role"; then
 			row "$file" "$name" hand-made - - "user $user, left alone"
 		elif (( left > 0 )); then
 			row "$file" "$name" ours "$(humanize "$left")" \
-				"$(expires_in "$left")" "$id-$role"
+				"$(expires_in "$left")" "$me-$role"
 		else
-			row "$file" "$name" ours expired "$(expires_in "$left")" "$id-$role"
+			row "$file" "$name" ours expired "$(expires_in "$left")" "$me-$role"
 		fi
 	done
 }
@@ -211,7 +211,7 @@ function tier3_rows()
 	row "vaults/infra/" "$vault_keys secrets" swamp - - \
 		"swamp-fabrikk-infra decrypts it, unattended"
 	row "apps, artifacts, infrastructure/" "$flux_files manifests" cluster - - \
-		"dataverket-prod decrypts them, in-cluster"
+		"cluster-dataverket-prod decrypts them, in-cluster"
 	if (( glass_files )); then
 		row "break-glass/" "$glass_files files" humans - - \
 			"the two YubiKeys and nothing else"
@@ -237,8 +237,8 @@ function tier2_status()
 	local table total due
 
 	table="$(kube_rows; talos_row
-		key_row "$reader_key_file" "$id-reader" Reader "a session mints it"
-		key_row "$operator_key_file" "$id-operator" Operator \
+		key_row "$reader_key_file" "$me-reader" Reader "a session mints it"
+		key_row "$operator_key_file" "$me-operator" Operator \
 			"an ordinary session has none"
 		cloud_row)"
 
