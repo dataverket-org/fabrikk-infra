@@ -40,7 +40,7 @@ design behind it is `docs/plans/2026-09-credential-tiers.md`, and the second doo
 
 | Task | What |
 |---|---|
-| `task admin` | What the CLIs can reach right now, as a table. The same as `admin:status`. |
+| `task admin` | What the CLIs can reach right now: the file each credential lives in, the name it is selected by, who owns it and when it expires. The same as `admin:status`. |
 | `task admin:login`, `task admin:logout` | Open and close the session: the Proton Pass session and the Omni login key. |
 | `task admin:renew` | Every credential of ours, in order, when any one of them is due. `RENEW=1` renews them now. |
 | `task admin:omni-key`, `admin:kube-admin`, `admin:kube-readers`, `admin:talos`, `admin:openstack` | One credential each, to run alone. |

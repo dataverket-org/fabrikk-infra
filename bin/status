@@ -12,19 +12,51 @@ reads="$omniconfig, $kubeconfig, $talosconfig, $clouds,"
 reads="$reads $reader_key_file, $operator_key_file"
 
 #
-# Prints one row of the tier 2 table.
+# Prints one row of the tier 2 table: the file it lives in, the name it is
+# selected by there, and what that name is worth today. Every name in the
+# second column is one a definition or a command uses, which is the whole of
+# decision 009.
 #
 function row()
 {
-	printf '%-38s %-11s %-9s %s\n' "$1" "$2" "$3" "$4"
+	printf '%-32s %-34s %-10s %-8s %-12s %s\n' \
+		"$1" "$2" "$3" "$4" "$5" "$6"
 }
 
 #
-# Prints the two kube contexts: who owns each and how long it has left.
+# Prints a path with $HOME as a tilde, so the column stays readable.
+#
+function short_path()
+{
+	local path="$1"
+
+	echo -n "${path/#"$HOME"/\~}"
+}
+
+#
+# Prints when something with this many seconds left expires, in local time; a
+# dash when there is nothing to expire or nothing to expire it.
+#
+function expires_in()
+{
+	local left="$1"
+
+	[[ -n "$left" ]] || { echo -n -; return; }
+
+	date -d "@$(( now + left ))" '+%m-%d %H:%M' 2>/dev/null ||
+	date -r "$(( now + left ))" '+%m-%d %H:%M' 2>/dev/null ||
+	echo -n -
+}
+
+#
+# Prints the two kube contexts: the kubeconfig, the context in it, and the
+# subject of the token behind it.
 #
 function kube_rows()
 {
-	local role name user left
+	local role name user left file
+
+	file="$(short_path "$kubeconfig")"
 
 	for role in admin readers; do
 		name="$cluster-$role"
@@ -32,79 +64,90 @@ function kube_rows()
 		left="$(context_seconds_left "$name")"
 
 		if [[ -z "$user" ]]; then
-			row "kube context $name" absent - "no such context"
+			row "$file" "$name" absent - - "no such context"
 		elif ! context_is_ours "$name" "$id-$role"; then
-			row "kube context $name" hand-made - "user $user, left alone"
+			row "$file" "$name" hand-made - - "user $user, left alone"
 		elif (( left > 0 )); then
-			row "kube context $name" ours "$(humanize "$left")" "$id-$role"
+			row "$file" "$name" ours "$(humanize "$left")" \
+				"$(expires_in "$left")" "$id-$role"
 		else
-			row "kube context $name" ours expired "$id-$role"
+			row "$file" "$name" ours expired "$(expires_in "$left")" "$id-$role"
 		fi
 	done
 }
 
 #
-# Prints the talos context, which carries no credential of its own.
+# Prints the talos context, which carries no credential and so never expires.
 #
 function talos_row()
 {
+	local file
+
+	file="$(short_path "$talosconfig")"
+
 	if ! talos_context_present; then
-		row "talos context $cluster" absent - "no such context"
+		row "$file" "$cluster" absent - - "no such context"
 	elif talos_context_is_ours; then
-		row "talos context $cluster" ours - "Omni-proxied, no credential"
+		row "$file" "$cluster" ours - - "Omni-proxied, no credential"
 	else
-		row "talos context $cluster" hand-made - "left alone"
+		row "$file" "$cluster" hand-made - - "left alone"
 	fi
 }
 
 #
-# Prints one Omni service account key file.
+# Prints one Omni service account key file: the directory, the file a
+# definition names in serviceAccountKeyFile, and the role it carries.
 #
 function key_row()
 {
-	local label="$1"
-	local file="$2"
-	local account="$3"
+	local file="$1"
+	local account="$2"
+	local role="$3"
 	local absent="$4"
 	local left
 
 	if [[ ! -s "$file" ]]; then
-		row "$label" absent - "$absent"
+		row "$(short_path "${file%/*}")/" "${file##*/}" absent - - "$absent"
 		return
 	fi
 
 	left="$(service_account_seconds_left "$account")"
 
 	if (( left > 0 )); then
-		row "$label" ours "$(humanize "$left")" "$account"
+		row "$(short_path "${file%/*}")/" "${file##*/}" ours \
+			"$(humanize "$left")" "$(expires_in "$left")" "$role"
 	else
-		row "$label" ours expired "$account"
+		row "$(short_path "${file%/*}")/" "${file##*/}" ours expired \
+			"$(expires_in "$left")" "$role"
 	fi
 }
 
 #
-# Prints the cloud entry the openstack models name.
+# Prints the cloud entry the openstack models name, and the application
+# credential behind it.
 #
 function cloud_row()
 {
-	local credential record name left
+	local credential record name left file
 
+	file="$(short_path "$clouds")"
 	credential="$(current_credential_id)"
 	record="$(credential_record "$credential")"
 	name="$(credential_name "$record" "$credential")"
 	left="$(credential_seconds_left "$record")"
 
 	if [[ -z "$credential" ]]; then
-		row "cloud $os_cloud" absent - "no credential in the entry"
+		row "$file" "$os_cloud" absent - - "no credential in the entry"
 	elif [[ -z "$record" ]]; then
-		row "cloud $os_cloud" unknown - \
-			"$credential does not answer for itself; admin:openstack checks it as you"
+		row "$file" "$os_cloud" unknown - - \
+			"$credential does not answer; admin:openstack checks it as you"
 	elif ! credential_is_ours "$name"; then
-		row "cloud $os_cloud" hand-made - "$name, left alone"
+		row "$file" "$os_cloud" hand-made - - "$name, left alone"
 	elif (( left > 0 )); then
-		row "cloud $os_cloud" ours "$(humanize "$left")" "$name"
+		row "$file" "$os_cloud" ours "$(humanize "$left")" \
+			"$(expires_in "$left")" "$name"
 	else
-		row "cloud $os_cloud" ours expired "$name"
+		row "$file" "$os_cloud" ours expired "$(expires_in "$left")" "$name"
 	fi
 }
 
@@ -116,21 +159,21 @@ function tier2_status()
 	local table total due
 
 	table="$(kube_rows; talos_row
-		key_row "Omni reader key" "$reader_key_file" "$id-reader" \
-			"a session mints it"
-		key_row "Omni operator key" "$operator_key_file" "$id-operator" \
+		key_row "$reader_key_file" "$id-reader" Reader "a session mints it"
+		key_row "$operator_key_file" "$id-operator" Operator \
 			"an ordinary session has none"
 		cloud_row)"
 
-	row ITEM OWNER LEFT DETAIL
+	row PATH NAME OWNER LEFT EXPIRES DETAIL
 	printf '%s\n' "$table"
 	echo
 
 	# An absent Operator key is the ordinary state, not something to renew; an
 	# expired one is, since that means the account went while the file stayed.
+	# The row is matched by its path, which is the only place its name appears.
 	total="$(printf '%s\n' "$table" | grep -c .)"
 	due="$(printf '%s\n' "$table" | grep -cE ' expired ')"
-	due=$(( due + $(printf '%s\n' "$table" | grep -v '^Omni operator key' |
+	due=$(( due + $(printf '%s\n' "$table" | grep -v 'operator\.key ' |
 	                grep -cE ' absent ') ))
 
 	if (( due )); then
