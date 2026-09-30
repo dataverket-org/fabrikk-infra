@@ -513,7 +513,7 @@ Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026
 
 | Service | Component | Storage | Class, tier | Size | Used | Redundancy | Node |
 |---|---|---|---|---|---|---|---|
-| Forgejo | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 64 GB | 620 MB | app ×3 on Cinder ×3 | wrkr-3, wrkr-2, wrkr-3 |
+| Forgejo | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 64 GB | 620 MB | app ×3 on Cinder ×3 | wrkr-3, wrkr-2, wrkr-1 |
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 11 MB | Cinder ×3 | wrkr-2 |
 | Zitadel | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 32 GB | 617 MB | app ×3 on Cinder ×3 | wrkr-1, wrkr-3, wrkr-2 |
 | zot | blobs and config | Cinder | `csi-cinder-sc-retain`, SSD | 50 GB | 44 MiB | Cinder ×3 | wrkr-1 |
