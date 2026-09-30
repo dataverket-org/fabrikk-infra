@@ -22,6 +22,12 @@ nodes with NVMe, where local disks are the only disks; against three 10 GB Cinde
 Replacing a worker that holds a replica is the part of that rehearsal this plan does not run; it is
 `docs/plans/2026-09-worker-replacement-test.md`, for later. Steps 2 to 7 are not applied.
 
+Ninth revision, 2026-09-30: every step names the files it changes, so that git, not swamp's data, describes the
+cluster at each "stopped here", and Flux could rebuild it from the repository (building block 7). What a step
+does by hand is scaffolding that leaves nothing git does not describe. The Talos patch becomes a file, each
+database's `bootstrap.recovery` stays in git so a rebuild restores from the hov1 site, and "Rebuild from git"
+says what comes back and what does not, with the GitHub mirror as Flux's source while Forgejo is gone.
+
 ## Building blocks
 
 1. **One redundancy layer per kind of data.** Zitadel's database replicates itself: CNPG runs three instances,
@@ -51,6 +57,12 @@ Replacing a worker that holds a replica is the part of that rehearsal this plan 
    Nova sets membership only at boot, so a machine gets into the group by being created in it; a worker's disk
    layout, which Talos likewise fixes at first provisioning, arrives the same way. A worker is never changed in
    place, it is replaced.
+7. **Git describes the cluster; Flux could rebuild it.** Every step ends with the cluster matching the
+   repository, and each step's **Git** paragraph lists the files. A suspend, a scale, a copy, a PV patch or a
+   one-off Job is scaffolding: done by hand, gone when the step ends, and never the only record of anything.
+   Swamp's models do what Flux cannot, below Kubernetes (servers, the server group, Omni) and reads for checks;
+   what they apply comes from a file in git, not from an argument typed once. A database that git describes
+   carries `bootstrap.recovery`, so a rebuild restores it from the hov1 site instead of starting empty.
 
 ## Before and after
 
@@ -230,14 +242,28 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    time from step 1); final backup (`kubectl cnpg backup forgejo-postgres --method plugin --plugin-name
    barman-cloud.cloudnative-pg.io`); patch the cluster's three Cinder PVs to `Retain`; delete the `Cluster`; wait
    until `kubectl get pvc -l cnpg.io/cluster=forgejo-postgres` is empty; apply the new `Cluster` from the commit
-   by hand (`git show main:apps/forgejo/postgres.yaml`), since Flux cannot fetch while Forgejo is down. Once it is
-   ready, take the first base backup at once with the same command: the ScheduledBackup's `immediate` run has
-   fired already, and the new archive would have no base until 03:00. Scale Forgejo up, which reads the
-   regenerated Secret's new password; resume the HelmRelease; check that the GitRepository's revision is the
-   commit; resume `apps`. Check: one instance on a 10 GB volume, a login and a push work, the manual backup
-   completed under the new `serverName`; then delete the three retained PV objects and, after `openstack-volume
-   get` on each ID (rule 5), their Cinder volumes. The old `serverName` in `cnpg-forgejo` is the way back for 14
-   days and is deleted by hand after, since retention trims only the current one. Stopped here: layout 1.
+   by hand (`git show main:apps/forgejo/postgres.yaml`), since Flux cannot fetch while Forgejo is down. Once it
+   is ready and before anything writes to it, the first base backup by hand, with the same command as the final
+   one, and wait for it to complete: whether or not the ScheduledBackup's `immediate` run fires again, this is the
+   backup known to exist before Forgejo writes. Then scale Forgejo up, which reads the regenerated Secret's new
+   password; resume the HelmRelease; check that the GitRepository's revision is the commit; resume `apps`.
+   Check: one instance on a 10 GB volume, a login and a push work, the backup completed under the new
+   `serverName`; then delete the three retained PV objects and, after `openstack-volume get` on each ID (rule 5),
+   their Cinder volumes. The old `serverName` in `cnpg-forgejo` is the way back for 14 days, then deleted by hand,
+   since retention trims only the current one. Stopped here: layout 1.
+
+   **Git.** First commit, `apps/forgejo/postgres.yaml`: `instances: 1`, `storage.storageClass:
+   csi-cinder-sc-delete` said rather than defaulted, `storage.size: 10Gi`, `enablePDB: false`,
+   `postgresql.parameters.max_wal_size: 1GB`, `imageName`, `bootstrap.recovery` in place of `initdb`, an
+   `externalClusters` entry `hov1` with the plugin and `serverName: forgejo-postgres`, and the plugin parameters'
+   `serverName: forgejo-postgres-2`. Second commit, the same day the first backup completes: the
+   `externalClusters` entry reads `forgejo-postgres-2`, so the recovery source is always the archive the cluster
+   writes; until it lands, a rebuild would restore the state of the migration and lose what came after. CNPG
+   reads `bootstrap` and `externalClusters` only when it creates a cluster, and `kubectl apply --dry-run=server`
+   on that commit shows the webhook accepts it on a running one. After 14 days, with the old folder deleted, a
+   third commit removes `forgejo-postgres-first` from `apps/forgejo/backup.yaml`. The first backup is not
+   committed: a `Backup` in git is applied with the `Cluster` on a rebuild, fires while the instances recover and
+   fails, as the one of 2026-09-20 did, and is never retried.
 3. **zot to a Standard volume.** A `csi-cinder-standard-retain` class beside the other two in
    `infrastructure/cinder-csi-provider/storageclass.yaml` (`parameters.type: Standard`, the Cinder type's name as
    `openstack-volume-type` records it; `Retain`, expansion allowed). First measure what zot holds (`du -sh
@@ -257,6 +283,12 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    Kustomization does not resume onto the cached artifact with the old template; resume, and delete
    `zot-bootstrap`. Check: a pull through the Service succeeds, and `openstack-volume get` shows the claim's volume
    as `Standard`. Delete the old volume after a month. Stopped here: layout 2.
+
+   **Git.** `infrastructure/cinder-csi-provider/storageclass.yaml` gains the class, first and on its own, since it
+   creates nothing. `artifacts/zot/statefulset.yaml`: `volumeClaimTemplates` on `csi-cinder-standard-retain` at
+   the measured size; the artifact pushed from it is the same directory. The claim rebound by hand matches that
+   template, so git describes it. The copy Job and the temporary claim are scaffolding and stay out. A rebuild
+   gives zot an empty Standard volume, which the Backups section already accepts.
 4. **Worker placement and disk layout, by replacement.** Talos sizes EPHEMERAL and provisions user volumes only
    when it first provisions a machine, and Nova sets server-group membership only at boot, so both arrive the same
    way: a new worker, created in the group, provisioned by Omni with the patch already on it. Three swaps, one
@@ -279,7 +311,9 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    not to the machine set: `VolumeConfig` EPHEMERAL with `maxSize: 16GiB`; `UserVolumeConfig` `pg-zitadel`
    (`diskSelector.match: system_disk`, `minSize: 6GiB`, `grow: true`, xfs); kubelet `extraConfig` with `imageGCHighThresholdPercent: 80`,
    `imageGCLowThresholdPercent: 70`, `imageMaximumGCAge: 168h`, `containerLogMaxSize: 20Mi`, `evictionHard`
-   `imagefs.available: 2Gi` and `nodefs.available: 1Gi`. `system_disk` is what keeps Talos off the Cinder disks
+   `imagefs.available: 2Gi` and `nodefs.available: 1Gi`. The patch is a file,
+   `talos/dataverket-prod/workers-storage.yaml`, outside `clusters/` so Flux never reads it, and `applyPatch` is
+   given its contents; the stored `configPatch` is a copy, not the source. `system_disk` is what keeps Talos off the Cinder disks
    attached to the same machine, so it is checked in the patch before anything else is. The old workers must
    never see the patch: a user volume a running machine cannot fit is a state this plan has not proved harmless,
    and a machine-scoped patch is the guarantee. After the third swap the same patch moves to the workers machine
@@ -314,6 +348,10 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    Check after the third swap: three workers, `serverGroups` non-empty on each, three distinct `hostId` values
    across them, which is the placement the group promised, observed; the patch on the machine set. Stopped here: an empty user volume on each of three placed workers, nothing
    uses them.
+
+   **Git.** `talos/dataverket-prod/workers-storage.yaml`, the patch, committed before the first `applyPatch`.
+   Nothing under `clusters/`, `infrastructure/` or `apps/` changes: this layer is below Flux, and a rebuild of
+   the machines runs these same model methods from that file and this step.
 5. **Provisioner (decision 014).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), class `pg-zitadel-storage` on its mount pattern,
    `WaitForFirstConsumer`. Check: three `local` PVs, one per worker, capacity just under the partition size.
@@ -321,6 +359,14 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    build and an image pull on the same worker, since after the move a Postgres instance shares the root disk's
    500 IOPS with both. NVMe on bare metal makes this gate moot; here it decides. Stopped here: PVs published,
    nothing bound.
+
+   **Git.** `infrastructure/local-static-provisioner/`, shaped like `infrastructure/cert-manager/`: a
+   `HelmRepository` and a `HelmRelease` of chart 2.8.0 with the node affinity and the class's mount pattern in
+   its values and the chart's own StorageClass turned off, so that one owner has it: the `pg-zitadel-storage`
+   StorageClass (`kubernetes.io/no-provisioner`,
+   `WaitForFirstConsumer`, `Retain`); one line in `infrastructure/kustomization.yaml`. The `pgbench` Jobs are
+   scaffolding. On a rebuild, `apps` may apply before the DaemonSet has published PVs; the claims wait Pending
+   and bind when it has, so no ordering is added.
 6. **Zitadel's database to the worker disks.** The same migration as step 2, in the same order, with
    `helmrelease zitadel -n zitadel` suspended beside `apps`; git stays up, so Flux could fetch, but the order
    keeps it from applying half a change. Scale Zitadel to zero (identity is down for the restore time from
@@ -329,14 +375,25 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    below the partition (`10Gi`; the PV reports filesystem capacity, and a claim of the partition size never
    binds), `instances: 3`, `podAntiAffinityType: required`, `postgresql.synchronous` with `method: any` and
    `number: 1`, `max_slot_wal_keep_size: 512MB` and `max_wal_size: 1GB`, `enableSuperuserAccess: true` kept;
-   `imageName`, `bootstrap.recovery` from `serverName: zitadel-db` and a new `serverName` as in step 2, and the
-   manual first backup. Scale up, resume the HelmRelease and `apps`. Check: three instances on three workers with
-   `fsGroup 26` ownership on the mounts and no init container, a login works, the manual backup completed; then delete the three retained PV objects and their Cinder volumes as in step 2. Stopped here:
-   layout 3.
+   `imageName`, `bootstrap.recovery` from `serverName: zitadel-db` and `zitadel-db-2` as its own, as in step 2.
+   The first backup by hand before Zitadel scales up, then resume the HelmRelease and `apps`. Check: three instances on three workers with
+   `fsGroup 26` ownership on the mounts and no init container, a login works, the first backup completed; then
+   delete the three retained PV objects and their Cinder volumes as in step 2. Stopped here: layout 3.
+
+   **Git.** `apps/zitadel/postgres.yaml` with the fields above, the recovery-source commit the same day, and
+   after 14 days `zitadel-db-first` removed, as in step 2.
 7. **Records and models.** Decision 014 is the mechanism. New decisions for: workers placed by a Nova server
    group and replaced through Omni, never changed in place; Zitadel's database replicated on worker disks as the
    rehearsal for bare metal, and every other database one instance on Cinder; the 16 GiB EPHEMERAL standard;
-   backups on the hov1 site over the public internet. README layout table. The models this plan runs on are
+   backups on the hov1 site over the public internet; git describes the cluster and a rebuild restores its
+   databases. README layout table, and `talos/` in it. `bootstrap.sh` takes its source as an option,
+   `git.dataverket.org` by default and the GitHub mirror for a rebuild, and gains one check, run from the local
+   checkout before `flux bootstrap` when `flux-system` does not exist yet: every CNPG `Cluster` in `apps/`
+   archives to a `serverName` other than the one it recovers from, since a restored cluster cannot archive into
+   the archive it came from. It stops with the commit to make, each plugin `serverName` moved to the next number.
+   With the recovery source always the cluster's own archive (step 2), a name that differs is a name nothing has
+   written to, provided the old cluster is gone. And it ends, on a fresh cluster, with a base backup of each
+   CNPG cluster once it is ready. The models this plan runs on are
    published and pulled from the registry since 2026-09-20: `@dataverket/omnictl` (`inventory` and `cluster`),
    `@dataverket/openstack` with `hostId`, and `@dataverket/sops` under the vault. Not needed for this plan,
    since the site's endpoint is an address: a `@dataverket/directadmin` `dns-record` model for names that are not
@@ -355,8 +412,10 @@ the old one retired. It does not self-heal for Zitadel's database: the instance 
 a claim bound to a `local` PV on a node that no longer exists (or, under a reused hostname, to an empty
 partition), and CNPG will not re-clone into it. Sequence: `kubectl cnpg destroy <cluster> <n>` for that instance,
 delete the orphaned PV, and CNPG joins a fresh replica on the new worker, where the required anti-affinity and the
-class's `WaitForFirstConsumer` put it. Check: three ready instances, lag zero, the new server in the group. It
-runs for the first time in `docs/plans/2026-09-worker-replacement-test.md`, not during an outage.
+class's `WaitForFirstConsumer` put it. Check: three ready instances, lag zero, the new server in the group.
+Destroying an instance on a node that stays is different: the class keeps a released PV's data, and the
+provisioner republishes the partition as it is once the PV is deleted, so the partition is reset first
+(`dataverket-prod-talos reset` with `u-pg-zitadel` named). The sequence runs for the first time in `docs/plans/2026-09-worker-replacement-test.md`, not during an outage.
 
 **Changing EPHEMERAL later** is three swaps with a new patch; a machine never changes its layout in place, so
 the gap a shrunk EPHEMERAL would leave never arises. Plan the cap once anyway: a swap moves every replica.
@@ -376,6 +435,36 @@ any pod Terminating over five minutes.
 drain: promote Zitadel's primary off the machine before each roll, as in step 4. Then one replica is down per
 roll, never the service; its pod stays Pending until its node returns, because its volume is pinned there. A
 single-instance database on the rolled machine is down while its volume moves.
+
+## Rebuild from git
+
+A rebuild here means the old cluster is gone, and with it Forgejo, which is Flux's source. The source for a
+rebuild is the GitHub mirror, `github.com/dataverket-org/fabrikk-infra`. Forgejo pushes every repository to
+its GitHub mirror as it changes, so what a rebuild can lose from git is only what had not yet converged there;
+this plan makes sure what converges is complete. A cluster brought up by `bootstrap.sh` from the mirror,
+on workers that carry the step 4 patch, comes back as follows.
+
+1. Before anything else, one commit pushed to the mirror: each plugin `serverName` to its next number, which
+   `bootstrap.sh` asks for, and `clusters/production/flux-system/gotk-sync.yaml` on the mirror's URL, since
+   otherwise Flux's first reconcile points itself back at `git.dataverket.org`. Never while the old cluster
+   runs: plugin parameters are live, so it would start writing to the new name, and the restore would find that
+   archive taken.
+2. Infrastructure, with both new storage classes and the provisioner.
+3. Forgejo's and Zitadel's databases, restored from the hov1 site by the `bootstrap.recovery` in git, each from
+   the archive its old cluster last wrote; the application secrets are already in `*.enc.yaml`. The
+   ScheduledBackup's `immediate` run races the recovery and may fail, so `bootstrap.sh` ends with a base backup
+   of each cluster by hand once it is ready.
+4. zot, empty, on a new Standard volume, filled again by mirrors, artifacts and rebuilds. Runner volumes, empty.
+
+5. Forgejo's repositories restored by hand from the GitHub mirrors, this repository with the rebuild commit
+   among them, before Forgejo's push mirror runs again: it force-pushes, and would otherwise take the rebuild
+   commit off GitHub. Then a last commit points `gotk-sync.yaml` back at `git.dataverket.org`.
+
+Not from git: the repositories volume, whose copy is the GitHub mirrors, restored by hand in item 5 and as
+current as the last push that converged; and the machines, whose patch is a file here but whose server group, servers and Omni machine set are made by swamp's
+models as step 4 does. A rebuild on the same machines resets the `u-pg-zitadel` partitions first
+(`dataverket-prod-talos reset` with that partition named), because the provisioner publishes whatever is on
+them.
 
 ## Future disk expansions
 
