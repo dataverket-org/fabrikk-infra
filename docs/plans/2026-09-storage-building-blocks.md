@@ -8,7 +8,9 @@ versitygw with the posix backend in Docker (`backup/versitygw`, instantiated as 
 Object Storage; the
 in-cluster versitygw of building block 3 keeps its role. Reviewed adversarially again the same day; what it found
 (the admin API signs with the region, the sops rule path, SIGHUP reloads versitygw's certificate, versioning without
-lifecycle, the WAL rate) is folded in. Nothing is applied. Decision 014 is
+lifecycle, the WAL rate) is folded in. Sixth revision, 2026-09-30: step 1 is applied except the repositories,
+whose copy is the push mirror to GitHub for now and kopia, not restic, when they get one of their own; the
+secrets a restore needs are pinned in `*.enc.yaml`. Steps 2 to 6 are not applied. Decision 014 is
 the mechanism under the databases.
 
 ## Building blocks
@@ -100,7 +102,7 @@ a stand-in can do the rest once it is merged.
    first instance, an `.env` and a directory, at `213.128.185.82:443`; TLS is from the site's own private CA, four
    files made offline with `step`, root and certificate valid three years, since no public CA issues a durable
    certificate for a bare address and one gateway does not justify a running CA. Its README is the runbook. On it one bucket
-   and one account per writer, `cnpg-forgejo`, `cnpg-zitadel`, `restic-forgejo`, each account the owner of its
+   and one account per writer, `cnpg-forgejo`, `cnpg-zitadel`, later `kopia-forgejo`, each account the owner of its
    bucket and of nothing else; the root key mints accounts and is held by no automation. The account reaches the
    cluster through sops and nothing else: `bin/user` prints the Secret manifest, it is piped from the repository
    root through `sops --encrypt --filename-override apps/<namespace>/s3-<bucket>.enc.yaml` (the override is what
@@ -116,15 +118,15 @@ a stand-in can do the rest once it is merged.
    Barman Cloud plugin (the in-tree `barmanObjectStore` is deprecated): per cluster an `ObjectStore` with
    `endpointURL` on the site's address (boto picks path-style for an address by itself), `endpointCA` from the site
    Secret, `s3Credentials` and their `region` from the account and site Secrets, gzip compression, and a distinct
-   `serverName` in the Cluster's plugin parameters, daily `ScheduledBackup`, continuous WAL, 14 days. Nightly
-   restic of
-   `gitea-shared-storage` to the `restic-forgejo` bucket, pod-affine to the forgejo pod. A restore needs the application
-   secrets, so the Zitadel masterkey, Forgejo's generated
-   `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password go into `*.enc.yaml` first; the vault gets a copy
-   the day a workflow restores (decision 006).
+   `serverName` in the Cluster's plugin parameters, daily `ScheduledBackup`, continuous WAL, 14 days. The
+   repositories' copy is the push mirror to GitHub for now; when they get one of their own it is kopia of
+   `gitea-shared-storage`, pod-affine to the forgejo pod, to a `kopia-forgejo` bucket. A restore needs the application
+   secrets, so the Zitadel masterkey (`apps/zitadel/zitadel-masterkey.enc.yaml`) and Forgejo's generated
+   `SECRET_KEY`, `INTERNAL_TOKEN`, `JWT_SECRET` and `LFS_JWT_SECRET` (`apps/forgejo/forgejo-security.enc.yaml`,
+   pinned into the release, since Forgejo writes them into `app.ini` on the repositories' volume and the mirror
+   does not copy it) go into `*.enc.yaml` first; the vault gets a copy the day a workflow restores (decision 006).
    Then a restore test of both clusters into a scratch cluster beside each (`backup/restore-test/`, `bootstrap.recovery` via
-   `externalClusters[].plugin`, a new `serverName` for the restored cluster's own archive), restic restored beside
-   it, timings recorded: the restore test measures the site's uplink, and the base backup's transfer time is the number to
+   `externalClusters[].plugin`, a new `serverName` for the restored cluster's own archive), timings recorded: the restore test measures the site's uplink, and the base backup's transfer time is the number to
    know before an outage. Check: `psql` on each restored cluster shows the application tables. Stopped here: proven
    backups, off the provider. If the hov1 site proves unreachable too often, a second copy to Nexthop Object
    Storage is the same mechanism with a second `ObjectStore`, not a new plan.
@@ -277,10 +279,11 @@ are large, everything else as user volumes.
 
 - **Databases:** Barman Cloud plugin to `213.128.185.82:443`, daily base, continuous compressed WAL, 14 days,
   point-in-time recovery. Quarterly restore test, timed. The only copy outside the provider.
-- **Repositories:** nightly restic of `gitea-shared-storage`, 30 daily and 6 monthly. Its snapshot time is the
-  PITR target for the database when both must match.
+- **Repositories:** the push mirror to GitHub for now, which copies the repositories and not what sits beside them
+  on the volume (attachments, avatars, `app.ini`). Later kopia of `gitea-shared-storage`, 30 daily and 6 monthly; its snapshot time is the PITR
+  target for the database when both must match.
 - **versitygw volume:** none while it holds only registry blobs (mirrors re-copy, artifacts come from git, product
-  images rebuild). When Forgejo LFS or attachments land on it, add it to the restic CronJob as a directory tree.
+  images rebuild). When Forgejo LFS or attachments land on it, add it to the kopia CronJob as a directory tree.
 - **Runner caches:** none.
 
 ## Not in this plan
@@ -308,8 +311,8 @@ their placement: they are in no server group either, and placing one is an etcd 
 | Service | Component | Storage | Class, tier | Size | Redundancy | Backup |
 |---|---|---|---|---|---|---|
 | Forgejo | postgres, CNPG ×3 | worker root disk, `u-pg-forgejo` | `pg-forgejo-storage`, local | 3 × ~6 GiB, claim 5Gi | app ×3, one per worker | Barman to `213.128.185.82`, PITR |
-| Forgejo | repositories | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | restic to `213.128.185.82` |
-| Forgejo | LFS, attachments, packages (later) | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | restic of the directory tree, when populated |
+| Forgejo | repositories | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | push mirror to GitHub; later kopia to `213.128.185.82` |
+| Forgejo | LFS, attachments, packages (later) | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | kopia of the directory tree, when populated |
 | Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 6 GiB, claim 5Gi | app ×3, one per worker | Barman to `213.128.185.82`, PITR |
 | versitygw | gateway root, IAM dir, versioning dir | Cinder | `csi-cinder-standard-retain`, Standard, xfs | 100 GB | Cinder ×3 | see rows above |
 | zot | blobs | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | none, rebuildable |
@@ -318,4 +321,4 @@ their placement: they are in no server group either, and placing one is an etcd 
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | Cinder ×3 | none |
 | Control planes ×3 | Talos, etcd | flavor root disk, EPHEMERAL default | c5.large | 3 × 25 GiB | etcd ×3 | Omni etcd backups (decision 003) |
 | Workers ×3, anti-affinity group | Talos, images | flavor root disk, EPHEMERAL 16 GiB | m5.large, one per hypervisor | 3 × 30 GiB | none needed | none |
-| Backups | CNPG archives, restic repos | versitygw at the hov1 site, `213.128.185.82:443` | posix, `backup/hov1` | ~15 GB | one disk, versioned buckets | is the backup |
+| Backups | CNPG archives, later kopia repos | versitygw at the hov1 site, `213.128.185.82:443` | posix, `backup/hov1` | ~15 GB | one disk, versioning off | is the backup |

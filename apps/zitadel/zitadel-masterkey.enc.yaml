@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Secret
+type: Opaque
+data:
+    masterkey: ENC[AES256_GCM,data:v8eMS0VN6FwLuP6myofzMzxyAPaeqzgQiTRP0ew1/W7BfCeoo81ywJlwo2U=,iv:nAUyS/sbxFOcnpoWCbX98iGHEitfkcAKWaVNtasGz0c=,tag:QlsPQo4VzZX7MaSYUIHE2A==,type:str]
+metadata:
+    name: zitadel-masterkey
+    namespace: zitadel
+    annotations:
+        kustomize.toolkit.fluxcd.io/prune: disabled
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA1VmgwUllTcTJXU1NEVFQ1
+            RUtXWUZWcS9iTzZvOXEra1VXSE5YVWdQeXdJCk1WaGZtLy9GTDZKMGZqaFE4bzh4
+            Z3RqS0ZmTFVVUzJiRXQ4ekpVVVFpT3cKLS0tIHMxbUJ4MDFycTVjczR4QTNqcDh0
+            Rzl4ZTNPaE1lamdzR2toVUxTWVJsTVEKc4EvkEG2agVtAVN85/Yy71P6pz1TVr3s
+            qIwkvdoGR3G/DVA+gCyMNPELCTilnjJqGehquMiH8gdfm2yMUqClYg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHBpdi1wMjU2IDhENXluZyBBdUtiS0pK
+            ME9SVFRObTU0TVljZnZDblBsZkdLSEFpNnQ1OTg2ODZ5THZrTAo3QUlBNlJERnJH
+            bEF6bEt3dVNLUTlrL1NrUFlJUGxqMGtsN3ErNkZCRlg4Ci0tLSB1TTRna3p1cXBR
+            c2R6MmtUS0RoVWhJR292eDYxc21hNGx3aEtQZ0FCZ2xRCuRo8xc+lRyNxC3YlSze
+            0oW9hHtBQe+FhLVSM77k3Pu1WuygGKuHnVMOgylFTtfbIee7Awh8+VAqduxuwzNQ
+            tLE=
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHBpdi1wMjU2IDNweXF3ZyBBamh0TjhX
+            N3k0cGZQNGZLbkV4SVVZZHFNM0RhNDh2allGWDMyWWlzbkxmcQpQakRmSzNuMU9Y
+            QS9WaUFPTjhTSXF5SkJqWFVlbW5VcTZvazJuSDJuN0RrCi0tLSBTSG5iMitvS3cz
+            dWpNaG5Zb3RwTWFBMDdkMG40NkdJeXJOYzJNVThoQ3c0CghYkMQg+g3Gc1dHhr/s
+            oVD1DJVGDC6MNM4cMzvOUneCHqUtlNnEsDdGXKvuLFn4bId6UzJl92DBUTlJwm9Z
+            2dQ=
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-09-30T09:02:36Z"
+    mac: ENC[AES256_GCM,data:TA8l9RIyVC6liHOt+ps2YQxDE6gBNlZS2KY2fjrvCUrto+os6Q1gcWlgm0c65FD5/zbcwmr/jimbbTTXvHfNh/PYwLBRcT9z2xAlWCXeAR5/JMuDHqDjZy31L9TRUyBOu/wJqq21mlEERhdTrOpDnWOq28j9eFj2t0ZXNW/ac/s=,iv:j5XFN3pYtcgCwGd2dCQZZMLR3e+4n9f4GtMx5PK0YpE=,tag:HTwu7sifXj91pDshuAHN/g==,type:str]
+    version: 3.13.3

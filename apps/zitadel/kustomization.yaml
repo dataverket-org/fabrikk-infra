@@ -7,5 +7,6 @@ resources:
   - ./hov1-s3.yaml
   - ./s3-cnpg-zitadel.enc.yaml
   - ./backup.yaml
+  - ./zitadel-masterkey.enc.yaml
   - ./release.yaml
   - ./httproute.yaml

@@ -7,4 +7,5 @@ resources:
   - hov1-s3.yaml
   - s3-cnpg-forgejo.enc.yaml
   - backup.yaml
+  - forgejo-security.enc.yaml
   - release.yaml

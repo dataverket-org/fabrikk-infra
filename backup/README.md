@@ -26,8 +26,8 @@ the map: what is copied, by what, to where, how far back, and what fires when it
 |---|---|---|---|---|---|
 | Forgejo's Postgres, `Cluster forgejo-postgres` | `forgejo` | CNPG Barman Cloud plugin | `cnpg-forgejo` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-forgejo`, `hov1-s3` |
 | Zitadel's Postgres, `Cluster zitadel-db` | `zitadel` | CNPG Barman Cloud plugin | `cnpg-zitadel` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-zitadel`, `hov1-s3` |
-| Forgejo's repositories, PVC `gitea-shared-storage` | `forgejo` | restic CronJob, pod-affine to the forgejo pod | `restic-forgejo` | Nightly; 30 daily, 6 monthly | `s3-restic-forgejo`, `hov1-s3`, the restic password |
-| Forgejo's LFS, attachments, packages, once on the in-cluster versitygw | `forgejo` | The same restic CronJob, as a directory tree | `restic-forgejo` | With the repositories | As above |
+| Forgejo's repositories, PVC `gitea-shared-storage` | `forgejo` | The push mirror to GitHub for now; later a kopia CronJob, pod-affine to the forgejo pod | GitHub; later `kopia-forgejo` | On push; later nightly, 30 daily, 6 monthly | The mirror's token; later `s3-kopia-forgejo`, `hov1-s3`, the kopia password |
+| Forgejo's LFS, attachments, packages, once on the in-cluster versitygw | `forgejo` | The kopia CronJob, as a directory tree | `kopia-forgejo` | With the repositories | As above |
 | etcd of the three control planes | `kube-system` | Omni | Omni's backup store | Omni's schedule, decision 003 | Omni's |
 
 Account names equal bucket names. Each account owns its bucket and sees nothing else.
@@ -42,8 +42,11 @@ Account names equal bucket names. Each account owns its bucket and sees nothing 
 
 ### Needed for any restore
 
-The Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the restic password. They live in
-`*.enc.yaml` before the first backup runs; a backup without them restores nothing usable.
+The Zitadel masterkey, in `apps/zitadel/zitadel-masterkey.enc.yaml`, and Forgejo's `SECRET_KEY`,
+`INTERNAL_TOKEN`, `JWT_SECRET` and `LFS_JWT_SECRET`, in `apps/forgejo/forgejo-security.enc.yaml` and pinned into
+the release: Forgejo generated them into `app.ini` on `gitea-shared-storage`, which the mirror does not copy. A
+backup without them restores nothing usable. Both Secrets carry `kustomize.toolkit.fluxcd.io/prune: disabled`, so
+dropping a file from a kustomization never deletes the key.
 
 ## Targets
 
@@ -66,13 +69,13 @@ The Zitadel masterkey, Forgejo's `SECRET_KEY` and `LFS_JWT_SECRET`, and the rest
 | CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so the 4.5 GiB of headroom lasts about a day, some 20 hours after this fires | Reach the site: `versitygw/README.md`, failure modes |
 | CNPG last successful base backup | Older than 36 hours | The `ScheduledBackup` did not complete | `kubectl cnpg status`, then the plugin's Backup objects |
 | Certificate at `213.128.185.82:443` | Expires within 30 days | The three-year certificate or root is running out; nothing at the site renews it | `versitygw/README.md`, runbook "Reissue the certificate" |
-| restic snapshot | Older than 48 hours | The CronJob failed or cannot reach hov1 | The CronJob's last Job logs |
+| kopia snapshot, once it exists | Older than 48 hours | The CronJob failed or cannot reach hov1 | The CronJob's last Job logs |
 
 ## Restore
 
 The quarterly, timed restore test is the only proof any of it works. Procedure: `cnpg-backups.md`, "Restore";
 manifests: `restore-test/`. A scratch one-instance cluster beside each production cluster, recovered from hov1 to the end
-of WAL, checked with `psql` against production, deleted. Restic joins the restore test when the repositories are backed up.
+of WAL, checked with `psql` against production, deleted. kopia joins the restore test when the repositories get a copy of their own.
 
 ### Restore-test log
 
