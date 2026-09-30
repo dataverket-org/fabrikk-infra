@@ -1,5 +1,5 @@
 type: '@dataverket/versitygw/gateway'
-typeVersion: 2026.09.30.1
+typeVersion: 2026.09.30.3
 id: 2a9f458f-885a-4f63-a71c-2a272954907f
 name: hov1-s3
 version: 1
@@ -7,6 +7,6 @@ tags: {}
 globalArguments:
   adminUrl: 'http://127.0.0.1:7071'
   s3Url: 'https://213.128.185.82:443'
-  caFile: '~/kode/fabrikk-infra/backup/hov1/certs/ca.crt'
+  caFile: 'backup/hov1/certs/ca.crt'
   rootKeyEnv: true
 methods: {}
