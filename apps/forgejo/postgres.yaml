@@ -24,9 +24,9 @@ spec:
       parameters:
         barmanObjectName: hov1
         serverName: forgejo-postgres-2
-  # Created from the hov1 archive, and a rebuild from git is too. CNPG reads bootstrap and externalClusters only when
-  # it creates the cluster. The source moves to the archive this cluster writes the day its first base backup
-  # completes; a rebuild then moves serverName above to the next number first (storage plan, "Rebuild from git").
+  # Created from the hov1 archive on 2026-09-30, and a rebuild from git is too. CNPG reads bootstrap and
+  # externalClusters only when it creates the cluster. The source is the archive this cluster writes, so a rebuild
+  # restores the latest state; it moves serverName above to the next number first (storage plan, "Rebuild from git").
   bootstrap:
     recovery:
       source: hov1-archive
@@ -38,4 +38,4 @@ spec:
         name: barman-cloud.cloudnative-pg.io
         parameters:
           barmanObjectName: hov1
-          serverName: forgejo-postgres
+          serverName: forgejo-postgres-2
