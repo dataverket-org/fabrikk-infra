@@ -27,7 +27,7 @@ administrative credential that does not depend on anyone.
    plane, so that it is there precisely when the cluster is broken.
 4. **Built from powers this repository already has**, which today is an Omni Operator key minted per session and a
    config patch. Nothing here waits on a vendor.
-5. **The credential stays tier 3 and human-only**, in `break-glass/` behind the two YubiKeys, with its use
+5. **The credential stays tier 3 and human-only**, in `vaults/operator/break-glass/` behind the two YubiKeys, with its use
    deliberate, rare and traceable.
 6. **Useful after Omni, not only during it.** The overlay and the `os:admin` credential are the parts of a
    replacement that have to exist whatever else changes, so building them now is work that carries forward rather
@@ -96,11 +96,11 @@ talosconfig, under the same rule and in the same place.
    overlay. This proves the route alone, with the Omni-proxied credential still in hand.
 5. **Mint the talosconfig.** Read the Talos CA from a control-plane machine config with an Operator key, sign an
    `os:admin` client certificate, and write a talosconfig whose endpoints are the overlay addresses. Encrypt it
-   into `break-glass/` with the two YubiKeys, and encrypt the operator peer key beside it.
+   into `vaults/operator/break-glass/` with the two YubiKeys, and encrypt the operator peer key beside it.
 6. **Run an access test.** With the Omni-proxied contexts deliberately unused, open the talosconfig, reach a
    control plane over the overlay, and take a `talosctl kubeconfig` from it. That is the whole procedure, and it
    is the only way to know it works. Record the date; repeat it when the cluster is rebuilt.
-7. **Write the taint down where it will be read.** `break-glass/README.md` already carries the rotation
+7. **Write the taint down where it will be read.** `vaults/operator/break-glass/README.md` already carries the rotation
    obligation; add the re-mint step and the access-test date.
 8. **Decide what this means for the tiers.** The credential tiers lean on Omni for all of tier 2: the kube
    contexts, the talos context and both service account keys are minted by it. A replacement has to mint

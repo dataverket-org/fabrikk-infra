@@ -48,7 +48,7 @@ the full tree, and `swamp help model method run` scopes to a subtree.
 These are about credentials and they are not negotiable. Decision 001 says why.
 
 1. **Never add a recipient** to `.sops.yaml`, to a vault's `agePublicKey`, or to
-   `break-glass/`. Adding one changes who can read a store, which is a decision
+   `vaults/operator/`. Adding one changes who can read a store, which is a decision
    a person makes with their own key, not one an agent makes on their behalf.
 2. **Never run `sops updatekeys`.** Re-keying is a human step with a YubiKey,
    and doing it unattended is how a store silently loses or gains a reader.

@@ -7,19 +7,20 @@ tags:
   - break-glass
   - sops
   - credentials
-status: accepted
+status: superseded
 created: 2026-09-29
-updated: 2026-09-29
+updated: 2026-09-30
 author: dataverket
 project: plattform
 related:
   - 001-credential-tiers.md
+  - 016-operator-values-live-in-vaults-operator.md
 ---
 # 004: Human-only material stays outside swamp's reach
 
 ## Status
 
-Accepted
+Superseded by 016 on 2026-09-30: `break-glass/` is now `vaults/operator/break-glass/`.
 
 ## Context
 
@@ -75,3 +76,19 @@ Follows 001.
 **Summary:** Applied 2026-09-29. The store is empty: what fills it is `docs/plans/2026-09-break-glass.md`.
 
 **Action Required:** Fill it when the break-glass plan runs.
+
+### 2026-09-30
+
+**Status:** Superseded
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| `break-glass/` moved to `vaults/operator/break-glass/` | 016 | done |
+| The two rules on what may go in it | `vaults/operator/break-glass/README.md` | unchanged |
+
+**Summary:** 016 puts every sops store under `vaults/` and sets readers by recipients alone. The structural
+property this record chose, that swamp cannot name the store, is given up for one layout.
+
+**Action Required:** None here; see 016.

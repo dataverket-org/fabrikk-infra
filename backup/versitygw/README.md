@@ -78,7 +78,8 @@ scripts call. To publish 443 rootless, either forward 443 to `PORT=8443` at the 
    both certificates.
 4. Verify: `docker compose ps` shows the gateway healthy; from elsewhere,
    `curl --cacert certs/ca.crt https://$S3_ADDR/health` returns 200.
-5. Put `.env` and `certs/ca.key` in the operator's password manager; commit `certs/ca.crt` and the site directory.
+5. Copy `certs/ca.key` and the root key pair from `.env` into `vaults/operator/<site>/` (`vaults/operator/README.md`);
+   commit them with `certs/ca.crt` and the site directory.
 6. For each namespace that will write: [Add a writer](#add-a-writer).
 
 ### Add a writer
@@ -127,7 +128,8 @@ root (compromise, or the root itself expiring): `rm certs/ca.crt certs/ca.key`, 
 
 The cluster is unaffected throughout; only the target is gone.
 
-1. New host, same `.env` and `certs/ca.key` from the password manager, `certs/ca.crt` from git, the two directories.
+1. New host; `certs/ca.key` and the root key pair from `vaults/operator/<site>/` (a touch), the rest of `.env` from
+   `.env.example`, `certs/ca.crt` from git, the two directories.
 2. [New site](#new-site) from step 3. Same root, so no site Secret changes.
 3. [Add a writer](#add-a-writer) for every writer: new accounts, new keys, sops, commit.
 4. The next base backup refills the buckets; until then there is no restorable copy. If `DATA_DIR` survived, the
@@ -160,9 +162,9 @@ All run from the site directory; each refuses to run without `.env` there.
 | Buckets and objects | `${DATA_DIR}` on the host | The host's disk | The writers' next base backup |
 | Accounts and their keys | Docker volume `<site>_iam`, plaintext `users.json` | Docker's data root on the host | `bin/user` per writer, new keys |
 | CA root | `certs/ca.crt`, committed | The repository | Never; a new root is a new file and new site Secrets |
-| CA key | `certs/ca.key`, ignored by git, and the password manager | The password manager | Cannot be; without it a new root |
+| CA key | `certs/ca.key`, ignored by git, and `vaults/operator/<site>/ca.key.enc.json` | The repository, readable by the two operators | Cannot be; without it a new root |
 | Gateway certificate and key | `certs/tls.crt`, `certs/tls.key`, ignored by git | The host | `bin/cert` |
-| Root key pair | `.env`, ignored by git, and the password manager | The password manager | Cannot be; choose new ones, recreate the gateway, re-mint every writer |
+| Root key pair | `.env`, ignored by git, and `vaults/operator/<site>/root/` | The repository, readable by the two operators | Cannot be; choose new ones, recreate the gateway, re-mint every writer |
 
 ## Security model
 
@@ -170,7 +172,7 @@ All run from the site directory; each refuses to run without `.env` there.
 |---|---|---|---|
 | Root key pair | `.env`, the operator running `bin/user` | Mints accounts and buckets over the admin API, reachable in the container and on the host's loopback; nothing unattended | `.env`; the shell's argv while `bin/user` runs |
 | Writer key pair (`user` role) | The writer's Secret in the cluster | Its own bucket, nothing else | The gateway's IAM store; the shell for the seconds the pipeline runs; the cluster's etcd |
-| CA key | `certs/ca.key` (0600), the password manager | Signs the gateway's certificate, which every writer trusts for `S3_ADDR` | On the host, unencrypted; whoever holds it can impersonate the endpoint to the writers, and nothing else |
+| CA key | `certs/ca.key` (0600), `vaults/operator/<site>/` | Signs the gateway's certificate, which every writer trusts for `S3_ADDR` | On the host, unencrypted; whoever holds it can impersonate the endpoint to the writers, and nothing else |
 | CA root | `certs/ca.crt`, the `<site>-s3` Secrets | Trust anchor for every client | Everywhere; public |
 
 Every client signs with `REGION`; the gateway rejects any other region on the data path and on the admin API.

@@ -20,7 +20,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `Taskfile.yml`, `taskfiles/` | `task` | The commands of this repository, one namespace per group, one file per namespace. |
 | `bin/`, `share/` | The tasks | One executable per task over shared libraries. Nothing here names this cluster, this Omni or this cloud, so another repository reuses them unchanged (decision 008). |
 | `models/`, `workflows/`, `vaults/`, `extensions/` | `swamp` | The swamp repository: the instances a human uses to operate what is deployed here. See Operating models below. |
-| `break-glass/` | Nobody, by design | Human-only material behind the two YubiKeys: plain sops, deliberately not a swamp vault, so nothing swamp runs can name it (decision 004). Empty until the break-glass plan fills it. |
+| `vaults/operator/` | Nobody, by design | Values only a person reads, behind the two YubiKeys: plain sops with no process key and no swamp vault config (decision 016). `break-glass/` for when a login fails, `hov1/` for the hov1 gateway's CA key and root key pair. |
 | `docs/decisions/`, `docs/plans/` | Nobody | Why the repository is shaped as it is, and what is being changed next. `task decisions` lists the records with what is still pending. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
 
@@ -102,7 +102,7 @@ the file is safe to commit.
 |---|---|---|---|
 | Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | `cluster-dataverket-prod` (Secret `flux-system/sops-age`, generated in-cluster, decision 003), `beddari`, `linus` |
 | Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/keys.txt` on the swamp host), `beddari`, `linus` |
-| Break-glass | `break-glass/*.enc.yaml` | Nothing automated. A person, with a touch | `beddari`, `linus`, and no process key at all |
+| Operator values | `vaults/operator/**/*.enc.json` (and `.enc.yaml`) | Nothing automated. A person, with a touch | `beddari`, `linus`, and no process key at all |
 
 **Cluster files** are Secret manifests with only `data`/`stringData` encrypted, so kind, name and namespace stay
 readable and diffs stay meaningful. Flux decrypts them on apply; nothing else ever does. Charts and workloads take

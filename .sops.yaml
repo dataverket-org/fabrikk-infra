@@ -16,10 +16,10 @@
 #
 # The two operators are recipients of both stores, for recovery, re-keying and writes from a terminal.
 #
-# break-glass/ is a third store and theirs alone. It is plain sops with no swamp vault behind it, so nothing swamp
-# runs can name it at all, and no process key is a recipient, so only a touch reads it. It holds the permanent,
-# human-only material tier 1 falls back on when a login mechanism fails, the Omni break-glass configs first. A
-# write needs only public keys, so a workflow can still put a value there.
+# vaults/operator/ is a third store and theirs alone (decision 016). No process key is a recipient, so only a touch
+# reads it, and it has no swamp vault config. It holds permanent material only a person reads: break-glass/ for
+# when a login mechanism fails, and a site's CA key and root key pair (hov1/). A write needs only public keys, so a
+# workflow can still put a value there.
 #
 # Only data/stringData are encrypted in the Flux files, so kind, name and namespace stay readable and diffs stay
 # meaningful. The swamp vault (vaults/infra/<key>.enc.json, one file per secret, @dataverket/sops) carries its
@@ -34,12 +34,11 @@ identities:
   linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
 
 creation_rules:
-  # break-glass/ is not a swamp vault and is deliberately not under vaults/:
-  # nothing swamp runs can name it, so no definition can reach it by mistake.
-  # Read it with `sops -d`, and only with a YubiKey. This rule is first,
-  # because sops takes the first match and the vaults/ rule below would
-  # otherwise add swamp-fabrikk-infra to a human-only file.
-  - path_regex: ^break-glass/.*\.enc\.ya?ml$
+  # vaults/operator/: the two operators and nothing else. Read it with
+  # `sops -d`, and only with a YubiKey. This rule is first, because sops takes
+  # the first match and the vaults/ rule below would otherwise add
+  # swamp-fabrikk-infra to an operator-only file.
+  - path_regex: ^vaults/operator/.*\.enc\.(ya?ml|json)$
     key_groups:
       - age:
           - *beddari

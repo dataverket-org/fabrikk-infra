@@ -22,14 +22,13 @@ omnictl cluster -n dataverket-prod secret rotate status
 So reading a file from here is not a convenience. It is the first step of a recovery that ends in a CA rotation,
 and that is why it takes a touch.
 
-Plain sops, encrypted to the two operators' YubiKeys and to nothing else. Deliberately **not** a swamp vault and
-deliberately not under `vaults/`: nothing swamp runs can name this store, so no model definition or workflow can
-reach it, by mistake or otherwise. A write needs only public keys, so a workflow may put a value here; a read
-needs a physical touch.
+Part of `vaults/operator/` (decision 016): plain sops, encrypted to the two operators' YubiKeys and to nothing
+else, with no swamp vault config. A write needs only public keys, so a workflow may put a value here; a read needs
+a physical touch.
 
 ```sh
-sops -d break-glass/<name>.enc.yaml     # a touch, every time
-sops -e -i break-glass/<name>.enc.yaml  # public keys only
+sops -d vaults/operator/break-glass/<name>.enc.yaml     # a touch, every time
+sops -e -i vaults/operator/break-glass/<name>.enc.yaml  # public keys only
 ```
 
 Two rules keep it honest, and they hold for any store of this kind (decision 001):

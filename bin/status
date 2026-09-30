@@ -209,7 +209,8 @@ function tier3_rows()
 	flux_files="$(find "$repo_dir/apps" "$repo_dir/artifacts" \
 	              "$repo_dir/infrastructure" -name '*.enc.yaml' 2>/dev/null |
 	              grep -c . || true)"
-	glass_files="$(find "$repo_dir/break-glass" -name '*.enc.yaml' 2>/dev/null |
+	glass_files="$(find "$repo_dir/vaults/operator" \
+	               \( -name '*.enc.yaml' -o -name '*.enc.json' \) 2>/dev/null |
 	               grep -c . || true)"
 
 	row "vaults/infra/" "$vault_keys secrets" swamp - - \
@@ -217,11 +218,11 @@ function tier3_rows()
 	row "apps, artifacts, infrastructure/" "$flux_files manifests" cluster - - \
 		"cluster-dataverket-prod decrypts them, in-cluster"
 	if (( glass_files )); then
-		row "break-glass/" "$glass_files files" humans - - \
+		row "vaults/operator/" "$glass_files files" humans - - \
 			"the two YubiKeys and nothing else"
 	else
-		row "break-glass/" empty humans - - \
-			"the two YubiKeys; 2026-09-break-glass.md fills it"
+		row "vaults/operator/" empty humans - - \
+			"the two YubiKeys; break-glass and hov1 fill it"
 	fi
 
 	if [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
