@@ -81,15 +81,14 @@ read and reviewed. A value authenticates. Invariant 1 is the line between them.
 
 ## Then a human-only store, for tier 1 as well?
 
-`break-glass/` is plain sops: age, the two YubiKeys as its only recipients, a directory in this repository and
-deliberately not a swamp vault, because a vault is something a definition can name and this must not be. That
-makes it one instance of one of the mechanisms and not a tier of its own, and it is a convenience rather than a
+`vaults/operator/` is plain sops: age, the two YubiKeys as its only recipients, and no swamp vault config, so no
+process can read it (decision 016). That makes it one instance of one of the mechanisms and not a tier of its own, and it is a convenience rather than a
 requirement. Tier 1 does not depend on it. A service's human-only material may sit wherever that
 service's access is naturally guarded: in Proton Pass or Bitwarden behind a web login, in a pass store, with the
 identity provider, in a safe. Which source a given service uses follows from what access it guards, and the
 request names the mechanism, not the store.
 
-What `break-glass/` is good for is the material that is already about this repository's own infrastructure and
+What `vaults/operator/` is good for is the material that is already about this repository's own infrastructure and
 gains from travelling with it: the Omni break-glass talosconfig and kubeconfig, and the same for other services
 later. It is reviewable, `.sops.yaml` states its recipients in the open, encryption needs only public keys so a
 workflow can still write there, and a read needs a touch. All of it is tier 3 by invariant 2, since none of it can be

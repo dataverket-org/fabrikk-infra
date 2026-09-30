@@ -44,7 +44,7 @@ before a replacement for Omni is designed, and this is where Dataverket first pr
 it.
 
 **What happens when the cluster is down.** Zitadel would guard the cluster it runs in, so a broken cluster means
-no authentication to fix the cluster. The `os:admin` talosconfig in `break-glass/` stops being prudence and
+no authentication to fix the cluster. The `os:admin` talosconfig in `vaults/operator/break-glass/` stops being prudence and
 becomes the requirement that makes this safe.
 
 ## Steps

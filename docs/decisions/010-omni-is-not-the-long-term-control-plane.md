@@ -71,7 +71,7 @@ Follows 001.
 |---------|-------|------------|
 | Route and credential designed | `docs/plans/2026-09-break-glass.md` | written |
 | WireGuard overlay | - | not built |
-| `os:admin` talosconfig | `break-glass/` | not minted |
+| `os:admin` talosconfig | `vaults/operator/break-glass/` | not minted |
 
 **Summary:** Decision recorded 2026-09-29. Nothing is built: Omni remains the only administrative path into the
 cluster.

@@ -32,7 +32,7 @@ A step that breaks one is wrong even where it is convenient.
 |---|---|---|---|---|
 | 1 | The code and procedures that turn an external login into tier 2 | A human, with the human's own logins; never swamp | `Taskfile.yml`, `bin/`, `share/admin/`; the secrets themselves are outside this host | This repository |
 | 2 | Ambient credentials, referenced by name, minted with a lifetime and never permanent | The CLIs the models wrap: `openstack`, `kubectl`, `talosctl`, `omnictl` | The standard config files on the swamp host, mode 0600, and nowhere else | Tier 1 |
-| 3 | What processes hold: machine secrets, permanent | A process: Flux in the cluster, swamp on the swamp host, the cluster itself | The `infra` vault (`vaults/infra/<key>.enc.json`), `break-glass/` for what only a person may read, the Flux files (`*.enc.yaml` under `artifacts/`, `apps/`, `infrastructure/`), and the cluster's live Secrets | A human with a YubiKey, or a workflow that mints a value and `put`s it |
+| 3 | What processes hold: machine secrets, permanent | A process: Flux in the cluster, swamp on the swamp host, the cluster itself | The `infra` vault (`vaults/infra/<key>.enc.json`), `vaults/operator/` for what only a person may read, the Flux files (`*.enc.yaml` under `artifacts/`, `apps/`, `infrastructure/`), and the cluster's live Secrets | A human with a YubiKey, or a workflow that mints a value and `put`s it |
 
 ### Who holds what
 
@@ -69,7 +69,7 @@ puts the Omni service account keys, the talosconfig and the application credenti
 What cannot be tier 2 is the material that mints those, and anything signed from it that works when Omni does
 not: the Talos PKI in the cluster, an `os:admin` talosconfig signed from it, and the cluster's own SOPS age key.
 They carry CA-signed certificates or raw key material with no lifetime worth the name, so by invariant 2 they are
-tier 3, with a named human owner, and what is extracted from them goes in `break-glass/` behind the two YubiKeys.
+tier 3, with a named human owner, and what is extracted from them goes in `vaults/operator/break-glass/` behind the two YubiKeys.
 A cluster therefore has both: a permanent root in tier 3 that only a human with a touch can reach, and a minted
 admin credential in tier 2 that everything else uses.
 
@@ -82,7 +82,7 @@ Dataverket will build its own, and everything in tier 2 is minted by the thing b
 
 So the second door is its own plan, `docs/plans/2026-09-break-glass.md`: a WireGuard interface in the Talos
 machine config for the route, and an `os:admin` talosconfig signed from the cluster's own CA for the credential.
-What this plan keeps is the place the result goes, `break-glass/`, and the rule about what may go there.
+What this plan keeps is the place the result goes, `vaults/operator/break-glass/`, and the rule about what may go there.
 
 ### What the invariants change here
 
@@ -121,7 +121,7 @@ in this plan, and until it exists, unattended means read-only or nothing.
 | talos context `dataverket-prod` | The operator's own Omni login | `omnictl talosconfig --cluster dataverket-prod`, renamed to the cluster and merged into `~/.talos/config` | `task admin:talos` |
 | The Omni reader key file | The operator's own Omni login | `omnictl serviceaccount create fabrikk-infra-<operator>-reader --use-user-role=false --role Reader --ttl $TIER2_TTL`; renewal is destroy and create, because `serviceaccount renew` ignores `--ttl` | `task admin:omni-key` |
 | The Omni operator key file | The operator's own Omni login | `omnictl serviceaccount create fabrikk-infra-<operator>-operator --use-user-role=false --role Operator --ttl $TIER2_TTL`, into a key file, never into a vault | `task admin:omni-operator-key`, run deliberately, outside `admin:renew` |
-| The break-glass talosconfig | The cluster's own Talos CA, reached with an Operator key | Signed offline and stored in `break-glass/` | `docs/plans/2026-09-break-glass.md`, by hand: permanent, so tier 3, and not a task |
+| The break-glass talosconfig | The cluster's own Talos CA, reached with an Operator key | Signed offline and stored in `vaults/operator/break-glass/` | `docs/plans/2026-09-break-glass.md`, by hand: permanent, so tier 3, and not a task |
 
 A *session* is the unit this plan keeps using: the stretch of a working day in which an operator has logged in
 and tier 2 exists. It is opened on purpose, it holds every credential for the same lifetime, and it ends by being
@@ -284,12 +284,12 @@ cluster, decision 006), the runner registration token, two Omni service account 
 payloads the release runner writes. Both Omni keys leave: they mint tier 2 and change clusters, which invariant 3
 puts outside tier 3 altogether. What stays in `infra` is what a process consumes and nothing that opens a door.
 
-**Break-glass values are tier 3 with a smaller recipient list, and no vault at all.** The `@dataverket/sops` vault
-encrypts every value to the vault's whole recipient list, so a value only a human may read cannot sit in `infra`.
-It does not go in a second vault either: a vault is a thing a definition can name, and `vault.get("human", …)` is
-a line someone could write. `break-glass/` is plain sops instead, outside `vaults/`, with the two YubiKeys as its
-only recipients. Nothing swamp runs can name it; encryption needs only public keys, so a workflow can still write
-there, and only a touch reads it. It is empty until the break-glass plan fills it.
+**Break-glass values are tier 3 with a smaller recipient list, and no swamp vault config.** The
+`@dataverket/sops` vault encrypts every value to the vault's whole recipient list, so a value only a human may read
+cannot sit in `infra`. It goes in `vaults/operator/` (decision 016, superseding 004): plain sops with the two
+YubiKeys as its only recipients and no vault config, so no process can decrypt it. Encryption needs only public
+keys, so a workflow can still write there, and only a touch reads it. `vaults/operator/break-glass/` is empty until
+the break-glass plan fills it.
 
 ### The two stores never share a reader
 
@@ -335,7 +335,8 @@ every encrypted file and fails when a key appears on the wrong side. Steps 8 to 
    and nothing else. That rule goes first, because sops takes the first match and the general `vaults/` rule would
    otherwise add `swamp-fabrikk-infra` to a human-only file. `break-glass/README.md` says what may go in it: one
    source of human-only material among several, the one that travels with this repository, permanent break-glass
-   and recovery material, never a value that completes a routine login. Empty until step 7.
+   and recovery material, never a value that completes a routine login. Empty until step 7. Moved to
+   `vaults/operator/break-glass/` on 2026-09-30 by decision 016, which supersedes the reasoning above.
 4. **Extend the omnictl and talosctl types** in `dataverket/swamp-extensions` with a `serviceAccountKeyFile`
    global argument, read at call time and exported as `OMNI_SERVICE_ACCOUNT_KEY` to the child, mutually exclusive
    with `serviceAccountKey`. Done 2026-09-29, published as `@dataverket/omnictl@2026.09.29.1` and
@@ -380,7 +381,7 @@ every encrypted file and fails when a key appears on the wrong side. Steps 8 to 
 10. **`.sops.yaml` and the check.** Done 2026-09-29. Each identity is declared once as a YAML anchor under a
     top-level `identities:` key that sops ignores, and every rule names it by alias inside `key_groups`, whose
     `age:` is a list, so a recipient list reads as names. Verified by encrypting one file per rule and reading
-    back who it went to: `break-glass/` to the two operators, a Flux file to `cluster-dataverket-prod` and
+    back who it went to: `break-glass/` (now `vaults/operator/`) to the two operators, a Flux file to `cluster-dataverket-prod` and
     the two operators, a vault file to `swamp-fabrikk-infra` and the two operators. `bin/check-recipients` reads the
     identities and the rules, matches every `*.enc.yaml` and `*.enc.json` to the first rule that matches its path
     as sops does, and compares. It decrypts nothing, so it runs unattended with no YubiKey. `bootstrap.sh` runs it
@@ -400,7 +401,7 @@ every encrypted file and fails when a key appears on the wrong side. Steps 8 to 
 |---|---|---|---|
 | Every tier 2 item: admin and readers kubeconfig, Omni reader key, application credential | 8 h, one lifetime (`TIER2_TTL`) | `task admin:renew`, all in one session when any has less than a quarter of its lifetime left, or on `RENEW=1`; the old application credential is deleted after the new entry answers | `task admin:status` lists each item's owner and remaining time; before that, a model's CLI fails to authenticate |
 | Omni operator key | The shared tier 2 lifetime | `task admin:omni-operator-key`, before changing a cluster; never by `admin:renew` | `task admin:status` lists it when present; `omnictl serviceaccount list` shows the expiry |
-| Break-glass talosconfig, `break-glass/` | Until the Talos CA is rotated | Never; using it obliges a CA rotation and a re-mint | `docs/plans/2026-09-break-glass.md` |
+| Break-glass talosconfig, `vaults/operator/break-glass/` | Until the Talos CA is rotated | Never; using it obliges a CA rotation and a re-mint | `docs/plans/2026-09-break-glass.md` |
 | Repo key `swamp-fabrikk-infra` | Until the host is rebuilt | A human: new key, `sops updatekeys` over `vaults/infra/`, new name if the repo moves | Never automatic |
 | Cluster key `cluster-dataverket-prod` | The cluster's life | `bootstrap.sh` on a new cluster (decision 003) | A new cluster |
 
