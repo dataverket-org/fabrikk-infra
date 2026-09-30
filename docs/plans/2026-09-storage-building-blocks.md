@@ -378,6 +378,17 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    **Git.** `talos/dataverket-prod/workers-storage.yaml`, the patch, committed before the first `applyPatch`.
    Nothing under `clusters/`, `infrastructure/` or `apps/` changes: this layer is below Flux, and a rebuild of
    the machines runs these same model methods from that file and this step.
+
+   **Prepared, 2026-09-30.** The patch is `talos/dataverket-prod/workers-storage.yaml`, three documents for Talos
+   1.14, which every node runs. It writes `evictionHard` out in full, the kubelet's defaults for memory and inodes
+   included, since a partial map may replace them rather than merge. Validated by Omni with the Operator key and
+   nothing stored: `applyPatch` with `dryRun=true` at machine-set scope, since no new machine exists yet to scope
+   it to, and `addMachine` with `dryRun=true` against wrkr-1's existing MachineSetNode. Checked for the first
+   create: image `dataverket-omni-talos-amd64` active (built 2026-09-07; Omni installs Talos 1.14 on join),
+   `m5.large` with 2 vCPU, 8 GB and a 30 GB disk, `infra1-net` active, security group `default`, the join token
+   active, default and without expiry, and no server group yet. The swaps start with `openstack-server-group
+   create`. Machine UUIDs of the old workers, from `omni`: wrkr-1 `e1affc47-…`, wrkr-2 `a9220d2b-…`, wrkr-3
+   `a68effa4-…`.
 5. **Provisioner (decision 014).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), class `pg-zitadel-storage` on its mount pattern,
    `WaitForFirstConsumer`. Check: three `local` PVs, one per worker, capacity just under the partition size.
