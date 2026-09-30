@@ -1,5 +1,6 @@
-# One zot, one Cinder volume. zot is a single binary with a local store; more than one replica needs shared S3
-# storage, which this cluster does not have. The retain class keeps the blobs if the StatefulSet is ever deleted.
+# One zot, one Cinder volume on the Standard tier, since blobs are rebuildable (storage plan, step 3). zot is a single
+# binary with a local store; more than one replica needs shared S3 storage, which this cluster does not have. The
+# retain class keeps the blobs if the StatefulSet is ever deleted.
 # The image is pinned by digest and pulled from ghcr.io: the registry cannot host its own image.
 apiVersion: apps/v1
 kind: StatefulSet
@@ -82,7 +83,7 @@ spec:
         name: data
       spec:
         accessModes: [ReadWriteOnce]
-        storageClassName: csi-cinder-sc-retain
+        storageClassName: csi-cinder-standard-retain
         resources:
           requests:
-            storage: 50Gi
+            storage: 10Gi
