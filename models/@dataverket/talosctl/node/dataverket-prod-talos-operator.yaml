@@ -1,12 +1,12 @@
 type: '@dataverket/talosctl/node'
 typeVersion: 2026.09.30.1
-id: 278ff9ae-1f9e-4602-8dc2-1dad1922f63b
-name: dataverket-prod-talos
+id: e9ba0f93-2d4b-4e23-8fcb-5ee5433fbff5
+name: dataverket-prod-talos-operator
 version: 1
 tags: {}
 globalArguments:
   nodes: '${{ data.latest("omni", "talosconfig-dataverket-prod").attributes.nodes }}'
   talosconfigContent: '${{ data.latest("omni",
     "talosconfig-dataverket-prod").attributes.content }}'
-  serviceAccountKeyFile: '~/.talos/omni/fabrikk-infra-reader.key'
+  serviceAccountKeyFile: '~/.talos/omni/fabrikk-infra-operator.key'
 methods: {}

@@ -1,0 +1,232 @@
+id: c6bd2e47-daad-4bde-a3c3-71439780332c
+name: talos-reboot-node
+description: >-
+  Reboot one Talos machine of a @dataverket/talosctl/node model, only while etcd is healthy, and prove it came back.
+  Before: every control plane among the model's targets answers etcd status, exactly one is leader, none reports an
+  error, and the machine is not the leader unless allowLeader says so; a failed check stops the run before anything
+  changes. Then the reboot, narrowed to that one machine; talosctl waits for it to return. After: every service on
+  the machine is Running, etcd passes the same check, and, when logService is given, no line of that service's log
+  on any target matches logMatch inside the last logSinceSeconds, so the run proves the symptom the reboot was for
+  has stopped. Checks read only the records this run wrote, and each etcd check only its own step's, since the
+  before and after readings are versions of the same records. The model and the machine are inputs; nothing names a
+  cluster. A check that fails right after the reboot, while etcd is still catching up, is retried with
+  swamp workflow resume talos-reboot-node --run <id>. Talos reboots do not cordon or drain Kubernetes; a worker with
+  workloads that need that is drained first.
+tags: {}
+inputs:
+  properties:
+    model:
+      type: string
+      description: Name of the @dataverket/talosctl/node model whose targets include the machine
+    node:
+      type: string
+      description: The machine to reboot, as the model addresses it (e.g. its IP); must be one of the model's targets
+    allowLeader:
+      type: boolean
+      default: false
+      description: Reboot the etcd leader too; without it the run stops when the machine leads etcd
+    logService:
+      type: string
+      default: ""
+      description: Talos service whose log proves the fix, e.g. etcd; empty skips the log check
+    logMatch:
+      type: string
+      default: ""
+      description: Regular expression that must match no line of logService's log after the reboot
+    logSinceSeconds:
+      type: integer
+      default: 30
+      description: How far back the log check looks; keep it shorter than the reboot takes
+    logTail:
+      type: integer
+      default: 2000
+      description: How many of each node's newest log lines the log check reads
+  required:
+    - model
+    - node
+jobs:
+  - name: before
+    description: Stop here unless etcd is healthy and the machine is safe to take down.
+    steps:
+      - name: etcd-before
+        description: Every control plane's etcd status, one record each, unreachable ones included.
+        task:
+          type: model_method
+          modelIdOrName: ${{ inputs.model }}
+          methodName: etcdStatus
+          inputs: {}
+        dependsOn: []
+        weight: 0
+        allowFailure: false
+      - name: etcd-healthy-before
+        description: All control planes reachable, exactly one leader, no etcd errors.
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec(inputs.model, "etcdStatus").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "etcd-before").size() > 0
+            && data.findBySpec(inputs.model, "etcdStatus").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "etcd-before").all(r,
+            r.attributes.reachable && r.attributes.?errors.orValue("") == "")
+            && data.findBySpec(inputs.model, "etcdStatus").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "etcd-before"
+            && r.attributes.?isLeader.orValue(false)).size() == 1
+          message: >-
+            etcd is not healthy before the reboot: a control plane is unreachable, reports an error, or there is not
+            exactly one leader. Nothing was rebooted.
+          severity: high
+        dependsOn:
+          - step: etcd-before
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: not-the-leader
+        description: The machine does not lead etcd, unless allowLeader; a worker never does.
+        task:
+          type: assert
+          expr: >-
+            inputs.allowLeader
+            || !data.findBySpec(inputs.model, "etcdStatus").exists(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "etcd-before"
+            && r.attributes.node == inputs.node && r.attributes.?isLeader.orValue(false))
+          message: >-
+            ${{ inputs.node }} is the etcd leader; reboot another control plane first, or run again with
+            allowLeader=true. Nothing was rebooted.
+          severity: high
+        dependsOn:
+          - step: etcd-healthy-before
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+    dependsOn: []
+    weight: 0
+  - name: reboot
+    description: Reboot the one machine; talosctl waits until it is back.
+    steps:
+      - name: reboot
+        description: The model's reboot, narrowed to inputs.node; the model refuses a node it does not target.
+        task:
+          type: model_method
+          modelIdOrName: ${{ inputs.model }}
+          methodName: reboot
+          inputs:
+            nodes:
+              - ${{ inputs.node }}
+            mode: default
+        dependsOn: []
+        weight: 0
+        allowFailure: false
+    dependsOn:
+      - job: before
+        condition:
+          type: succeeded
+    weight: 0
+  - name: after
+    description: The machine is back, etcd is healthy, and the symptom is gone.
+    steps:
+      - name: services-after
+        description: Every service on the rebooted machine.
+        task:
+          type: model_method
+          modelIdOrName: ${{ inputs.model }}
+          methodName: services
+          inputs:
+            nodes:
+              - ${{ inputs.node }}
+        dependsOn: []
+        weight: 0
+        allowFailure: false
+      - name: services-running
+        description: Every service on the machine is Running and none reports itself unhealthy.
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec(inputs.model, "service").filter(r, r.tags.?workflowRunId.orValue("") == run.id
+            && r.attributes.node == inputs.node).size() > 0
+            && data.findBySpec(inputs.model, "service").filter(r, r.tags.?workflowRunId.orValue("") == run.id
+            && r.attributes.node == inputs.node).all(r, r.attributes.state == "Running"
+            && (r.attributes.health == "OK" || r.attributes.health == "?"))
+          message: >-
+            ${{ inputs.node }} is back but not every service is Running and healthy; see the service records of this
+            run.
+          severity: high
+        dependsOn:
+          - step: services-after
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: etcd-after
+        description: Every control plane's etcd status again.
+        task:
+          type: model_method
+          modelIdOrName: ${{ inputs.model }}
+          methodName: etcdStatus
+          inputs: {}
+        dependsOn:
+          - step: services-running
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: etcd-healthy-after
+        description: All control planes reachable, exactly one leader, no etcd errors.
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec(inputs.model, "etcdStatus").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "etcd-after").all(r,
+            r.attributes.reachable && r.attributes.?errors.orValue("") == "")
+            && data.findBySpec(inputs.model, "etcdStatus").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "etcd-after"
+            && r.attributes.?isLeader.orValue(false)).size() == 1
+          message: >-
+            etcd is not healthy after rebooting ${{ inputs.node }}. If the machine only just returned, retry the
+            checks with swamp workflow resume talos-reboot-node --run <id>.
+          severity: high
+        dependsOn:
+          - step: etcd-after
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: logs-after
+        description: The newest lines of logService on every target that has it; skipped without logService.
+        guard: ${{ inputs.logService == "" }}
+        task:
+          type: model_method
+          modelIdOrName: ${{ inputs.model }}
+          methodName: serviceLogs
+          inputs:
+            service: ${{ inputs.logService }}
+            tail: ${{ inputs.logTail }}
+            match: ${{ inputs.logMatch }}
+            sinceSeconds: ${{ inputs.logSinceSeconds }}
+            keep: 3
+        dependsOn:
+          - step: etcd-healthy-after
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: symptom-gone
+        description: No line inside the window matches logMatch on any target; skipped without logService.
+        guard: ${{ inputs.logService == "" }}
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec(inputs.model, "serviceLog").filter(r, r.tags.?workflowRunId.orValue("") == run.id).size() > 0
+            && data.findBySpec(inputs.model, "serviceLog").filter(r, r.tags.?workflowRunId.orValue("") == run.id).all(r,
+            r.attributes.matched == 0)
+          message: >-
+            ${{ inputs.logService }} still logs lines matching the pattern within ${{ inputs.logSinceSeconds }}s after
+            rebooting ${{ inputs.node }}; the serviceLog records of this run keep the newest ones.
+          severity: high
+        dependsOn:
+          - step: logs-after
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+    dependsOn:
+      - job: reboot
+        condition:
+          type: succeeded
+    weight: 0
+version: 1
