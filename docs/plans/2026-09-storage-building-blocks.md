@@ -66,7 +66,7 @@ says what comes back and what does not, with the GitHub mirror as Flux's source 
 
 ## Before and after
 
-Before step 2, 2026-09-30 (steps 1 and 2 are applied): every volume a Cinder SSD, and each database keeping
+Before step 2, 2026-09-30 (steps 1 to 3 are applied): every volume a Cinder SSD, and each database keeping
 three copies of itself on three volumes that Cinder copies three times again.
 
 ```mermaid
@@ -304,6 +304,16 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    `10Gi`; the artifact pushed from it is the same directory. The claim rebound by hand matches that
    template, so git describes it. The copy Job and the temporary claim are scaffolding and stay out. A rebuild
    gives zot an empty Standard volume, which the Backups section already accepts.
+
+   **Applied, 2026-09-30.** The class landed as `54cb0eb`, the template as `fdbda9d`. zot was down from 16:04:59
+   to about 16:08 UTC. With no hardlinks to keep, the copy Job ran busybox, the image already on wrkr-1, and
+   skipped `lost+found`: 55 files on both sides, every md5 checksum equal. The rebound `data-zot-0` is PV
+   `pvc-beca8c2d-…`, Cinder volume `ed197971-…`, 10 GB `Standard`, whose CSI metadata still names the temporary
+   claim `zot-standard`, from when it was created; it is zot's volume, not a leftover. The artifact from `fdbda9d`
+   was pushed, the zot Kustomization resumed onto it without recreating the StatefulSet, and `zot-bootstrap` was
+   deleted. Checks passed: Flux pulled `zot-config` through the Service, `registry.dataverket.org/v2/` answered.
+   The old 50 GB SSD volume, `bab66a9d-…` (PV `pvc-f31756c6-…`, `Released`, `Retain`), is the way back until
+   2026-10-30, then deleted after `openstack-volume get` on its ID. Stopped here: layout 2.
 4. **Worker placement and disk layout, by replacement.** Talos sizes EPHEMERAL and provisions user volumes only
    when it first provisions a machine, and Nova sets server-group membership only at boot, so both arrive the same
    way: a new worker, created in the group, provisioned by Omni with the patch already on it. Three swaps, one
@@ -523,7 +533,7 @@ Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026
 | Forgejo | postgres, CNPG ×1, since 2026-09-30 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 620 MB | Cinder ×3 | wrkr-1 |
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 11 MB | Cinder ×3 | wrkr-2 |
 | Zitadel | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 32 GB | 617 MB | app ×3 on Cinder ×3 | wrkr-1, wrkr-3, wrkr-2 |
-| zot | blobs and config | Cinder | `csi-cinder-sc-retain`, SSD | 50 GB | 44 MiB | Cinder ×3 | wrkr-1 |
+| zot | blobs and config, since 2026-09-30 | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | 44 MiB | Cinder ×3 | wrkr-1 |
 | Runner, org | docker-lib cache (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3, disposable | wrkr-1 |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3 | wrkr-3 |
 | Control planes ×3 | Talos system, etcd | flavor root disk, EPHEMERAL 21 GiB | c5.large | 3 × 25 GiB | 1.1 GiB | etcd ×3, disk unknown | ctrl-1..3 |
