@@ -110,10 +110,10 @@ flowchart TB
         z6["u-pg-zitadel ~12 GiB<br/>zitadel-db instance"]
       end
     end
-    subgraph cinder["Cinder, 60 GB SSD and 50 GB Standard, three copies each"]
+    subgraph cinder["Cinder, 60 GB SSD and 10 GB Standard, three copies each"]
       fpg["forgejo-postgres<br/>1 instance, 10 GB SSD"]
       repo["Forgejo repositories<br/>10 GB SSD"]
-      zot["zot blobs and config<br/>50 GB Standard"]
+      zot["zot blobs and config<br/>10 GB Standard"]
       run["Runner volumes<br/>2 x 20 GB SSD"]
     end
   end
@@ -179,14 +179,13 @@ Prices, NOK per GB-month ex VAT: SSD 1.99, Standard 0.89, Object 0.49 at no comm
 |---|---|---|---|
 | Today | 388 SSD | 772 / 578 | |
 | 1. After step 2: Forgejo's database one 10 GB volume | 206 SSD | 410 / 307 | 362 / 271 |
-| 2. After step 3: zot on a 50 GB Standard volume | 156 SSD + 50 Std | 355 / 267 | 417 / 311 |
-| 3. After step 6: Zitadel on worker disks | 60 SSD + 50 Std | 164 / 124 | 608 / 454 |
+| 2. After step 3: zot on a 10 GB Standard volume | 156 SSD + 10 Std | 319 / 239 | 453 / 339 |
+| 3. After step 6: Zitadel on worker disks | 60 SSD + 10 Std | 128 / 96 | 644 / 482 |
 
 Layout 3 against the same Zitadel on three 10 GB SSD volumes is 60 / 45 a month: that is what the rehearsal
 saves, and it is not why it is done. Backups cost nothing per month, the hov1 site is paid for; measure the
 archive's size and the WAL rate after a week anyway, they size the site's disk and say how long an outage the
-budget survives. zot's retained SSD volume adds about 100 for the month it is kept, and if zot holds less than
-the measure in step 3 suggests, its Standard volume is smaller than 50 GB. Zulip's database adds its own volume,
+budget survives. zot's retained SSD volume adds about 100 for the month it is kept. Zulip's database adds its own volume,
 sized when it is installed. Step 4 runs one extra m5.large for the hours each swap takes, three times, a few NOK
 in total.
 
@@ -266,8 +265,9 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    fails, as the one of 2026-09-20 did, and is never retried.
 3. **zot to a Standard volume.** A `csi-cinder-standard-retain` class beside the other two in
    `infrastructure/cinder-csi-provider/storageclass.yaml` (`parameters.type: Standard`, the Cinder type's name as
-   `openstack-volume-type` records it; `Retain`, expansion allowed). First measure what zot holds (`du -sh
-   /var/lib/registry` in the pod) and size the new claim at twice that, 50 GB at most. zot's storage is files on a
+   `openstack-volume-type` records it; `Retain`, expansion allowed). The new claim is 10 GB: on 2026-09-30 zot
+   held 44 MiB in 55 files, none hardlinked, on its 50 GB volume (measured from a read-only busybox pod on the
+   same node, through `zot-pods`, since zot's image has no shell), and a Cinder volume grows online. zot's storage is files on a
    filesystem before and after, so the move is a copy, not a sync, and `dedupe` makes hardlinks that only one
    GNU `cp -a` keeps: a Debian image, not busybox, run as 1000:1000 with `fsGroup: 1000` like zot. Suspend the
    zot Kustomization and scale the StatefulSet to zero; outside pulls through `registry.dataverket.org` fail from
@@ -286,7 +286,7 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
 
    **Git.** `infrastructure/cinder-csi-provider/storageclass.yaml` gains the class, first and on its own, since it
    creates nothing. `artifacts/zot/statefulset.yaml`: `volumeClaimTemplates` on `csi-cinder-standard-retain` at
-   the measured size; the artifact pushed from it is the same directory. The claim rebound by hand matches that
+   `10Gi`; the artifact pushed from it is the same directory. The claim rebound by hand matches that
    template, so git describes it. The copy Job and the temporary claim are scaffolding and stay out. A rebuild
    gives zot an empty Standard volume, which the Backups section already accepts.
 4. **Worker placement and disk layout, by replacement.** Talos sizes EPHEMERAL and provisions user volumes only
@@ -508,7 +508,7 @@ Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026
 | Forgejo | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 64 GB | 620 MB | app ×3 on Cinder ×3 | wrkr-3, wrkr-2, wrkr-3 |
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 11 MB | Cinder ×3 | wrkr-2 |
 | Zitadel | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 32 GB | 617 MB | app ×3 on Cinder ×3 | wrkr-1, wrkr-3, wrkr-2 |
-| zot | blobs and config | Cinder | `csi-cinder-sc-retain`, SSD | 50 GB | not measured | Cinder ×3 | wrkr-1 |
+| zot | blobs and config | Cinder | `csi-cinder-sc-retain`, SSD | 50 GB | 44 MiB | Cinder ×3 | wrkr-1 |
 | Runner, org | docker-lib cache (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3, disposable | wrkr-1 |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3 | wrkr-3 |
 | Control planes ×3 | Talos system, etcd | flavor root disk, EPHEMERAL 21 GiB | c5.large | 3 × 25 GiB | 1.1 GiB | etcd ×3, disk unknown | ctrl-1..3 |
@@ -523,7 +523,7 @@ Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | push mirror to GitHub; later kopia to `213.128.185.82` |
 | Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × ~12 GiB, claim 10Gi | app ×3, one per worker | Barman to `213.128.185.82`, PITR |
 | Zulip (planned) | postgres, CNPG ×1 | Cinder | `csi-cinder-sc-delete`, SSD | sized at install | Cinder ×3 | Barman to `213.128.185.82`, PITR |
-| zot | blobs and config | Cinder | `csi-cinder-standard-retain`, Standard | 50 GB at most, twice what it holds | Cinder ×3 | none, rebuildable |
+| zot | blobs and config | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | Cinder ×3 | none, rebuildable |
 | Runner, org | docker-lib cache | Cinder, or root disk if local | SSD, or decision 014 | 20 GB | disposable | none |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | Cinder ×3 | none |
 | Control planes ×3 | Talos, etcd | flavor root disk, EPHEMERAL default | c5.large | 3 × 25 GiB | etcd ×3 | Omni etcd backups (decision 003) |
