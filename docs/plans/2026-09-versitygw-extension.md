@@ -79,7 +79,7 @@ names as arguments (default `ROOT_ACCESS_KEY`, `ROOT_SECRET_KEY`). No vault key.
 
 ## Progress
 
-Branch `versitygw` in `~/kode/swamp-extensions`, not committed, not published.
+In `~/kode/swamp-extensions/versitygw/` on `main`, pushed (`86ae2d1`, and `485a450` with the check fix below). Not yet published.
 
 - Step 1. Six admin routes at v1.8.0, all `PATCH`, SigV4 service `s3`, `x-amz-content-sha256` required, admin role
   only. `list-users` also returns `SessionToken`, `IsSession`, `Arn` and `RoleArn`, which the CLI table hides.
@@ -95,6 +95,19 @@ Branch `versitygw` in `~/kode/swamp-extensions`, not committed, not published.
   keeps a TLS failure's reason in `cause`, so `health` could not tell a bad chain from a dead host; and `queryData`
   has no `modelId` field, which the unit fake had accepted. `inventory` twice gives identical records; no secret or
   root access key anywhere in `.swamp`. Quality 100%.
+- Step 4, hov1, same day. The root key pair is now also in Proton Pass (vault Dataverket, item "hov1 versitygw
+  root"), copied by the operator from `backup/hov1/.env`; `pass-cli run --env-file ~/.config/hov1-root.env`
+  supplies it through `rootKeyEnv`. From a scratch repository loading the extension from source: `health` 200 over
+  a chain verified against `certs/ca.crt`; two accounts and two buckets, `cnpg-forgejo` and `cnpg-zitadel`, each
+  `user` and owning its namesake; versioning off, no policy, no object lock. Two inventories identical; `check`
+  clean.
+- Step 5, started. The adversarial review found three small things, fixed: no log line on entry, a replaced TLS
+  client not closed, an address literal in the README. Validating the fabrikk-infra definition found one more: a
+  pre-flight check sees the definition's arguments before the schema's defaults, so a definition without
+  `accessKeyName` looked for a variable named "undefined"; the checks now apply the defaults, with two negative
+  tests. `models/@dataverket/versitygw/gateway/hov1-s3.yaml` is written and validates under `pass-cli run`; it is
+  committed with the pin once the extension is published. Without the key, `swamp model validate hov1-s3` fails
+  the live check by design (`ROOT_ACCESS_KEY is not set in the environment`); `--label policy` skips it.
 
 Differences from the plan above:
 
@@ -108,5 +121,6 @@ Differences from the plan above:
 - An object-lock bucket has versioning `Enabled` whether or not anyone set it; `check` says so in the finding.
 - v1.8.0 answers `500 InternalError`, not 404, on an admin path that does not exist.
 
-Next: the hov1 half of step 4, which needs the root key pair from the operator; then step 5.
+Next: the operator's review report and `swamp extension push`; then `swamp extension pull @dataverket/versitygw`
+here, and one commit with the pin and the model.
 
