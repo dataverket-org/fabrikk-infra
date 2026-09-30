@@ -164,7 +164,7 @@ All run from the site directory; each refuses to run without `.env` there.
 | CA root | `certs/ca.crt`, committed | The repository | Never; a new root is a new file and new site Secrets |
 | CA key | `certs/ca.key`, ignored by git, and `vaults/operator/<site>/ca.key.enc.json` | The repository, readable by the two operators | Cannot be; without it a new root |
 | Gateway certificate and key | `certs/tls.crt`, `certs/tls.key`, ignored by git | The host | `bin/cert` |
-| Root key pair | `.env`, ignored by git, and `vaults/operator/<site>/root/` | The repository, readable by the two operators | Cannot be; choose new ones, recreate the gateway, re-mint every writer |
+| Root key pair | `.env`, ignored by git, and `vaults/operator/<site>/root.enc.json` | The repository, readable by the two operators | Cannot be; choose new ones, recreate the gateway, re-mint every writer |
 
 ## Security model
 

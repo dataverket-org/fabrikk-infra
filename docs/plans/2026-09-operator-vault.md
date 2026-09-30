@@ -5,8 +5,9 @@ Written 2026-09-30. Decision 016 moved `break-glass/` to `vaults/operator/break-
 
 ## The rule
 
-A store is a folder under `vaults/`, one value per `<name>.enc.json`. Its readers are its rule in `.sops.yaml`.
-A folder is a swamp vault only if it has a config in `vaults/@dataverket/sops/` and swamp's key in its rule.
+A store is a folder under `vaults/`, one secret per `<name>.enc.json`, its fields the secret's values. Its readers
+are its rule in `.sops.yaml`. A folder is a swamp vault only if it has a config in `vaults/@dataverket/sops/` and
+swamp's key in its rule.
 
 ## Steps
 
@@ -22,9 +23,9 @@ A folder is a swamp vault only if it has a config in `vaults/@dataverket/sops/` 
 4. **Old wording.** Update what still says `break-glass/` or "outside `vaults/`":
    `docs/plans/2026-09-credential-tiers.md`, `2026-09-access-requests.md` (its "`human` sops vault" is
    `vaults/operator/`), `2026-09-kubernetes-identity.md`, and the finding in decision 010.
-5. **One copy of the hov1 root key pair.** It is in Proton Pass (vault Dataverket, one operator's account) and,
-   after 016, in `vaults/operator/hov1/root/`. Decide whether the Proton Pass copy stays as what
-   `pass-cli run` reads, or whether a `sops exec-env` wrapper over `vaults/operator/` replaces it.
+5. **One copy of the hov1 root key pair.** It is in Proton Pass (vault Dataverket, one operator's account) and in
+   `vaults/operator/hov1/root.enc.json`, which `sops exec-env` reads in one touch. Decide whether the Proton Pass
+   copy and `~/.config/hov1-root.env` go.
 
 ## Status
 

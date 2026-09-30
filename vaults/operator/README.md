@@ -8,13 +8,16 @@ folder is the one only they can read. Decision 016.
 | Folder | What | Filled by |
 |---|---|---|
 | `break-glass/` | What tier 1 falls back on when a login mechanism fails | `docs/plans/2026-09-break-glass.md` |
-| `hov1/` | The hov1 gateway's CA key and root key pair (`backup/versitygw/`) | A person, from `backup/hov1/` on the site host |
+| `hov1/` | The hov1 gateway's CA key (`ca.key`) and root key pair (`root`) (`backup/versitygw/`) | A person, from `backup/hov1/` on the site host |
 
-One value per file, `<name>.enc.json` holding `{"value": ...}`, the same shape as `vaults/infra/`:
+One secret per file, `<name>.enc.json`. A secret's fields are its values: `root` holds `ROOT_ACCESS_KEY` and
+`ROOT_SECRET_KEY`, `ca.key` holds `value`. Named after the variables a tool reads, the fields go straight into its
+environment:
 
 ```sh
-sops -d --extract '["value"]' vaults/operator/hov1/ca.key.enc.json      # a touch, every time
-jq -n --rawfile v <file> '{value: $v}' |
+sops exec-env vaults/operator/hov1/root.enc.json 'swamp model method run hov1-s3 inventory'   # one touch
+sops -d --extract '["value"]' vaults/operator/hov1/ca.key.enc.json                          # one touch
+jq -n '{NAME: env.NAME}' |
   sops -e --filename-override vaults/operator/<path>.enc.json /dev/stdin > vaults/operator/<path>.enc.json
 ```
 

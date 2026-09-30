@@ -123,8 +123,14 @@ Differences from the plan above:
 - An object-lock bucket has versioning `Enabled` whether or not anyone set it; `check` says so in the finding.
 - v1.8.0 answers `500 InternalError`, not 404, on an admin path that does not exist.
 
-The root key pair is also in `vaults/operator/hov1/root/` now (decision 016). Which copy `pass-cli run` reads is
-step 5 of `docs/plans/2026-09-operator-vault.md`.
+The root key pair is also in `vaults/operator/hov1/root.enc.json` now (decision 016), and that is how a run gets it:
+
+```sh
+sops exec-env vaults/operator/hov1/root.enc.json 'swamp model method run hov1-s3 inventory'   # one touch
+swamp model method run hov1-s3 check
+```
+
+Whether the Proton Pass copy stays is step 5 of `docs/plans/2026-09-operator-vault.md`.
 
 Next: the write methods listed as out of scope above, when `bin/user` has been compared against the read side for a
 while.

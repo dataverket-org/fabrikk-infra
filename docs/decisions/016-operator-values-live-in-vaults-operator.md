@@ -32,7 +32,8 @@ different purpose, would make two places to look for the same kind of value.
 
 ## Decision
 
-A sops store is a folder under `vaults/` with values in it, one value per file. Who reads a folder is set by its
+A sops store is a folder under `vaults/` with secrets in it, one secret per file; a secret's fields are its values.
+A swamp vault's secrets have one field, `value`, which is what `@dataverket/sops` reads. Who reads a folder is set by its
 rule in `.sops.yaml`, not by its name or place.
 
 | Folder | Read by | Swamp vault config |
@@ -79,3 +80,18 @@ Follows 001 and 002. Supersedes 004.
 **Summary:** Break-glass moved, the hov1 values copied by an operator on 2026-09-30.
 
 **Action Required:** Run `bin/check-recipients` on every commit (`docs/plans/2026-09-operator-vault.md`).
+
+### 2026-09-30 (later the same day)
+
+**Status:** Implemented
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| One secret per file, not one value: the root key pair is one file with two fields | `vaults/operator/hov1/root.enc.json` | done, checked against the original |
+
+**Summary:** Wording only. A secret whose parts are used together is one file, so `sops exec-env` supplies it in
+one touch. Who reads what is unchanged.
+
+**Action Required:** None.
