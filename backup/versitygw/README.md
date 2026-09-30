@@ -179,7 +179,7 @@ Every client signs with `REGION`; the gateway rejects any other region on the da
 
 | Symptom | Likely cause | Action |
 |---|---|---|
-| Cluster alert: WAL archiving failing, restic snapshots stale | Site unreachable: host down, uplink down, port forward lost, address changed | On the host `docker compose ps`; from outside `curl --cacert certs/ca.crt https://$S3_ADDR/health`. Headroom is about a day of WAL |
+| Cluster alert: WAL archiving failing, kopia snapshots stale | Site unreachable: host down, uplink down, port forward lost, address changed | On the host `docker compose ps`; from outside `curl --cacert certs/ca.crt https://$S3_ADDR/health`. Headroom is about two days of WAL |
 | Cluster alert: certificate expires within 30 days | Three years are up, or the root is | [Reissue the certificate](#reissue-the-certificate) |
 | Writers get `403` / `MalformedAuth.IncorrectRegion` | Client region differs from `REGION` | Set the writer's region from the `<site>-s3` Secret |
 | Writer gets `NoSuchBucket` after a host rebuild | `DATA_DIR` lost; buckets are directories in it | [Site host lost](#site-host-lost) step 3 recreates them |
