@@ -130,7 +130,7 @@ sops exec-env vaults/operator/hov1/root.enc.json 'swamp model method run hov1-s3
 swamp model method run hov1-s3 check
 ```
 
-Whether the Proton Pass copy stays is step 5 of `docs/plans/2026-09-operator-vault.md`.
+The Proton Pass copy used for the first runs is deleted (`docs/plans/2026-09-operator-vault.md`, step 5).
 
 Next: the write methods listed as out of scope above, when `bin/user` has been compared against the read side for a
 while.

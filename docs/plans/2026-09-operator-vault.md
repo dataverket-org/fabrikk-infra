@@ -23,9 +23,9 @@ swamp's key in its rule.
 4. **Old wording.** Update what still says `break-glass/` or "outside `vaults/`":
    `docs/plans/2026-09-credential-tiers.md`, `2026-09-access-requests.md` (its "`human` sops vault" is
    `vaults/operator/`), `2026-09-kubernetes-identity.md`, and the finding in decision 010.
-5. **One copy of the hov1 root key pair.** It is in Proton Pass (vault Dataverket, one operator's account) and in
-   `vaults/operator/hov1/root.enc.json`, which `sops exec-env` reads in one touch. Decide whether the Proton Pass
-   copy and `~/.config/hov1-root.env` go.
+5. **One copy of the hov1 root key pair.** Done 2026-09-30: `vaults/operator/hov1/root.enc.json` is the copy,
+   read with `sops exec-env`. The Proton Pass item and `~/.config/hov1-root.env` are deleted. Proton Pass stays a
+   tier 1 mechanism; it is not a store for this repository.
 
 ## Status
 
@@ -35,4 +35,4 @@ swamp's key in its rule.
 | 2 | not started |
 | 3 | not started |
 | 4 | not started |
-| 5 | open question |
+| 5 | done |
