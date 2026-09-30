@@ -66,7 +66,7 @@ dropping a file from a kustomization never deletes the key.
 
 | Alert | Threshold | Meaning | First action |
 |---|---|---|---|
-| CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so today's volumes last many days; after the storage plan's step 4 the smallest headroom, about 9 GiB, lasts about two days | Reach the site: `versitygw/README.md`, failure modes |
+| CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so today's volumes last many days; after the storage plan's step 2 the smallest headroom, about 9 GiB, lasts about two days | Reach the site: `versitygw/README.md`, failure modes |
 | CNPG last successful base backup | Older than 36 hours | The `ScheduledBackup` did not complete | `kubectl cnpg status`, then the plugin's Backup objects |
 | Certificate at `213.128.185.82:443` | Expires within 30 days | The three-year certificate or root is running out; nothing at the site renews it | `versitygw/README.md`, runbook "Reissue the certificate" |
 | kopia snapshot, once it exists | Older than 48 hours | The CronJob failed or cannot reach hov1 | The CronJob's last Job logs |

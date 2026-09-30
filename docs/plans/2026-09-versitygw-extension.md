@@ -7,7 +7,7 @@ data, before any method changes one.
 
 The hov1 site's gateway holds one account and one bucket per writer (`backup/versitygw`), minted by `bin/user`.
 Nothing records what the gateway holds or checks that it still matches the rule "every bucket is owned by the
-account of the same name". A second gateway (storage plan, step 5) doubles the question. The registry has nothing
+account of the same name". A second gateway, the in-cluster S3 the storage plan now leaves for its first writer, doubles the question. The registry has nothing
 for it: the S3 extensions there are AWS-only, one provider each, or object-level; `@thomas/garage` is the nearest
 shape, for another server.
 

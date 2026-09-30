@@ -60,10 +60,10 @@ init container to own its directory.
 | EPHEMERAL capped, user volumes carved | Talos machine config | not done: `fleet-volumes` shows EPHEMERAL on the whole disk (21,495 and 26,615 MiB) and no `u-` partitions |
 | Mounts published as `local` PVs | `infrastructure/` | not done: no provisioner in `infrastructure/` |
 
-**Summary:** The audit of 2026-09-29 was wrong. The mechanism arrives with the replaced workers, steps 2 and 3 of
+**Summary:** The audit of 2026-09-29 was wrong. The mechanism arrives with the replaced workers, steps 4 and 5 of
 `docs/plans/2026-09-storage-building-blocks.md`.
 
-**Action Required:** Steps 2 and 3 of the storage plan.
+**Action Required:** Steps 4 and 5 of the storage plan.
 
 ### 2026-09-29
 

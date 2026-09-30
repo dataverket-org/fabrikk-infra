@@ -6,7 +6,7 @@ anti-affinity server group and replaced through Omni one at a time, never reset 
 arrives with the new machines. Fifth revision, 2026-09-20: backups go to the hov1 site, `213.128.185.82:443`, a
 versitygw with the posix backend in Docker (`backup/versitygw`, instantiated as `backup/hov1`), instead of Nexthop
 Object Storage; the
-in-cluster versitygw of building block 3 keeps its role. Reviewed adversarially again the same day; what it found
+in-cluster versitygw kept its role until the eighth revision. Reviewed adversarially again the same day; what it found
 (the admin API signs with the region, the sops rule path, SIGHUP reloads versitygw's certificate, versioning without
 lifecycle, the WAL rate) is folded in. Sixth revision, 2026-09-30: step 1 is applied except the repositories,
 whose copy is the push mirror to GitHub for now and kopia, not restic, when they get one of their own; the
@@ -14,28 +14,38 @@ secrets a restore needs are pinned in `*.enc.yaml`. Steps 2 to 6 are not applied
 only Zitadel's database moves to the worker disks, which stay m5.large; Forgejo's, Zulip's and every later
 database is one instance on one Cinder volume. Decision 014 is the mechanism under Zitadel's database.
 
+Eighth revision, 2026-09-30: the savings come first and the local disks after. Forgejo's database moves on its
+own right after step 1, since it is most of the saving and needs no new worker; zot moves to a Standard volume next.
+The in-cluster versitygw leaves this plan: it saved nothing and waits for a writer that needs S3, Zulip's uploads
+or Forgejo's LFS. Zitadel's database on the worker disks is said for what it is, a rehearsal for bare-metal
+nodes with NVMe, where local disks are the only disks; against three 10 GB Cinder volumes it saves 60 NOK a month.
+Replacing a worker that holds a replica is the part of that rehearsal this plan does not run; it is
+`docs/plans/2026-09-worker-replacement-test.md`, for later. Steps 2 to 7 are not applied.
+
 ## Building blocks
 
-1. **One redundancy layer per kind of data.** Zitadel's database, which every login waits on, replicates itself:
-   CNPG runs three instances, one per worker, on a partition carved from each worker's root disk, with one
-   synchronous replica so a failover loses no acknowledged commit and needs no Cinder attach. Those disks are paid
-   for with the flavor. Every other database, Forgejo's, Zulip's and later ones, is one CNPG instance on one Cinder
-   volume, like the other single-writer and blob-shaped data (registry, repositories, runner caches): Cinder keeps
-   three copies, and a failover is a volume reattach, minutes rather than seconds. Nothing replicates on top of
-   Cinder.
+1. **One redundancy layer per kind of data.** Zitadel's database replicates itself: CNPG runs three instances,
+   one per worker, on a partition carved from each worker's root disk, with one synchronous replica so a failover
+   loses no acknowledged commit. Those disks are paid for with the flavor. Every other database, Forgejo's,
+   Zulip's and later ones, is one CNPG instance on one Cinder volume, like the other single-writer and blob-shaped
+   data (registry, repositories, runner caches): Cinder keeps three copies, and a failover is a volume reattach,
+   minutes rather than seconds. Nothing replicates on top of Cinder.
 2. **EPHEMERAL is a fixed 16 GiB on the workers**, 32 GiB at most anywhere else. Talos sizes a volume only when
    it first provisions it, and by default EPHEMERAL takes the whole disk; a cap turns the kubelet's percentage
    thresholds into a budget. `maxSize` accepts a percentage, but a share of the disk is the wrong unit across
    30 GiB and 1 TB disks.
-3. **Object storage inside the cluster is versitygw on Cinder**: one S3 endpoint, POSIX backend, Standard tier;
-   registry blobs first, later Forgejo LFS and packages.
+3. **Local disks are rehearsed here and used on bare metal.** A Talos user volume on the system disk, published
+   as a `local` PV by the static provisioner (decision 014), holding a database that replicates itself. Zitadel's
+   is the one: small, append-only, mostly read from memory, and restored from the hov1 site in a test. What is
+   learned here carries to NVMe nodes unchanged, except the disk selector if those nodes have a data disk of
+   their own.
 4. **Backups leave the provider.** The target is `213.128.185.82:443`, a versitygw with the posix backend in Docker
    at the hov1 site (`backup/hov1`), reached by address so that no zone, name or DirectAdmin sits in the backup
-   path: a different building, a different network, a different operator's mistakes. The
-   in-cluster versitygw shares Cinder's blast radius and Nexthop Object Storage shares the account's, so neither is
-   the copy that matters. The price is availability: the site's uplink is down more often than a provider's, so every
-   writer must tolerate hours of that, and the WAL alert below is what makes an outage cheap instead of fatal.
-5. **Tier by shape.** SSD for working trees and caches, Standard for blobs.
+   path: a different building, a different network, a different operator's mistakes. Cinder and Nexthop Object
+   Storage share the account's blast radius, so neither is the copy that matters. The price is availability: the
+   site's uplink is down more often than a provider's, so every writer must tolerate hours of that, and the WAL
+   alert below is what makes an outage cheap instead of fatal.
+5. **Tier by shape.** SSD for databases, working trees and caches, Standard for blobs.
 6. **Placement is declared, not observed.** The workers are members of a Nova anti-affinity server group, so no
    two share a hypervisor, and a worker that cannot be placed fails to boot instead of landing beside a sibling.
    Nova sets membership only at boot, so a machine gets into the group by being created in it; a worker's disk
@@ -68,9 +78,8 @@ flowchart TB
   repo -- "push mirror" --> gh
 ```
 
-After step 5: new workers, one per hypervisor, carry Zitadel's database on their own root disks; Cinder keeps
-every other database and what is single-writer or blob-shaped, and the blobs move behind an S3 endpoint on the
-cheaper tier.
+After step 6: new workers, one per hypervisor, carry Zitadel's database on their own root disks; Cinder keeps
+every other database and what is single-writer or blob-shaped, and zot's blobs are on the cheaper tier.
 
 ```mermaid
 flowchart TB
@@ -89,11 +98,10 @@ flowchart TB
         z6["u-pg-zitadel ~12 GiB<br/>zitadel-db instance"]
       end
     end
-    subgraph cinder["Cinder, 70 GB SSD and 100 GB Standard, three copies each"]
+    subgraph cinder["Cinder, 60 GB SSD and 50 GB Standard, three copies each"]
       fpg["forgejo-postgres<br/>1 instance, 10 GB SSD"]
       repo["Forgejo repositories<br/>10 GB SSD"]
-      vgw["versitygw, in-cluster S3<br/>100 GB Standard"]
-      zotw["zot working directory<br/>10 GB SSD"]
+      zot["zot blobs and config<br/>50 GB Standard"]
       run["Runner volumes<br/>2 x 20 GB SSD"]
     end
   end
@@ -102,7 +110,6 @@ flowchart TB
     gh[("GitHub")]
   end
   repo -- "push mirror" --> gh
-  zotw -- "blobs over S3" --> vgw
   z4 -. "streams, synchronous" .-> z5
   z4 -. "streams" .-> z6
   fpg -- "WAL and daily base backup" --> hov1
@@ -111,8 +118,8 @@ flowchart TB
 
 Zitadel's primary and synchronous replica are wherever CNPG puts them; the drawing shows one arrangement, and
 `method: any` lets either replica be the one that acknowledges. Zulip's database, when it comes, is one more
-single instance on its own Cinder volume, and its uploads go to versitygw. Later, Forgejo's LFS and packages move
-onto versitygw, and kopia copies the repositories to hov1.
+single instance on its own Cinder volume. Where Zulip's uploads and Forgejo's LFS and packages go, an in-cluster
+S3 or a volume, is decided with Zulip; kopia copies the repositories to hov1 later.
 
 ## Measured
 
@@ -131,14 +138,12 @@ percent, with image collection from 80. Every disk already has 2 GiB unallocated
 **The worker disk after the change**, 30 GiB on m5.large: 2,102 MiB of Talos partitions, EPHEMERAL 16,384 MiB,
 and the remaining 12,234 MiB all for `u-pg-zitadel`, at least 6 GiB and grown into the rest. WAL is budgeted at
 1.5 GiB (`max_wal_size` 1 GB plus 512 MB retained by replication slots), leaving about 10.5 GiB for data,
-seventeen times today's 620 MB. Zitadel alone, because it is what every login waits on and the only service
-whose sole volume is its database, so local disks take Cinder out of its failover entirely; its append-only event
-store grows slowly and predictably at this size, it mostly reads from memory, and it writes a few events per
-login, so image pulls and CI on the same 500 IOPS slow it without stalling it. Forgejo's database stays on Cinder:
-its growth follows issues, pull requests and CI, it writes most while CI is busiest, and its repositories volume
-keeps Cinder in its failover path anyway. A larger flavor was weighed on 2026-09-30 for Zulip's memory and a third
-partition, and not taken: 8 GB holds today's load with room for Zulip, and a flavor change is three swaps
-whenever it is wanted.
+seventeen times today's 620 MB. Zitadel's append-only event store grows slowly and predictably at this size, it
+mostly reads from memory, and it writes a few events per login, so image pulls and CI on the same 500 IOPS slow
+it without stalling it. Forgejo's database stays on Cinder: its growth follows issues, pull requests and CI, it
+writes most while CI is busiest, and its repositories volume keeps Cinder in its failover path anyway. A larger
+flavor was weighed on 2026-09-30 for Zulip's memory and a third partition, and not taken: 8 GB holds today's load
+with room for Zulip, and a flavor change is three swaps whenever it is wanted.
 
 ## Placement, and the open question of where the root disks are
 
@@ -151,7 +156,7 @@ now, and the seven servers show exactly three values, one control plane and one 
 already sit on three hypervisors, and three is what this project can see. The group turns that from what the
 scheduler happened to do into what it must do. Nova honours a server group
 only at boot and has no call that adds a running server to one, so the workers are placed by being recreated,
-which is step 2. Building block 6.
+which is step 4. Building block 6.
 
 ## Cost
 
@@ -161,21 +166,22 @@ Prices, NOK per GB-month ex VAT: SSD 1.99, Standard 0.89, Object 0.49 at no comm
 | Layout | Cinder | NOK/month (no commit / top tier) | Saved |
 |---|---|---|---|
 | Today | 388 SSD | 772 / 578 | |
-| 1. After step 4: Zitadel on worker disks, Forgejo's database one 10 GB volume | 110 SSD | 219 / 164 | 553 / 414 |
-| 2. After step 5: versitygw 100 GB Standard, zot on S3 with a 10 GB cache | 70 SSD + 100 Std | 228 / 173 | 544 / 405 |
-| 2b. Instead of versitygw: zot moved to a Standard volume | 60 SSD + 50 Std | 164 / 124 | 608 / 454 |
+| 1. After step 2: Forgejo's database one 10 GB volume | 206 SSD | 410 / 307 | 362 / 271 |
+| 2. After step 3: zot on a 50 GB Standard volume | 156 SSD + 50 Std | 355 / 267 | 417 / 311 |
+| 3. After step 6: Zitadel on worker disks | 60 SSD + 50 Std | 164 / 124 | 608 / 454 |
 
-Backups cost nothing per month, the hov1 site is paid for; measure the archive's size and the WAL rate after a week
-anyway, they size the site's disk and say how long an outage the budget survives. zot's retained SSD volume adds
-about 100 for the month it is kept. versitygw costs 64 NOK/month more than row 2b because 100 GB is provisioned
-for growth: a building block, not a saving. Zulip's database adds its own volume, sized when it is installed.
-Step 2 runs one extra m5.large for the hours each swap takes, three
-times, a few NOK in total.
+Layout 3 against the same Zitadel on three 10 GB SSD volumes is 60 / 45 a month: that is what the rehearsal
+saves, and it is not why it is done. Backups cost nothing per month, the hov1 site is paid for; measure the
+archive's size and the WAL rate after a week anyway, they size the site's disk and say how long an outage the
+budget survives. zot's retained SSD volume adds about 100 for the month it is kept, and if zot holds less than
+the measure in step 3 suggests, its Standard volume is smaller than 50 GB. Zulip's database adds its own volume,
+sized when it is installed. Step 4 runs one extra m5.large for the hours each swap takes, three times, a few NOK
+in total.
 
 ## Steps
 
 Each step has a check and a "stopped here" state. Step 1 needs the author (a YubiKey recipient in `.sops.yaml`);
-a stand-in can do the rest once it is merged.
+a stand-in can do the rest once it is merged, except the zot artifact push in step 3, which is the author's.
 
 1. **Backups first.** The target is the hov1 site: `backup/versitygw` is a compose stack that names no site (versitygw,
    posix backend, `--versioning-dir` outside the root, nothing else running), and `backup/hov1` is its
@@ -210,7 +216,48 @@ a stand-in can do the rest once it is merged.
    know before an outage. Check: `psql` on each restored cluster shows the application tables. Stopped here: proven
    backups, off the provider. If the hov1 site proves unreachable too often, a second copy to Nexthop Object
    Storage is the same mechanism with a second `ObjectStore`, not a new plan.
-2. **Worker placement and disk layout, by replacement.** Talos sizes EPHEMERAL and provisions user volumes only
+2. **Forgejo's database to one instance on one Cinder volume.** A migration from the archive, which is also a
+   second restore test. Forgejo is where Flux reads this repository, so the change lands on `main` while Forgejo
+   still runs, and Flux is held off until the database is back: `flux suspend kustomization apps` and
+   `flux suspend helmrelease forgejo -n forgejo`, since a helm upgrade during the restore would start Forgejo
+   against a Secret that is gone. Then push the new `Cluster` to `main`: the same name, so the `-rw` Service and
+   `-app` Secret keep theirs; `instances: 1` on `csi-cinder-sc-delete` with `storage.size: 10Gi`,
+   `max_wal_size: 1GB`, and `enablePDB: false` so that a drain moves it instead of blocking on it; `imageName`
+   pinned to the archive's Postgres major; `bootstrap.recovery` from `externalClusters[].plugin`
+   (`barmanObjectName: hov1`, `serverName: forgejo-postgres`) with `recovery.database` and `recovery.owner` set
+   (recovery does not inherit `initdb`'s names); and a new `serverName` in the plugin parameters, so the restored
+   cluster archives beside the old one instead of over it. Now scale Forgejo to zero (git is down for the restore
+   time from step 1); final backup (`kubectl cnpg backup forgejo-postgres --method plugin --plugin-name
+   barman-cloud.cloudnative-pg.io`); patch the cluster's three Cinder PVs to `Retain`; delete the `Cluster`; wait
+   until `kubectl get pvc -l cnpg.io/cluster=forgejo-postgres` is empty; apply the new `Cluster` from the commit
+   by hand (`git show main:apps/forgejo/postgres.yaml`), since Flux cannot fetch while Forgejo is down. Once it is
+   ready, take the first base backup at once with the same command: the ScheduledBackup's `immediate` run has
+   fired already, and the new archive would have no base until 03:00. Scale Forgejo up, which reads the
+   regenerated Secret's new password; resume the HelmRelease; check that the GitRepository's revision is the
+   commit; resume `apps`. Check: one instance on a 10 GB volume, a login and a push work, the manual backup
+   completed under the new `serverName`; then delete the three retained PV objects and, after `openstack-volume
+   get` on each ID (rule 5), their Cinder volumes. The old `serverName` in `cnpg-forgejo` is the way back for 14
+   days and is deleted by hand after, since retention trims only the current one. Stopped here: layout 1.
+3. **zot to a Standard volume.** A `csi-cinder-standard-retain` class beside the other two in
+   `infrastructure/cinder-csi-provider/storageclass.yaml` (`parameters.type: Standard`, the Cinder type's name as
+   `openstack-volume-type` records it; `Retain`, expansion allowed). First measure what zot holds (`du -sh
+   /var/lib/registry` in the pod) and size the new claim at twice that, 50 GB at most. zot's storage is files on a
+   filesystem before and after, so the move is a copy, not a sync, and `dedupe` makes hardlinks that only one
+   GNU `cp -a` keeps: a Debian image, not busybox, run as 1000:1000 with `fsGroup: 1000` like zot. Suspend the
+   zot Kustomization and scale the StatefulSet to zero; outside pulls through `registry.dataverket.org` fail from
+   here until it is back, and nothing under `apps/` pulls from zot. Create a claim `zot-standard` on the new
+   class; a Job mounting both claims runs `cp -a /old/. /new/`; compare `du -sh` and `find -links +1 | wc -l` on
+   both sides. Delete that claim (its PV is kept by `Retain`) and clear the PV's `claimRef`; delete `data-zot-0`
+   (the old PV is kept the same way); create `data-zot-0` again with `volumeName` on the new PV,
+   `storageClassName: csi-cinder-standard-retain` and a size no larger than the PV's. The StatefulSet's
+   `volumeClaimTemplates` cannot change in place, so change the class and size in
+   `artifacts/zot/statefulset.yaml`, delete the StatefulSet, and apply from git explicitly with
+   `bootstrap/zot-from-git.yaml` (`bootstrap.sh` skips its git path while the suspended Kustomization reports
+   Ready). Then `artifacts/zot/push.sh` and `flux reconcile source oci zot-config -n flux-system`, so the
+   Kustomization does not resume onto the cached artifact with the old template; resume, and delete
+   `zot-bootstrap`. Check: a pull through the Service succeeds, and `openstack-volume get` shows the claim's volume
+   as `Standard`. Delete the old volume after a month. Stopped here: layout 2.
+4. **Worker placement and disk layout, by replacement.** Talos sizes EPHEMERAL and provisions user volumes only
    when it first provisions a machine, and Nova sets server-group membership only at boot, so both arrive the same
    way: a new worker, created in the group, provisioned by Omni with the patch already on it. Three swaps, one
    worker at a time, never fewer than three workers in the cluster. Nothing is reset in place and no rehearsal
@@ -243,7 +290,7 @@ a stand-in can do the rest once it is merged.
       `flavor: m5.large`, `image: dataverket-omni-talos-amd64`, `networks: [infra1-net]`,
       `securityGroups: [default]`, `serverGroup: dataverket-prod-workers`, its siblings' description. The image
       carries the Omni join token of 2026-09-07, so the machine appears in Omni unallocated, provided that token
-      is still active: `omni joinTokens` before the first create (2026-09-20: one token, active, default, six
+      is still active: `omni joinTokens` before the first create (2026-09-30: one token, active, default, six
       machines joined, no expiry), and a new image from the current default token if it is not. A create that fails with no valid
       host is the group doing its job: the zone has no free hypervisor, and that is a conversation with Nexthop
       before a `soft-anti-affinity` retreat.
@@ -255,60 +302,42 @@ a stand-in can do the rest once it is merged.
       `siderolabs/kata-containers` among its extensions; `openstack-server get` shows the group under
       `serverGroups`, a `hostId` unlike the other new workers', and the load balancers' `lb-sg-*` groups, which
       OCCM adds to members by itself; the node is Ready. Anything else: stop, the old worker is untouched and the new one is deleted.
-   4. Retire the old worker, the one with the fewest database instances first (wrkr-3 carries two of Forgejo's
-      today): promote CNPG primaries away (`kubectl cnpg promote`; the primary's PodDisruptionBudget blocks a
-      drain), cordon and drain; every pod on it is Cinder-backed or stateless and reattaches elsewhere.
-      `omni-cluster removeMachine`, which wipes it and returns it to the pool. `openstack-server get` must show
-      `volumesAttached` empty; then `openstack-server delete` by ID (rule 5); only then `omni-cluster
-      forgetMachine`, because a wiped machine that is still running re-registers the moment its entry goes.
-      Then `swamp workflow run fleet-volumes`, so the talosconfig record carries the new node list.
+   4. Retire an old worker, in any order, since every volume is still on Cinder: promote Zitadel's primary away
+      if it is there (`kubectl cnpg promote`; the primary's PodDisruptionBudget blocks a drain), cordon and
+      drain; every pod on it is Cinder-backed or stateless and reattaches elsewhere, Forgejo's database and zot
+      down for the minutes their volumes take. `omni-cluster removeMachine`, which wipes it and returns it
+      to the pool. `openstack-server get` must show `volumesAttached` empty; then `openstack-server delete` by ID
+      (rule 5); only then `omni-cluster forgetMachine`, because a wiped machine that is still running
+      re-registers the moment its entry goes. Then `swamp workflow run fleet-volumes`, so the talosconfig record
+      carries the new node list.
 
    Check after the third swap: three workers, `serverGroups` non-empty on each, three distinct `hostId` values
    across them, which is the placement the group promised, observed; the patch on the machine set. Stopped here: an empty user volume on each of three placed workers, nothing
    uses them.
-3. **Provisioner (decision 014).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
+5. **Provisioner (decision 014).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), class `pg-zitadel-storage` on its mount pattern,
    `WaitForFirstConsumer`. Check: three `local` PVs, one per worker, capacity just under the partition size.
-   Then the gate for step 4: `pgbench` on a user volume against the same run on a Cinder SSD claim, since after the
-   move a Postgres instance shares the root disk's 500 IOPS with image pulls, logs and CI; run it twice, idle and
-   with a CI build and an image pull on the same worker, and the second run is the one that decides. Stopped here: PVs
-   published, nothing bound.
-4. **Both databases to their new layout, one migration per cluster, Zitadel first.** `flux suspend kustomization apps`; scale the app to
-   zero (identity is down for the restore time from step 1); final backup; patch the cluster's Cinder PVs to
-   `Retain`; delete the `Cluster`; wait until `kubectl get pvc -l cnpg.io/cluster=<name>` is empty; commit and
-   apply the same-name `Cluster` (so the `-rw` Service and `-app` Secret keep their names). Zitadel's: `storage.storageClass`
-   set to the local class and `storage.size` below the partition
-   (`10Gi`; the PV reports filesystem capacity, and a claim of the partition size never binds),
-   `instances: 3`, `podAntiAffinityType: required`, `postgresql.synchronous` with `method: any` and `number: 1`,
-   `max_slot_wal_keep_size: 512MB` and `max_wal_size: 1GB`, `enableSuperuserAccess: true` kept. Forgejo's:
-   `instances: 1` on `csi-cinder-sc-delete` with `storage.size: 10Gi`, `max_wal_size: 1GB`, and `enablePDB: false`
-   so that a drain moves it instead of blocking on it. Both: `imageName` pinned to the archive's Postgres major, `bootstrap.recovery` from the store with `recovery.database` and
-   `recovery.owner` set (recovery does not inherit `initdb`'s names), and a new `serverName`. The regenerated Secret
-   has a new password; the scale-up restarts the app with it. Resume Flux.
-   Check: Zitadel's three instances on three workers with `fsGroup 26` ownership on the mounts and no init
-   container, Forgejo's one instance on a 10 GB volume, both apps log in, first backups completed; then delete the
-   six retained PV objects and their Cinder volumes by hand. Stopped here: layout 1.
-5. **versitygw and zot.** Plain manifests in `infrastructure/versitygw/` (decision 012 style): a 100 GB PVC on a new
-   `csi-cinder-standard-retain` class (`parameters.type: Standard`, `csi.storage.k8s.io/fstype: xfs`; xattrs hold
-   the metadata), one replica, `Recreate`, root credentials from an encrypted Secret, `--iam-dir` and a versioning
-   directory on the volume outside the gateway root, ClusterIP only, plain HTTP as decision 013 allows. An init
-   container creates the `zot` bucket (a top-level directory); `bootstrap.sh` checks
-   for it. `infrastructure/` only orders "applied", so add a `healthChecks` entry for the versitygw Deployment to
-   `clusters/production/infrastructure.yaml`. Then zot: `storageDriver` `name: s3` with `regionendpoint` on the
-   Service, `forcepathstyle: true`, `secure: false`, `rootDirectory` on a 10 GB SSD claim, `dedupe: false` (on S3
-   dedupe depends on a local cache database whose loss strands blobs). Migrate, do not start empty: suspend the zot
-   Kustomization, apply the new StatefulSet from git under a new name
-   beside the old one, `skopeo sync --all` through the Service, switch the HTTPRoutes and `apps/zot/source.yaml`,
-   push the artifact, resume (`bootstrap.sh` skips its git path while the suspended Kustomization reports Ready,
-   so apply from git explicitly). Delete the old `Retain` volume after a month. Check: a pull succeeds and the blob is
-   a file in the bucket
-   directory. Stopped here: layout 2.
-6. **Records and models.** Decision 014 is the mechanism. New decisions for: workers placed by a Nova server
-   group and replaced through Omni, never changed in place; Zitadel's database replicated on worker disks and every
-   other database one instance on Cinder; the 16 GiB
-   EPHEMERAL standard; versitygw as in-cluster S3; backups on the hov1 site over the public internet. README layout table;
-   `bootstrap.sh` for the credentials and versitygw ordering. The models this plan runs on are published and
-   pulled from the registry since 2026-09-20: `@dataverket/omnictl` (`inventory` and `cluster`),
+   Then the gate for step 6: `pgbench` on a user volume against the same run on a Cinder SSD claim, with a CI
+   build and an image pull on the same worker, since after the move a Postgres instance shares the root disk's
+   500 IOPS with both. NVMe on bare metal makes this gate moot; here it decides. Stopped here: PVs published,
+   nothing bound.
+6. **Zitadel's database to the worker disks.** The same migration as step 2, in the same order, with
+   `helmrelease zitadel -n zitadel` suspended beside `apps`; git stays up, so Flux could fetch, but the order
+   keeps it from applying half a change. Scale Zitadel to zero (identity is down for the restore time from
+   step 1); final backup; patch the cluster's Cinder PVs to `Retain`; delete the `Cluster`; wait until
+   `kubectl get pvc -l cnpg.io/cluster=zitadel-db` is empty; apply the same-name `Cluster` from the commit: `storage.storageClass` set to the local class and `storage.size`
+   below the partition (`10Gi`; the PV reports filesystem capacity, and a claim of the partition size never
+   binds), `instances: 3`, `podAntiAffinityType: required`, `postgresql.synchronous` with `method: any` and
+   `number: 1`, `max_slot_wal_keep_size: 512MB` and `max_wal_size: 1GB`, `enableSuperuserAccess: true` kept;
+   `imageName`, `bootstrap.recovery` from `serverName: zitadel-db` and a new `serverName` as in step 2, and the
+   manual first backup. Scale up, resume the HelmRelease and `apps`. Check: three instances on three workers with
+   `fsGroup 26` ownership on the mounts and no init container, a login works, the manual backup completed; then delete the three retained PV objects and their Cinder volumes as in step 2. Stopped here:
+   layout 3.
+7. **Records and models.** Decision 014 is the mechanism. New decisions for: workers placed by a Nova server
+   group and replaced through Omni, never changed in place; Zitadel's database replicated on worker disks as the
+   rehearsal for bare metal, and every other database one instance on Cinder; the 16 GiB EPHEMERAL standard;
+   backups on the hov1 site over the public internet. README layout table. The models this plan runs on are
+   published and pulled from the registry since 2026-09-20: `@dataverket/omnictl` (`inventory` and `cluster`),
    `@dataverket/openstack` with `hostId`, and `@dataverket/sops` under the vault. Not needed for this plan,
    since the site's endpoint is an address: a `@dataverket/directadmin` `dns-record` model for names that are not
    cluster services, and the `dvkt.no` credential in `nordhost-config`. Both arrive the day the endpoint gets a name
@@ -321,18 +350,19 @@ no Cinder detach and no taint in the path. Cinder-backed pods on that worker, Fo
 it is there, need the `out-of-service` taint before they move, and are down until their volume reattaches. Losing
 all three workers at once loses Zitadel's database; the hov1 site is the recovery.
 
-**Replacing a worker** is step 2's swap, and it is the only way a worker changes: a new machine in the group,
+**Replacing a worker** is step 4's swap, and it is the only way a worker changes: a new machine in the group,
 the old one retired. It does not self-heal for Zitadel's database: the instance whose volume was on the old node keeps
 a claim bound to a `local` PV on a node that no longer exists (or, under a reused hostname, to an empty
 partition), and CNPG will not re-clone into it. Sequence: `kubectl cnpg destroy <cluster> <n>` for that instance,
 delete the orphaned PV, and CNPG joins a fresh replica on the new worker, where the required anti-affinity and the
-class's `WaitForFirstConsumer` put it. Check: three ready instances, lag zero, the new server in the group.
+class's `WaitForFirstConsumer` put it. Check: three ready instances, lag zero, the new server in the group. It
+runs for the first time in `docs/plans/2026-09-worker-replacement-test.md`, not during an outage.
 
 **Changing EPHEMERAL later** is three swaps with a new patch; a machine never changes its layout in place, so
 the gap a shrunk EPHEMERAL would leave never arises. Plan the cap once anyway: a swap moves every replica.
 So is a flavor change.
 
-**Alerts, seven:** CNPG WAL archiving failing for over two hours, which is the hov1 site unreachable: `max_wal_size`
+**Alerts, six:** CNPG WAL archiving failing for over two hours, which is the hov1 site unreachable: `max_wal_size`
 and the slot budget cap nothing here, Postgres keeps every unarchived segment until the archive takes it, and with
 CNPG's default `archive_timeout` of five minutes a barely busy primary makes a 16 MiB segment every five minutes,
 about 190 MiB an hour, so the smallest headroom, about 9 GiB on Forgejo's 10 GB volume and 10.5 GiB on Zitadel's
@@ -340,25 +370,26 @@ partition, is gone in about two days and the alert leaves most of that to act; t
 site renews a three-year certificate and the reissue is a calendar event; CNPG last successful backup older than 36
 hours; any volume, user volumes included, above 70 percent (`fleet-volumes` on a schedule feeds it for the worker
 disks); WAL retained by a replication slot above 384 MB, below the 512 MB at which the slot is invalidated;
-versitygw Service without endpoints for a minute; any pod Terminating over five minutes.
+any pod Terminating over five minutes.
 
 **Upgrades.** Omni rolls one machine at a time with a drain, and the primary's PodDisruptionBudget blocks that
-drain: promote Zitadel's primary off the machine before each roll, as in step 2. Then one replica is down per
+drain: promote Zitadel's primary off the machine before each roll, as in step 4. Then one replica is down per
 roll, never the service; its pod stays Pending until its node returns, because its volume is pinned there. A
 single-instance database on the rolled machine is down while its volume moves.
 
 ## Future disk expansions
 
 **Databases.** Zitadel's partition is fixed by the flavor: about 12 GiB per worker. The escape hatch is recreating
-the cluster on a Cinder class from the object store, the outage of step 4. At Nexthop every flavor with this CPU and
+the cluster on a Cinder class from the object store, the outage of step 6. At Nexthop every flavor with this CPU and
 RAM has the same 30 GB, so only a larger flavor buys disk: r5.large has 40 GB. Databases on Cinder grow online like
 any volume.
 
-**Cinder.** Every class allows expansion: edit the PVC and wait for the online resize. The versitygw volume
-grows first, as Forgejo LFS and packages move onto it; the 70 percent alert is the trigger.
+**Cinder.** Every class allows expansion: edit the PVC and wait for the online resize. zot's volume grows
+first; the 70 percent alert is the trigger.
 
 **Bare metal and lab clusters** follow the same standard: EPHEMERAL 32 GiB, a separate CRI volume where images
-are large, everything else as user volumes.
+are large, everything else as user volumes. Where an NVMe node has a data disk beside its system disk, the user
+volumes go there, and `diskSelector` is the one line that changes from step 4's patch.
 
 ## Backups
 
@@ -367,8 +398,7 @@ are large, everything else as user volumes.
 - **Repositories:** the push mirror to GitHub for now, which copies the repositories and not what sits beside them
   on the volume (attachments, avatars, `app.ini`). Later kopia of `gitea-shared-storage`, 30 daily and 6 monthly; its snapshot time is the PITR
   target for the database when both must match.
-- **versitygw volume:** none while it holds only registry blobs (mirrors re-copy, artifacts come from git, product
-  images rebuild). When Forgejo LFS, attachments or Zulip's uploads land on it, add it to the kopia CronJob as a directory tree.
+- **zot:** none; mirrors re-copy, artifacts come from git, product images rebuild.
 - **Runner caches:** none.
 
 ## Not in this plan
@@ -376,6 +406,11 @@ are large, everything else as user volumes.
 Compute is 4,596/month against 772 for volumes; public IPs and load balancers are on top. The three control
 planes stay three: etcd replicates for quorum and API availability. That is a separate conversation, and so is
 their placement: they are in no server group either, and placing one is an etcd member replacement.
+
+An in-cluster S3 endpoint, versitygw on Cinder Standard in the earlier revisions, comes with its first writer,
+Zulip's uploads or Forgejo's LFS and packages, in its own plan. Nothing here needs it.
+
+Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026-09-worker-replacement-test.md`.
 
 ## Placement today
 
@@ -396,14 +431,10 @@ their placement: they are in no server group either, and placing one is an etcd 
 | Service | Component | Storage | Class, tier | Size | Redundancy | Backup |
 |---|---|---|---|---|---|---|
 | Forgejo | postgres, CNPG ×1 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | Barman to `213.128.185.82`, PITR |
-| Forgejo | repositories | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | push mirror to GitHub; later kopia to `213.128.185.82` |
-| Forgejo | LFS, attachments, packages (later) | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | kopia of the directory tree, when populated |
+| Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | push mirror to GitHub; later kopia to `213.128.185.82` |
 | Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × ~12 GiB, claim 10Gi | app ×3, one per worker | Barman to `213.128.185.82`, PITR |
 | Zulip (planned) | postgres, CNPG ×1 | Cinder | `csi-cinder-sc-delete`, SSD | sized at install | Cinder ×3 | Barman to `213.128.185.82`, PITR |
-| Zulip (planned) | uploads | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | kopia of the directory tree |
-| versitygw | gateway root, IAM dir, versioning dir | Cinder | `csi-cinder-standard-retain`, Standard, xfs | 100 GB | Cinder ×3 | see rows above |
-| zot | blobs | versitygw | S3 on Cinder Standard | in the 100 GB | Cinder ×3 | none, rebuildable |
-| zot | working dir | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | none |
+| zot | blobs and config | Cinder | `csi-cinder-standard-retain`, Standard | 50 GB at most, twice what it holds | Cinder ×3 | none, rebuildable |
 | Runner, org | docker-lib cache | Cinder, or root disk if local | SSD, or decision 014 | 20 GB | disposable | none |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | Cinder ×3 | none |
 | Control planes ×3 | Talos, etcd | flavor root disk, EPHEMERAL default | c5.large | 3 × 25 GiB | etcd ×3 | Omni etcd backups (decision 003) |
