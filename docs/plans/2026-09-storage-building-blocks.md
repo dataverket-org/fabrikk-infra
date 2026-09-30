@@ -263,6 +263,14 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    third commit removes `forgejo-postgres-first` from `apps/forgejo/backup.yaml`. The first backup is not
    committed: a `Backup` in git is applied with the `Cluster` on a rebuild, fires while the instances recover and
    fails, as the one of 2026-09-20 did, and is never retried.
+
+   **Prepared, 2026-09-30.** The first commit waits on branch `storage-step-2` (`apps/forgejo/postgres.yaml`,
+   image `18.4-system-trixie` as the running instances and the restore test, `hov1-archive` as the recovery
+   source like `backup/restore-test/`), merged the day step 2 runs. Checked against CNPG 1.30.0 and plugin
+   v0.15.0: a server-side dry-run create of it passes; the webhook refuses it on the running cluster (storage
+   cannot shrink from 64Gi, and two bootstrap methods), so a Flux apply before the delete fails and changes
+   nothing; `forgejo-postgres-daily` has no owner reference, so it survives the delete, and its `immediate` run
+   has fired.
 3. **zot to a Standard volume.** A `csi-cinder-standard-retain` class beside the other two in
    `infrastructure/cinder-csi-provider/storageclass.yaml` (`parameters.type: Standard`, the Cinder type's name as
    `openstack-volume-type` records it; `Retain`, expansion allowed). The new claim is 10 GB: on 2026-09-30 zot
