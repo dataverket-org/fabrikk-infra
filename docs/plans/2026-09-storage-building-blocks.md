@@ -185,7 +185,7 @@ Prices, NOK per GB-month ex VAT: SSD 1.99, Standard 0.89, Object 0.49 at no comm
 Layout 3 against the same Zitadel on three 10 GB SSD volumes is 60 / 45 a month: that is what the rehearsal
 saves, and it is not why it is done. Backups cost nothing per month, the hov1 site is paid for; measure the
 archive's size and the WAL rate after a week anyway, they size the site's disk and say how long an outage the
-budget survives. zot's retained SSD volume adds about 100 for the month it is kept. Zulip's database adds its own volume,
+budget survives. zot's old SSD volume was deleted the day it was replaced, so it added nothing. Zulip's database adds its own volume,
 sized when it is installed. Step 4 runs one extra m5.large for the hours each swap takes, three times, a few NOK
 in total.
 
@@ -312,8 +312,9 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    claim `zot-standard`, from when it was created; it is zot's volume, not a leftover. The artifact from `fdbda9d`
    was pushed, the zot Kustomization resumed onto it without recreating the StatefulSet, and `zot-bootstrap` was
    deleted. Checks passed: Flux pulled `zot-config` through the Service, `registry.dataverket.org/v2/` answered.
-   The old 50 GB SSD volume, `bab66a9d-…` (PV `pvc-f31756c6-…`, `Released`, `Retain`), is the way back until
-   2026-10-30, then deleted after `openstack-volume get` on its ID. Stopped here: layout 2.
+   The old 50 GB SSD volume, `bab66a9d-…` (PV `pvc-f31756c6-…`), was deleted the same day after
+   `openstack-volume get` on its ID, instead of kept a month: 44 MiB of rebuildable blobs were not worth 100 NOK
+   as a way back. Cinder holds 156 GB of SSD and 10 GB of Standard. Stopped here: layout 2.
 4. **Worker placement and disk layout, by replacement.** Talos sizes EPHEMERAL and provisions user volumes only
    when it first provisions a machine, and Nova sets server-group membership only at boot, so both arrive the same
    way: a new worker, created in the group, provisioned by Omni with the patch already on it. Three swaps, one
