@@ -21,7 +21,7 @@ is the first site. Everything here is run **from the site directory**: `../versi
 
 | What | Image | Listens | Role |
 |---|---|---|---|
-| `versitygw` | `versity/versitygw:v1.8.0` | `${LISTEN}:${PORT}` (default `0.0.0.0:443`) to 7070 inside, TLS; admin API on 7071, never published | The gateway. `${DATA_DIR}` is the root: every top-level directory a bucket, every file an object, S3 metadata in xattrs. Accounts in the internal IAM directory on the `iam` volume. `/health` for the healthcheck. Runs under an init, since it does not reap children |
+| `versitygw` | `versity/versitygw:v1.8.0` | `${LISTEN}:${PORT}` (default `0.0.0.0:443`) to 7070 inside, TLS; admin API on 7071, plain HTTP, published on the host's loopback only (`${ADMIN_LISTEN}:${ADMIN_PORT}`, default `127.0.0.1:7071`) | The gateway. `${DATA_DIR}` is the root: every top-level directory a bucket, every file an object, S3 metadata in xattrs. Accounts in the internal IAM directory on the `iam` volume. `/health` for the healthcheck. Runs under an init, since it does not reap children |
 | `certs/` | `smallstep/step-cli:0.30.6`, once, in a throwaway container | Nothing | `ca.crt` and `ca.key`, a private root valid three years; `tls.crt` and `tls.key`, the gateway's certificate for `S3_ADDR`, valid three years. versitygw reloads them on SIGHUP |
 
 ## Design decisions
@@ -168,7 +168,7 @@ All run from the site directory; each refuses to run without `.env` there.
 
 | Credential | Held by | Reaches | In clear where |
 |---|---|---|---|
-| Root key pair | `.env`, the operator running `bin/user` | Mints accounts and buckets over the admin API; nothing unattended | `.env`; the shell's argv while `bin/user` runs |
+| Root key pair | `.env`, the operator running `bin/user` | Mints accounts and buckets over the admin API, reachable in the container and on the host's loopback; nothing unattended | `.env`; the shell's argv while `bin/user` runs |
 | Writer key pair (`user` role) | The writer's Secret in the cluster | Its own bucket, nothing else | The gateway's IAM store; the shell for the seconds the pipeline runs; the cluster's etcd |
 | CA key | `certs/ca.key` (0600), the password manager | Signs the gateway's certificate, which every writer trusts for `S3_ADDR` | On the host, unencrypted; whoever holds it can impersonate the endpoint to the writers, and nothing else |
 | CA root | `certs/ca.crt`, the `<site>-s3` Secrets | Trust anchor for every client | Everywhere; public |
@@ -203,4 +203,6 @@ Every client signs with `REGION`; the gateway rejects any other region on the da
 | `REGION` | yes | What every client signs with; `us-east-1` unless there is a reason |
 | `PORT` | no, 443 | Published port |
 | `LISTEN` | no, `0.0.0.0` | Published address on the host |
+| `ADMIN_PORT` | no, 7071 | Host port of the admin API |
+| `ADMIN_LISTEN` | no, `127.0.0.1` | Host address of the admin API. Plain HTTP: never anything but loopback |
 | `CERT_YEARS` | no, 3 | Lifetime of the CA root and of the certificate `bin/cert` makes |

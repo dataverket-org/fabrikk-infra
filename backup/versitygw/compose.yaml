@@ -18,8 +18,9 @@ services:
       - --iam-dir=/iam
       - --region=${REGION:?set in .env}
       - --health=/health
-      # The admin API (create-user and friends) is a separate plain-HTTP listener; it is never published, and
-      # bin/user talks to it from inside this container.
+      # The admin API (create-user and friends) is a separate plain-HTTP listener, signed with the root key pair.
+      # It is published on the host's loopback only (ADMIN_LISTEN, ADMIN_PORT), for tools on the site host;
+      # bin/user still talks to it from inside this container.
       - --admin-port=:7071
       - posix
       - --versioning-dir=/versions
@@ -29,6 +30,7 @@ services:
       ROOT_SECRET_KEY: ${ROOT_SECRET_KEY:?set in .env}
     ports:
       - "${LISTEN:-0.0.0.0}:${PORT:-443}:7070"
+      - "${ADMIN_LISTEN:-127.0.0.1}:${ADMIN_PORT:-7071}:7071"
     volumes:
       - ${DATA_DIR:?set in .env}:/data
       - ${VERSIONS_DIR:?set in .env}:/versions
