@@ -1,6 +1,6 @@
 # Plan: a swamp extension that reads versitygw
 
-Written 2026-09-30. Steps 1 to 3 and the throwaway half of step 4 done the same day (see Progress). Read-only first: every question an operator asks of a gateway, answered as
+Written 2026-09-30. All five steps done the same day (see Progress). Read-only first: every question an operator asks of a gateway, answered as
 data, before any method changes one.
 
 ## Why
@@ -79,7 +79,7 @@ names as arguments (default `ROOT_ACCESS_KEY`, `ROOT_SECRET_KEY`). No vault key.
 
 ## Progress
 
-In `~/kode/swamp-extensions/versitygw/` on `main`, pushed (`86ae2d1`, and `485a450` with the check fix below). Not yet published.
+In `~/kode/swamp-extensions/versitygw/` on `main`, pushed (`86ae2d1`, and `485a450` with the check fix below). Published as 2026.09.30.1 and pinned here.
 
 - Step 1. Six admin routes at v1.8.0, all `PATCH`, SigV4 service `s3`, `x-amz-content-sha256` required, admin role
   only. `list-users` also returns `SessionToken`, `IsSession`, `Arn` and `RoleArn`, which the CLI table hides.
@@ -101,13 +101,15 @@ In `~/kode/swamp-extensions/versitygw/` on `main`, pushed (`86ae2d1`, and `485a4
   a chain verified against `certs/ca.crt`; two accounts and two buckets, `cnpg-forgejo` and `cnpg-zitadel`, each
   `user` and owning its namesake; versioning off, no policy, no object lock. Two inventories identical; `check`
   clean.
-- Step 5, started. The adversarial review found three small things, fixed: no log line on entry, a replaced TLS
+- Step 5, done. The adversarial review found three small things, fixed: no log line on entry, a replaced TLS
   client not closed, an address literal in the README. Validating the fabrikk-infra definition found one more: a
   pre-flight check sees the definition's arguments before the schema's defaults, so a definition without
   `accessKeyName` looked for a variable named "undefined"; the checks now apply the defaults, with two negative
-  tests. `models/@dataverket/versitygw/gateway/hov1-s3.yaml` is written and validates under `pass-cli run`; it is
-  committed with the pin once the extension is published. Without the key, `swamp model validate hov1-s3` fails
+  tests. `models/@dataverket/versitygw/gateway/hov1-s3.yaml` is written and validates under `pass-cli run`, and is
+  committed with the pin. Without the key, `swamp model validate hov1-s3` fails
   the live check by design (`ROOT_ACCESS_KEY is not set in the environment`); `--label policy` skips it.
+  Published by the operator with their review, pulled and pinned here. `hov1-s3` from this repository validates
+  with and without the key (`--label policy` without), and its `inventory` and `check` on hov1 are clean.
 
 Differences from the plan above:
 
@@ -121,6 +123,9 @@ Differences from the plan above:
 - An object-lock bucket has versioning `Enabled` whether or not anyone set it; `check` says so in the finding.
 - v1.8.0 answers `500 InternalError`, not 404, on an admin path that does not exist.
 
-Next: the operator's review report and `swamp extension push`; then `swamp extension pull @dataverket/versitygw`
-here, and one commit with the pin and the model.
+The root key pair is also in `vaults/operator/hov1/root/` now (decision 016). Which copy `pass-cli run` reads is
+step 5 of `docs/plans/2026-09-operator-vault.md`.
+
+Next: the write methods listed as out of scope above, when `bin/user` has been compared against the read side for a
+while.
 

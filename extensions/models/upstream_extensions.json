@@ -302,5 +302,22 @@
     "checksum": "5d7d058bb596f7522656edad6e366b988d2c1f2136b0c7e432c3ee5447f26880",
     "filesChecksum": "697dd74decea7af33428aecb601491d8887829c44e40337b03eae35d1f42fb01",
     "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/versitygw": {
+    "version": "2026.09.30.1",
+    "pulledAt": "2026-09-30T12:08:16.560Z",
+    "files": [
+      ".swamp/bundles/276fc1c3/gateway.js",
+      ".swamp/pulled-extensions/@dataverket/versitygw/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/versitygw/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/versitygw/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/versitygw/models/findings.ts",
+      ".swamp/pulled-extensions/@dataverket/versitygw/models/gateway.ts",
+      ".swamp/pulled-extensions/@dataverket/versitygw/models/parse.ts",
+      ".swamp/pulled-extensions/@dataverket/versitygw/models/transport.ts"
+    ],
+    "checksum": "45b3aa85214eb26775fa571d323a0b6cb417a01d4a889eabc9314abcdae4c7cd",
+    "filesChecksum": "6f70a6936a3bdaefd3aff9c801dc8e8c225002f62a21bec29e3d3549aea66887",
+    "serverUrl": "https://swamp-club.com"
   }
 }
