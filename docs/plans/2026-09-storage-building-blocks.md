@@ -66,8 +66,8 @@ says what comes back and what does not, with the GitHub mirror as Flux's source 
 
 ## Before and after
 
-Today, 2026-09-30: step 1 applied, nothing else. Every volume is a Cinder SSD, and each database keeps three
-copies of itself on three volumes that Cinder copies three times again.
+Before step 2, 2026-09-30 (steps 1 and 2 are applied): every volume a Cinder SSD, and each database keeping
+three copies of itself on three volumes that Cinder copies three times again.
 
 ```mermaid
 flowchart TB
@@ -264,13 +264,20 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    committed: a `Backup` in git is applied with the `Cluster` on a rebuild, fires while the instances recover and
    fails, as the one of 2026-09-20 did, and is never retried.
 
-   **Prepared, 2026-09-30.** The first commit waits on branch `storage-step-2` (`apps/forgejo/postgres.yaml`,
+   **Applied, 2026-09-30.** The first commit was prepared on branch `storage-step-2` (`apps/forgejo/postgres.yaml`,
    image `18.4-system-trixie` as the running instances and the restore test, `hov1-archive` as the recovery
-   source like `backup/restore-test/`), merged the day step 2 runs. Checked against CNPG 1.30.0 and plugin
+   source like `backup/restore-test/`) and landed as `23a375f`. Checked against CNPG 1.30.0 and plugin
    v0.15.0: a server-side dry-run create of it passes; the webhook refuses it on the running cluster (storage
    cannot shrink from 64Gi, and two bootstrap methods), so a Flux apply before the delete fails and changes
    nothing; `forgejo-postgres-daily` has no owner reference, so it survives the delete, and its `immediate` run
-   has fired.
+   has fired. The run: Forgejo down from 13:49:40 to 13:53:25 UTC; the final backup took 5 seconds, the
+   recovery 52, the first backup under `forgejo-postgres-2` 20; the restored cluster held every table, the last
+   action from 13:49. Both backups were `Backup` objects applied by hand (`forgejo-postgres-final`,
+   `forgejo-postgres-2-first`), since no `kubectl cnpg` plugin is installed. The recovery-source commit is
+   `d84928c`. Checks passed: a login through Zitadel, a push, `database:ping`, archiving to `forgejo-postgres-2`.
+   The three 64 GB volumes were deleted the same day after `openstack-volume get` on each ID; Cinder holds 206 GB
+   of SSD, layout 1. Left for 2026-10-14: the `forgejo-postgres` folder in `cnpg-forgejo` deleted by hand and
+   `forgejo-postgres-first` removed from `apps/forgejo/backup.yaml`.
 3. **zot to a Standard volume.** A `csi-cinder-standard-retain` class beside the other two in
    `infrastructure/cinder-csi-provider/storageclass.yaml` (`parameters.type: Standard`, the Cinder type's name as
    `openstack-volume-type` records it; `Retain`, expansion allowed). The new claim is 10 GB: on 2026-09-30 zot
@@ -513,7 +520,7 @@ Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026
 
 | Service | Component | Storage | Class, tier | Size | Used | Redundancy | Node |
 |---|---|---|---|---|---|---|---|
-| Forgejo | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 64 GB | 620 MB | app ×3 on Cinder ×3 | wrkr-3, wrkr-2, wrkr-1 |
+| Forgejo | postgres, CNPG ×1, since 2026-09-30 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 620 MB | Cinder ×3 | wrkr-1 |
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 11 MB | Cinder ×3 | wrkr-2 |
 | Zitadel | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 32 GB | 617 MB | app ×3 on Cinder ×3 | wrkr-1, wrkr-3, wrkr-2 |
 | zot | blobs and config | Cinder | `csi-cinder-sc-retain`, SSD | 50 GB | 44 MiB | Cinder ×3 | wrkr-1 |
