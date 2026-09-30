@@ -153,8 +153,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/talosctl": {
-    "version": "2026.09.29.3",
-    "pulledAt": "2026-09-29T17:32:22.122Z",
+    "version": "2026.09.30.1",
+    "pulledAt": "2026-09-30T12:48:32.937Z",
     "files": [
       ".swamp/bundles/7c616183/node.js",
       ".swamp/pulled-extensions/@dataverket/talosctl/files/LICENSE.md",
@@ -162,10 +162,11 @@
       ".swamp/pulled-extensions/@dataverket/talosctl/manifest.yaml",
       ".swamp/pulled-extensions/@dataverket/talosctl/models/layout.ts",
       ".swamp/pulled-extensions/@dataverket/talosctl/models/node.ts",
+      ".swamp/pulled-extensions/@dataverket/talosctl/models/tables.ts",
       ".swamp/pulled-extensions/@dataverket/talosctl/models/talosctl.ts"
     ],
-    "checksum": "5580a5053040c1fcf82a412af65822f6f835ce897bd8de71a354e7462b6adc5b",
-    "filesChecksum": "b9ee346c84032aa6707a1b6159aeab72becd8cfff5018d9c5326a75e8956540e",
+    "checksum": "652daace14017123d79d11dd75c765a535124508538aa37508789ce156075d0e",
+    "filesChecksum": "995bd66241e63a303127f00d7954c9277a0c85f49e00ce87b6b025f6a89f808b",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/sops": {
