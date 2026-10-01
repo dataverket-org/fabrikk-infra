@@ -121,6 +121,7 @@ in this plan, and until it exists, unattended means read-only or nothing.
 | talos context `dataverket-prod` | The operator's own Omni login | `omnictl talosconfig --cluster dataverket-prod`, renamed to the cluster and merged into `~/.talos/config` | `task admin:talos` |
 | The Omni reader key file | The operator's own Omni login | `omnictl serviceaccount create fabrikk-infra-<operator>-reader --use-user-role=false --role Reader --ttl $TIER2_TTL`; renewal is destroy and create, because `serviceaccount renew` ignores `--ttl` | `task admin:omni-key` |
 | The Omni operator key file | The operator's own Omni login | `omnictl serviceaccount create fabrikk-infra-<operator>-operator --use-user-role=false --role Operator --ttl $TIER2_TTL`, into a key file, never into a vault | `task admin:omni-operator-key`, run deliberately, outside `admin:renew` |
+| The Zitadel reader key file, and the operator key file | The operator's own Zitadel login, in the browser | The device authorization grant, then a machine key for `fabrikk-infra-<operator>-<role>` with an expiry of `TIER2_TTL`; the login's token stays in the process and is revoked at the end | `task admin:zitadel-key`, and `task admin:zitadel-operator-key` run deliberately, outside `admin:renew` |
 | The break-glass talosconfig | The cluster's own Talos CA, reached with an Operator key | Signed offline and stored in `vaults/operator/break-glass/` | `docs/plans/2026-09-break-glass.md`, by hand: permanent, so tier 3, and not a task |
 
 A *session* is the unit this plan keeps using: the stretch of a working day in which an operator has logged in
@@ -223,6 +224,8 @@ tier 2, tier 1 does.
 | `talosctl` | `~/.talos/config` | context `dataverket-prod` | The Omni-proxied talosconfig, which carries no credential of its own | No credential, so nothing to expire; the key file beside it is what has a lifetime |
 | `talosctl`, `omnictl` | `~/.talos/omni/fabrikk-infra-reader.key`, beside the omniconfig | the file, through the type's `serviceAccountKeyFile` argument (step 4) | An Omni service account key, `Reader` role | The shared tier 2 lifetime, 8 hours |
 | `omnictl` | `~/.talos/omni/fabrikk-infra-operator.key`, beside the reader key | the file, the same argument, named only by `omni-cluster` | An Omni service account key, `Operator` role | The shared tier 2 lifetime, minted deliberately and not by `admin:renew` |
+| none, the zitadel models read it | `~/.config/zitadel/fabrikk-infra-reader.json` | the file, through the type's `keyJsonFile` argument | A Zitadel machine key, `IAM_OWNER_VIEWER` | The shared tier 2 lifetime, 8 hours |
+| none, the zitadel models read it | `~/.config/zitadel/fabrikk-infra-operator.json` | the file, the same argument, named only by a definition that writes | A Zitadel machine key, owner of the projects in `ZITADEL_PROJECTS` and of nothing else | The shared tier 2 lifetime, minted deliberately and not by `admin:renew` |
 
 Two of these are already in place under other names: cloud `fabrikk-infra` and the kube contexts `fabrikk-readers`
 and `dataverket-prod-admin`.
@@ -262,6 +265,26 @@ every run, which is the clearest breach of invariant 3 in the repository. Under 
 instead: the reader key for everything that only looks, the operator key file for `applyPatch`, `addMachine`,
 `removeMachine`, `reset` and `upgrade`, which is the one file a session mints deliberately. Neither is a vault
 value, and a method that cannot find its file fails rather than falling back to one.
+
+### Zitadel, added 2026-10-01
+
+The Zitadel models were first written to read a permanent service-user key from the `infra` vault. That is the
+Omni operator key again: a permanent value in tier 3 that opens a door, and after decision 015 a door to the
+cluster. So Zitadel is a tier 2 item like the others. A session mints a machine key with an expiry into a file,
+and the definitions name the file (`docs/plans/2026-09-zitadel-extension.md`).
+
+Two things are different from Omni. The login leaves nothing on disk: the device flow's token lives in the task's
+process and is revoked when the task ends, so `admin:status` reads a key's expiry from the key file and asks
+Zitadel who the key is with the key itself. And the operator key holds no role in the organization. On Zitadel
+4.15.3 `ORG_PROJECT_CREATOR` creates a project and may then not touch it, so the task, as you, makes the operator
+user the owner of the projects named in `ZITADEL_PROJECTS` and of nothing else. That list is the whole of what
+the key can change, and it is in `taskfiles/admin.yml`.
+
+One step cannot be done as a person. The application the browser login goes through has to exist before anyone
+can log in from a task, so `task admin:zitadel-bootstrap` acts once as `iam-admin`, the machine user the chart
+makes at install. Its key is in a Secret in the cluster, which is tier 3, and the task reads it through the admin
+kube context, which is tier 2, holds it in memory and writes it nowhere. That key and its token are permanent
+until 2029 and nothing else uses them. What becomes of them is open: see the Zitadel plan.
 
 ### Tier 3: one key per decrypting process
 
@@ -401,6 +424,8 @@ every encrypted file and fails when a key appears on the wrong side. Steps 8 to 
 |---|---|---|---|
 | Every tier 2 item: admin and readers kubeconfig, Omni reader key, application credential | 8 h, one lifetime (`TIER2_TTL`) | `task admin:renew`, all in one session when any has less than a quarter of its lifetime left, or on `RENEW=1`; the old application credential is deleted after the new entry answers | `task admin:status` lists each item's owner and remaining time; before that, a model's CLI fails to authenticate |
 | Omni operator key | The shared tier 2 lifetime | `task admin:omni-operator-key`, before changing a cluster; never by `admin:renew` | `task admin:status` lists it when present; `omnictl serviceaccount list` shows the expiry |
+| Zitadel reader key | The shared tier 2 lifetime | `task admin:renew` with the rest; the new key is checked before the old ones are deleted | `task admin:status` reads the expiry from the key file |
+| Zitadel operator key | The shared tier 2 lifetime | `task admin:zitadel-operator-key`, before changing Zitadel; never by `admin:renew` | `task admin:status` lists it when present |
 | Break-glass talosconfig, `vaults/operator/break-glass/` | Until the Talos CA is rotated | Never; using it obliges a CA rotation and a re-mint | `docs/plans/2026-09-break-glass.md` |
 | Repo key `swamp-fabrikk-infra` | Until the host is rebuilt | A human: new key, `sops updatekeys` over `vaults/infra/`, new name if the repo moves | Never automatic |
 | Cluster key `cluster-dataverket-prod` | The cluster's life | `bootstrap.sh` on a new cluster (decision 003) | A new cluster |

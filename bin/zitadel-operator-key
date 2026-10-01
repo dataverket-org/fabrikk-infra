@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#
+# The Zitadel operator machine user for this repository and its key file,
+# which only a definition that writes names. The user owns the projects named
+# in ZITADEL_PROJECTS and nothing else: no other project, no user, no setting.
+# It is tier 2 like the reader key and under the same lifetime, but it is
+# minted deliberately rather than with the rest: an ordinary session holds no
+# key that can write to Zitadel, and `task admin:logout` removes this one. Run
+# it when you are about to change something. The projects are handed over
+# when the key is minted, so after changing the list, run it with RENEW=1.
+# Safe to rerun at any time.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+#
+# Mints the operator key and, in the same login, makes its user the owner of
+# the named projects.
+#
+function ensure_operator()
+{
+	ensure_zitadel_key "$me-operator" "" "" "$zitadel_operator_key_file" \
+		"Changes the $repo projects for the models; one key, $tier2_ttl" ||
+		return $?
+
+	# Without a token nothing was minted: the key is current, or hand-made.
+	[[ -n "$zitadel_token" ]] || return 0
+
+	# shellcheck disable=SC2086  # a space-separated list on purpose
+	ensure_project_owner \
+		"$(jq -r '.userId // empty' "$zitadel_operator_key_file")" \
+		$zitadel_projects
+}
+
+announce_files "$zitadelconfig" "$zitadel_operator_key_file"
+require_tools curl jq yq openssl || exit $?
+require_zitadel_context || exit $?
+[[ "$zitadel_projects" =~ [^[:space:]] ]] ||
+	fail "ZITADEL_PROJECTS names no project; the key would own nothing"
+
+warn "This key can change these projects at $zitadel_url: $zitadel_projects"
+warn "It lives $tier2_ttl and is removed by task admin:logout"
+
+ensure_operator
+status=$?
+zitadel_logout
+
+(( status == 0 )) || fail "The operator key does not answer at $zitadel_url!"

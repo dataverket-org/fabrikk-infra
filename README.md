@@ -37,7 +37,7 @@ The reasons behind each step are in `docs/decisions/`.
 `task` lists them. One namespace per group. The `admin:` group is one *session*: the stretch of a working day in
 which an operator has logged in and the short-lived credentials exist, opened deliberately and closed or expired at
 the end of it. The Proton Pass session, the shell it may open and the Omni login are parts of it, not other things
-with the same name. It runs on the swamp host with your own Omni and OpenStack logins, writes the credentials the
+with the same name. It runs on the swamp host with your own Omni, OpenStack and Zitadel logins, writes the credentials the
 models then use by name, touches only config files in your home directory, and never reads the swamp vault. The
 design behind it is `docs/plans/2026-09-credential-tiers.md`. What comes after it, in order: the second door in
 `docs/plans/2026-09-break-glass.md`, then Kubernetes authentication in `docs/plans/2026-09-kubernetes-identity.md`.
@@ -50,6 +50,9 @@ design behind it is `docs/plans/2026-09-credential-tiers.md`. What comes after i
 | `task admin:renew` | Every credential of ours, in order, when any one of them is due. `RENEW=1` renews them now. |
 | `task admin:omni-key`, `admin:kube-admin`, `admin:kube-readers`, `admin:talos`, `admin:openstack` | One credential each, to run alone. |
 | `task admin:omni-operator-key` | The one key that can change a cluster. Run deliberately; `admin:renew` leaves it out and `admin:logout` removes it. |
+| `task admin:zitadel-key` | The Zitadel reader key the zitadel models name. It reads the whole instance and changes nothing. A renewal logs you in through the browser; a current key opens nothing. Part of `admin:renew`. |
+| `task admin:zitadel-operator-key` | The Zitadel key that can write, and only to the projects named in `ZITADEL_PROJECTS`. Run deliberately; `admin:renew` leaves it out and `admin:logout` removes it. After changing the list, run it with `RENEW=1`. |
+| `task admin:zitadel-bootstrap` | Once per instance, and on a host whose config lacks the client id: the organization's name, the admin project and the application the browser login goes through. It acts as the machine user the chart made at install, whose key it reads from the cluster for that run and writes nowhere. |
 | `task check-recipients` | Every encrypted file is encrypted to the recipients its rule names, and to nobody else. `bootstrap.sh` runs it first, `admin:renew` before it mints anything. |
 
 The `decisions:` group is the records in `docs/decisions/`. `task decisions` lists them with their audit status, so
@@ -58,23 +61,31 @@ it in `$EDITOR`; `decisions:index` rewrites the generated index.
 
 Settings are environment variables, not options: `RENEW=1`, `DEBUG=1`, `TIER2_TTL` for the shared lifetime,
 and `OPERATOR` for the name a provider records you under, which defaults to `$USER`.
-What this repository administers, its cluster and the names its two logins go by, is not a setting but a fact,
+What this repository administers, its cluster and the names its three logins go by, is not a setting but a fact,
 and `taskfiles/admin.yml` sets it; `bin/` and `share/admin/` name no cluster and no cloud of their own.
 
-Both logins are named, never addressed, the way a kube context is: the tasks pass `omnictl --context` and
-`openstack --os-cloud`, and each CLI reads the address and the identity out of your own config file. So the two
-addresses below are yours to put there once, and no script here ever passes a URL:
+The logins are named, never addressed, the way a kube context is: the tasks pass `omnictl --context` and
+`openstack --os-cloud`, and each CLI reads the address and the identity out of your own config file. Zitadel has
+no CLI, so its config is a file the tasks read themselves, in the same shape. So the addresses below are yours to
+put there once, and no script here names one:
 
 | Your file | Name the tasks use | Where it points |
 |---|---|---|
 | `~/.talos/omni/config` | context `default` | `https://dataverket.eu-central-1.omni.siderolabs.io`, with `omnictl config new --url <that>` |
 | `~/.config/openstack/clouds.yaml` | cloud `nexthop` | `https://identity-api.nexthop.no:5000/v3`, your own Keystone login, never an application credential |
+| `~/.config/zitadel/config.yaml` | context `default` | `url: https://zitadel.dataverket.org` and `login_url: https://zitadel.dataverket.org/ui/v2/login` under `contexts.default`; `task admin:zitadel-bootstrap` adds `client_id` |
 
-If your own config uses other names, export `OMNI_CONTEXT` or `OS_CLOUD`; a shell wins over the Taskfile.
+If your own config uses other names, export `OMNI_CONTEXT`, `OS_CLOUD` or `ZITADEL_CONTEXT`; a shell wins over the
+Taskfile.
+
+The Zitadel login is the device flow: the task prints an address and a code, and you confirm in the browser as
+yourself. The token that comes back stays in that process, is revoked when the task ends, and is never written.
+`login_url` is there because Zitadel sends a device code to its old login UI, where a passkey registered in the
+new one is refused.
 
 Two operators on one cluster share every file: the same key paths, the same kube context names, the same cloud
 entry, because a model definition in git names them and reads the same for both. What a provider stores under its
-own name carries the operator — `fabrikk-infra-<you>-reader` in Omni, `fabrikk-infra-<you>-admin` as a kube
+own name carries the operator — `fabrikk-infra-<you>-reader` in Omni and in Zitadel, `fabrikk-infra-<you>-admin` as a kube
 subject, `fabrikk-infra-<you>-<timestamp>` as an OpenStack application credential — so its listing says who to ask,
 and renewing yours cannot destroy theirs.
 

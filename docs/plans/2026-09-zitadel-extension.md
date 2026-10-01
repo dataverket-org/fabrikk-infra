@@ -1,9 +1,9 @@
 # Plan: a swamp extension that administers Zitadel
 
-Written 2026-09-29. The extension is built, unit tested, and exercised against a throwaway Zitadel 4.19.3 in
-podman. It is published as `@dataverket/zitadel` 2026.09.29.2 and pulled here, and seven models name it. What is
-left is the service-user credential for the real instance, which only a person can mint, and the verification
-that follows it.
+Written 2026-09-29, updated 2026-10-01. The extension is built, unit tested, and exercised against a throwaway
+Zitadel 4.19.3 in podman. It is published as `@dataverket/zitadel` and pulled here at 2026.10.01.1, and seven
+models name it. Every read method has run against the real instance on 4.15.3. What is left is the write path on
+a throwaway project, and a release that waits for its review.
 
 ## Why
 
@@ -91,33 +91,68 @@ that exists without touching the real instance.
 
 ## What is left
 
-1. **A service user in Zitadel**, minted by a person: a machine user with `ORG_OWNER` (or `ORG_PROJECT_CREATOR`
-   plus `ORG_USER_MANAGER` for a key that only provisions), and a JSON key downloaded from its page.
-2. **The key into the vault**, by the person who downloaded it, since a value never reaches an agent's argument:
+1. **A service user in Zitadel.** Done 2026-10-01, and not as first written. A permanent key with `ORG_OWNER` in
+   the `infra` vault would have been the Omni operator key again, so the credential is a tier 2 item: a session
+   mints a key that expires (`docs/plans/2026-09-credential-tiers.md`, "Zitadel"). The reader is
+   `fabrikk-infra-<operator>-reader` with `IAM_OWNER_VIEWER`. The operator is `fabrikk-infra-<operator>-operator`,
+   owner of the projects in `ZITADEL_PROJECTS`.
+2. **The key where the models find it.** Done 2026-10-01: `task admin:zitadel-key` writes
+   `~/.config/zitadel/fabrikk-infra-reader.json`, and nothing goes in the vault.
+3. **Publish and pull.** Done: 2026.09.29.2, then 2026.10.01.1, which expands a leading `~/` in `keyJsonFile`.
+   2026.10.01.2 is committed (`6c064af`) and waits for its review report.
+4. **Model definitions.** Done (`dd7fcc4`, then `fc133d1`), under `models/@dataverket/zitadel/`, one per type, all
+   pointing at `https://zitadel.dataverket.org` and `keyJsonFile: '~/.config/zitadel/fabrikk-infra-reader.json'`.
+5. **Verify against the instance.** The read methods are done, below. Left: the write path on a throwaway
+   project, walking the deletes back down and checking that a wrong `confirm` is refused and `dryRun` changes
+   nothing. It needs the operator key, with the throwaway project added to `ZITADEL_PROJECTS` for that session,
+   and each write approved first.
 
-   ```sh
-   swamp vault put infra zitadel/key_json "$(cat ~/Downloads/<the key>.json)"
-   ```
+## What ran on 2026-10-01
 
-   Or keep it out of the vault entirely and let the definitions name the file with `keyJsonFile`.
-3. **Publish** `swamp extension push manifest.yaml --yes` from `~/kode/swamp-extensions/zitadel`, then
-   `swamp extension pull @dataverket/zitadel --yes` here. Done: 2026.09.29.2.
-4. **Model definitions**, done (`dd7fcc4`), under `models/@dataverket/zitadel/`, one per type, all pointing at
-   `https://zitadel.dataverket.org` and `${{ vault.get('infra', 'zitadel/key_json') }}` — quoted arguments,
-   which is the spelling `swamp model validate` recognizes.
-5. **Verify against the instance**: the read methods first, then the write path on a throwaway project, walking
-   the deletes back down and checking that a wrong `confirm` is refused and `dryRun` changes nothing. The same
-   suite runs against a real instance by pointing the models at it, though the destructive batches want a project
-   of their own.
+Against `https://zitadel.dataverket.org`, Zitadel 4.15.3, with the reader key and 2026.10.01.1:
+
+| Type | Read methods that ran |
+|---|---|
+| `org` | `get`, `list`, `managerList` |
+| `project` | `list`; `get`, `roleList` and `projectGrantList` on three projects |
+| `app` | `list` on three projects, `get` on two applications, `keyList` |
+| `user` | `list`, also machines only; `get`, `patList`, `keyList` and `metadataList` on a person and a machine; `authFactorList`, `idpLinkList` |
+| `grant` | `list`, also narrowed to one project and to one user |
+| `action` | `list`, `executionList`, `catalog` |
+| `settings` | `read` for the organization and for the instance |
+
+None of them met an API mismatch on 4.15.3. `IAM_OWNER_VIEWER` was enough for all of it, the instance-level
+reads included. A project, an application, a user and a target that do not exist each failed with a message that
+names them. `action get`, `action keyList` and `projectGrantMemberList` had nothing to read, since the instance
+has no targets and no project grants, so only their not-found paths ran.
+
+Three things the reads found:
+
+- **`grant list` named its records by id** while `ensure` names them by username and project. Fixed in
+  2026.10.01.2: both use the names, and an id stands in only where Zitadel sends none.
+- **An application's `authMethod` read as nothing when it was `basic`**, because Zitadel omits a default. Fixed in
+  2026.10.01.2, for OIDC and API applications.
+- **The chart made an owner at install.** A machine user `iam-admin` with a key and a token valid until
+  2029-01-01, in Secrets `iam-admin` and `iam-admin-pat` in the `zitadel` namespace. No workload uses them.
+  `task admin:zitadel-bootstrap` uses the key once per instance. Whether the key then moves to
+  `vaults/operator/break-glass/` and the token is revoked is not decided.
+
+The write path has been walked on a throwaway Zitadel 4.15.3 in podman, not on the real instance: the operator
+key added an application and a role to a project it owns and was refused on every other project, and `ensureOidc`
+made the login application and reported `unchanged` on a second run.
+
+One write was tried on the real instance by mistake: `project ensure` with the reader key, to show it is refused.
+It was refused, and a project list afterwards showed nothing new.
 
 ## What is still untested
 
-**The version the cluster runs.** Chart 10.0.4 pins Zitadel **v4.15.3**; every live run here was against v4.19.3.
-All four API mismatches above were version-specific behaviour, so the first thing to do against the real instance
-is the read-only batches, before anything writes.
+**The write path on the real instance**, as step 5 says.
 
-Also out of scope and untried: SAML applications, instance-wide policy writes through the v1 Admin API (deliberate
-— a key that can read every policy is smaller than one that can weaken them), identity providers and login
+**The release that fixes the two findings** has run from source against the throwaway 4.15.3 instance, and not
+yet from the registry.
+
+Also out of scope and untried: SAML applications, instance-wide policy writes through the v1 Admin API (deliberate:
+a key that can read every policy is smaller than one that can weaken them), identity providers and login
 policies, and the MFA registration flows, which need the person present anyway.
 
 ## Not in this plan

@@ -10,7 +10,8 @@
 source "${0%/*}/../share/admin/admin.sh" || exit $?
 
 key="$(omni_login_key)"
-announce_files "$omniconfig" "$key and $operator_key_file (removed)"
+announce_files "$omniconfig" \
+	"$key, $operator_key_file and $zitadel_operator_key_file (removed)"
 require_tools pass-cli yq || exit $?
 
 if pass-cli info >/dev/null 2>&1; then
@@ -32,6 +33,14 @@ if [[ -f "$operator_key_file" ]]; then
 	log "Removed the Operator key; nothing here can change a cluster now"
 else
 	log "No Operator key on this host"
+fi
+
+if [[ -f "$zitadel_operator_key_file" ]]; then
+	rm -f "$zitadel_operator_key_file" ||
+		fail "Could not remove $zitadel_operator_key_file!"
+	log "Removed the Zitadel operator key; nothing here can write to Zitadel now"
+else
+	log "No Zitadel operator key on this host"
 fi
 
 log "The rest of tier 2 is untouched and expires by itself; admin:status shows when"

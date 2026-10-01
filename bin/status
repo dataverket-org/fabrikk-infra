@@ -128,6 +128,48 @@ function key_row()
 }
 
 #
+# Prints one Zitadel key file: the directory, the file a definition names in
+# keyJsonFile, and the machine user the key answers as. The expiry is read
+# from the file; who it is, from Zitadel with the key itself, so no login as
+# you is needed.
+#
+function zitadel_key_row()
+{
+	local file="$1"
+	local account="$2"
+	local absent="$3"
+	local left holder
+
+	if [[ ! -s "$file" ]]; then
+		row "$(short_path "${file%/*}")/" "${file##*/}" absent - - "$absent"
+		return
+	fi
+
+	left="$(key_file_seconds_left "$file")"
+
+	if (( left <= 0 )); then
+		row "$(short_path "${file%/*}")/" "${file##*/}" ours expired \
+			"$(expires_in "$left")" "$account"
+		return
+	fi
+
+	if ! zitadel_context_present; then
+		holder="no context $zitadel_context in $(short_path "$zitadelconfig")"
+	else
+		holder="$(key_file_username "$file")"
+	fi
+
+	if [[ "${holder:-$account}" != "$account" ]]; then
+		row "$(short_path "${file%/*}")/" "${file##*/}" hand-made \
+			"$(humanize "$left")" "$(expires_in "$left")" "$holder, left alone"
+	else
+		row "$(short_path "${file%/*}")/" "${file##*/}" ours \
+			"$(humanize "$left")" "$(expires_in "$left")" \
+			"${holder:-$account, does not authenticate}"
+	fi
+}
+
+#
 # Prints the cloud entry the openstack models name, and the application
 # credential behind it.
 #
@@ -245,7 +287,11 @@ function tier2_status()
 		key_row "$reader_key_file" "$me-reader" Reader "a session mints it"
 		key_row "$operator_key_file" "$me-operator" Operator \
 			"an ordinary session has none"
-		cloud_row)"
+		cloud_row
+		zitadel_key_row "$zitadel_reader_key_file" "$me-reader" \
+			"a session mints it"
+		zitadel_key_row "$zitadel_operator_key_file" "$me-operator" \
+			"an ordinary session has none")"
 
 	echo "TIER 1  what you logged in with"
 	row PATH NAME OWNER LEFT EXPIRES DETAIL
@@ -267,7 +313,7 @@ function tier2_status()
 	# The row is matched by its path, which is the only place its name appears.
 	total="$(printf '%s\n' "$table" | grep -c .)"
 	due="$(printf '%s\n' "$table" | grep -cE ' expired ')"
-	due=$(( due + $(printf '%s\n' "$table" | grep -v 'operator\.key ' |
+	due=$(( due + $(printf '%s\n' "$table" | grep -vE 'operator\.(key|json) ' |
 	                grep -cE ' absent ') ))
 
 	if (( due )); then

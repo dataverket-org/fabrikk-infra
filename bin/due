@@ -27,6 +27,10 @@ function due_items()
 	left="$(service_account_seconds_left "$me-reader")"
 	(( left > renew_before )) || echo "Omni reader key"
 
+	# Read from the key file, since asking Zitadel as you means a browser.
+	left="$(key_file_seconds_left "$zitadel_reader_key_file")"
+	(( left > renew_before )) || echo "Zitadel reader key"
+
 	credential="$(current_credential_id)"
 	record="$(credential_record "$credential")"
 

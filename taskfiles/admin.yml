@@ -3,15 +3,15 @@ version: '3'
 #
 # Tier 1 of the credential tiers (docs/plans/2026-09-credential-tiers.md): the
 # operator's session on the swamp host. Every task here runs as you, with
-# your own Omni and OpenStack logins, and writes only tier 2 files. None of
+# your own Omni, OpenStack and Zitadel logins, and writes only tier 2 files. None of
 # them reads or writes the swamp vault, and none needs swamp on PATH.
 #
 # One task per tier 2 item, each safe to rerun and able to run alone.
 # `admin:renew` asks once whether any item is due and, if one is, renews them
 # all in that order, so they expire together and you log in once a day.
-# `admin:omni-operator-key` is the exception and is not in that list: it mints
-# the one key that can change a cluster, so it is run deliberately, when you
-# are about to, and `admin:logout` removes it.
+# `admin:omni-operator-key` and `admin:zitadel-operator-key` are the exceptions
+# and are not in that list: each mints a key that can change something, so it
+# is run deliberately, when you are about to, and `admin:logout` removes it.
 #
 # Settings are environment variables, not options:
 #
@@ -32,11 +32,12 @@ version: '3'
 # is how an operator whose own config uses other names, or a test pointing
 # somewhere else, gets its way for one run.
 #
-# The two logins are named, never addressed: OMNI_CONTEXT is a context in your
-# omniconfig and OS_CLOUD an entry in your clouds.yaml, exactly as a kube
-# context is named, and each CLI reads the address and the identity out of its
-# own config. Nothing here is a URL. Where these services answer is in the
-# README, for a person setting their own config up once.
+# The three logins are named, never addressed: OMNI_CONTEXT is a context in
+# your omniconfig, OS_CLOUD an entry in your clouds.yaml and ZITADEL_CONTEXT a
+# context in your Zitadel config, exactly as a kube context is named, and the
+# address and the identity are read out of that config. Nothing here is a URL.
+# Where these services answer is in the README, for a person setting their own
+# config up once.
 #
 
 env:
@@ -44,6 +45,12 @@ env:
   CLUSTER: dataverket-prod
   OMNI_CONTEXT: default
   OS_CLOUD: nexthop
+  ZITADEL_CONTEXT: default
+  # The projects the Zitadel operator key owns, and so the whole of what it can
+  # change. The first holds the application these tasks log in through.
+  ZITADEL_PROJECTS: fabrikk-infra-admin
+  ZITADEL_ORG: Operators
+  ZITADEL_NAMESPACE: zitadel
 
 tasks:
   default: { cmds: [{ task: status }] }
@@ -74,6 +81,8 @@ tasks:
       - task: talos
         vars: { RENEW: '{{.RENEW}}' }
       - task: openstack
+        vars: { RENEW: '{{.RENEW}}' }
+      - task: zitadel-key
         vars: { RENEW: '{{.RENEW}}' }
       - cmd: echo ">>> Tier 2 on this host is current"
         silent: true
@@ -106,4 +115,18 @@ tasks:
   openstack:
     desc: "Cloud entry <repo> in clouds.yaml and its application credential"
     cmds: [bin/openstack]
+    env:  { RENEW: '{{.RENEW}}' }
+
+  zitadel-bootstrap:
+    desc: "Once per instance: the organization's name, the admin project, the login application"
+    cmds: [bin/zitadel-bootstrap]
+
+  zitadel-key:
+    desc: "Zitadel reader machine user and the key file the zitadel models name"
+    cmds: [bin/zitadel-key]
+    env:  { RENEW: '{{.RENEW}}' }
+
+  zitadel-operator-key:
+    desc: "Zitadel operator key, deliberately: it owns the named projects"
+    cmds: [bin/zitadel-operator-key]
     env:  { RENEW: '{{.RENEW}}' }

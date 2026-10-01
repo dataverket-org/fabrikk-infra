@@ -4,9 +4,10 @@
 # Sourced, never run.
 #
 # Tier 1 (docs/plans/2026-09-credential-tiers.md) runs as the operator with
-# the operator's own identities, the Omni browser login and the OpenStack
-# login, and writes only tier 2 files: kube and talos contexts, an Omni Reader
-# key file, a clouds.yaml cloud. It never reads or writes the swamp vault and
+# the operator's own identities, the Omni browser login, the OpenStack login
+# and the Zitadel browser login, and writes only tier 2 files: kube and talos
+# contexts, an Omni Reader key file, a clouds.yaml cloud, a Zitadel reader key
+# file. It never reads or writes the swamp vault and
 # does not need swamp on PATH; what swamp keeps in tier 3 is put there by hand.
 #
 # Every tier 2 item has the same lifetime, a working day, and `task admin:renew`
@@ -34,6 +35,10 @@
 #	CLUSTER		The cluster
 #	OMNI_CONTEXT	The context in your omniconfig that reaches our Omni
 #	OS_CLOUD	The clouds.yaml entry you log in to our cloud with
+#	ZITADEL_CONTEXT	The context in your Zitadel config that reaches our Zitadel
+#	ZITADEL_PROJECTS	The Zitadel projects the operator key owns, space separated
+#	ZITADEL_ORG	The name of the organization the operators are in
+#	ZITADEL_NAMESPACE	The namespace Zitadel runs in, for the bootstrap
 #	SWAMP_CLOUD	The clouds.yaml entry we write (default the repo name)
 #
 # Settings for one run, yours to set:
@@ -84,7 +89,7 @@ function require_settings()
 # does. Where these services actually answer is therefore stated once in the
 # README, for a person setting their own config up, and never passed to a CLI
 # by these scripts.
-require_settings SWAMP_REPO CLUSTER OMNI_CONTEXT OS_CLOUD
+require_settings SWAMP_REPO CLUSTER OMNI_CONTEXT OS_CLOUD ZITADEL_CONTEXT
 
 repo="$SWAMP_REPO"
 id="$repo"                          # what a definition names: shared, in git
@@ -115,6 +120,16 @@ cluster="$CLUSTER"
 omni_context="$OMNI_CONTEXT"
 # shellcheck disable=SC2153
 human_cloud="$OS_CLOUD"             # the entry you log in with, as you
+# shellcheck disable=SC2153
+zitadel_context="$ZITADEL_CONTEXT"
+zitadel_projects="${ZITADEL_PROJECTS:-}"
+zitadel_org="${ZITADEL_ORG:-}"
+zitadel_namespace="${ZITADEL_NAMESPACE:-}"
+
+# The application the tasks log in through, in the first of the projects, and
+# the machine user the chart makes at install, whose Secret carries its name.
+zitadel_login_app="cli"
+zitadel_install_user="iam-admin"
 os_cloud="${SWAMP_CLOUD:-$repo}"    # the cloud the openstack models name
 
 # Read from the named omniconfig context by require_omni_context, for the calls
@@ -138,6 +153,22 @@ reader_key_file="$HOME/.talos/omni/$id-reader.key"
 # change a cluster. Only the mutating omni model names this file.
 operator_key_file="$HOME/.talos/omni/$id-operator.key"
 clouds="$HOME/.config/openstack/clouds.yaml"
+
+# Zitadel has no CLI, so this config is ours to read: a context by name, with
+# the address and the client to log in through, and no secret (zitadel.sh).
+# Both are read from it by zitadel_context_present. The login's token is kept
+# in this process, in zitadel_token, and in no file.
+zitadelconfig="${ZITADELCONFIG:-$HOME/.config/zitadel/config.yaml}"
+zitadel_url=""
+zitadel_client_id=""
+zitadel_login_url=""
+zitadel_token=""
+
+# The two Zitadel key files, as with Omni: the reader in every session, the
+# operator minted deliberately and removed at logout. The zitadel models name
+# the first; only a definition that writes names the second.
+zitadel_reader_key_file="$HOME/.config/zitadel/$id-reader.json"
+zitadel_operator_key_file="$HOME/.config/zitadel/$id-operator.json"
 
 # The one kubeconfig and the one talosconfig, for us and for the CLIs alike:
 # omnictl writes to KUBECONFIG when set, kubectl reads every path in it, and
@@ -183,6 +214,7 @@ source "$admin_dir/omni.sh"
 source "$admin_dir/kube.sh"
 source "$admin_dir/talos.sh"
 source "$admin_dir/openstack.sh"
+source "$admin_dir/zitadel.sh"
 
 #
 # Prints the files an action reads and the files it may write, before it

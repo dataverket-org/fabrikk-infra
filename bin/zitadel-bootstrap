@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+#
+# What has to exist in Zitadel before anybody can log in to it from these
+# tasks: the organization under its name, the admin project, and in it the
+# application the device login goes through. Nobody can log in to make them,
+# so this once acts as the machine user the chart made at install, whose key
+# is in a Secret that the admin kube context reads. The key is held in this
+# process and written nowhere. The client id that comes out is written into
+# your Zitadel config, which must name the address already.
+#
+# Run it once per instance, and again on a host whose config lacks the
+# client id. Everything else is done as yourself, through the browser. Safe
+# to rerun at any time: what exists is left as it is.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+#
+# Does the whole of the bootstrap with the install key's token, and writes
+# the client id. The token is assigned at top level by the caller.
+#
+function bootstrap()
+{
+	local project client_id
+
+	if [[ -n "$zitadel_org" ]]; then
+		ensure_org_name "$zitadel_org" || return $?
+	fi
+
+	project="$(ensure_project "$admin_project")" || return $?
+	log "Project $admin_project is there"
+	client_id="$(ensure_login_app "$project" "$zitadel_login_app")" ||
+		return $?
+	log "Application $zitadel_login_app is there, client id $client_id"
+
+	write_zitadel_client_id "$client_id" || return $?
+	log "Wrote the client id to $zitadelconfig, context $zitadel_context"
+}
+
+admin_project="${zitadel_projects%% *}"
+
+announce_files "$kubeconfig (context $cluster-admin), $zitadelconfig" \
+	"$zitadelconfig"
+require_tools kubectl curl jq yq openssl || exit $?
+require_settings ZITADEL_NAMESPACE ZITADEL_PROJECTS
+
+zitadel_context_present
+[[ -n "$zitadel_url" ]] ||
+	fail "$zitadelconfig names no url under contexts.$zitadel_context;" \
+	     "write that one line first, the address is in the README"
+
+warn "Acting as $zitadel_install_user, the owner the chart made at install"
+warn "Its key is read from the cluster for this run and written nowhere"
+
+zitadel_token="$(key_json_token "$(zitadel_install_key)")"
+[[ -n "$zitadel_token" ]] ||
+	fail "The key in Secret $zitadel_namespace/$zitadel_install_user does" \
+	     "not authenticate at $zitadel_url!"
+
+bootstrap
+status=$?
+zitadel_token=""                    # a machine's token; it expires by itself
+
+(( status == 0 )) || fail "The bootstrap of $zitadel_url did not finish!"
+log "Next: task admin:zitadel-key, which logs in as you"

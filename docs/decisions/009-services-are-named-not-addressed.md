@@ -79,3 +79,20 @@ Follows 001.
 `clouds.yaml` entry.
 
 **Action Required:** None.
+
+### 2026-10-01
+
+**Status:** Implemented
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| Zitadel is named by `ZITADEL_CONTEXT`, resolved from `~/.config/zitadel/config.yaml` | `taskfiles/admin.yml`, `share/admin/zitadel.sh` | done |
+| Zitadel has no CLI, so the tasks read that file themselves; it holds an address and a client id and no secret | `share/admin/zitadel.sh` | accepted |
+| No URL in any script | `grep -rn "https://" bin/ share/` | verified: empty |
+
+**Summary:** A fifth service, in the same shape. The one difference is who resolves the name: the tasks, since
+there is no CLI to do it.
+
+**Action Required:** None.

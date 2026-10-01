@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#
+# The Zitadel reader machine user for this repository and its key file, which
+# the zitadel models name. The user reads the whole instance and can change
+# nothing. Created when it is missing, given a new key with the rest when due
+# or when the key file no longer authenticates, otherwise left alone, and then
+# nothing opens a browser. Safe to rerun at any time.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+announce_files "$zitadelconfig" "$zitadel_reader_key_file"
+require_tools curl jq yq openssl || exit $?
+require_zitadel_context || exit $?
+
+ensure_zitadel_key "$me-reader" "$zitadel_reader_members" \
+	"$zitadel_reader_role" "$zitadel_reader_key_file" \
+	"Reads the instance for the $repo models; one key, $tier2_ttl"
+status=$?
+zitadel_logout
+
+(( status == 0 )) || fail "The reader key does not answer at $zitadel_url!"
