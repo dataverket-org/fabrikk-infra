@@ -50,13 +50,17 @@ zot on wrkr-5.
 
 **Next.** Nothing in this plan; what follows is for other work.
 
-- 2026-10-14: remove `forgejo-postgres-first` from `apps/forgejo/backup.yaml` and delete the `forgejo-postgres`
-  folder in `cnpg-forgejo` at the hov1 site. 2026-10-15: the same for `zitadel-db-first` and `zitadel-db`.
 - The six alerts under "Operations after the change" are written down and not deployed (decision 020's audit).
 - A branch option for `bootstrap.sh`, then a rebuild test in a lab cluster (decision 021's audit).
-- Two stale lines outside this plan's scope: the comment in `clusters/production/flux-system/gotk-sync.yaml` still
-  names Codeberg as the mirror, and `backup/hov1/README.md` lists a `restic-forgejo` bucket that may or may not
-  exist at the site.
+- One stale line outside this plan's scope: the comment in `clusters/production/flux-system/gotk-sync.yaml` still
+  names Codeberg as the mirror.
+
+The cleanups dated 2026-10-14 and 2026-10-15 were done on 2026-10-01, by the user's choice: `ed67b9e` dropped the
+`-first` Backups (Flux pruned them) and pointed the restore tests at the `-2` archives; the 25 other `Backup` objects
+older than their clusters were deleted by name; the folders `forgejo-postgres` (2,817 files) and `zitadel-db` (3,061)
+were removed from `/srv/hov1/s3/`, the posix backend's own store, since no model deletes objects. The `-2` folders
+kept every file, both clusters archive with nothing waiting, and the site holds 42 MB. Forgejo cannot be restored to
+before 2026-09-30 13:52 UTC nor Zitadel to before 2026-10-01 09:48 UTC. There never was a `restic-forgejo` bucket.
 
 A worker now holds a Zitadel replica on its own disk, so a swap is no longer only the two workflows: the replica on the retired worker cannot
 move, and "Replacing a worker" under Operations applies (`kubectl cnpg destroy`, then the orphaned PV), which

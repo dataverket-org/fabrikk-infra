@@ -69,6 +69,22 @@ Restores from 020. 011 is the same idea for zot's config.
 
 ## Audit
 
+### 2026-10-01 (later the same day)
+
+**Status:** Pending
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| No `Backup` object in git | `apps/forgejo/backup.yaml`, `apps/zitadel/backup.yaml` | done: the two `-first` objects left git in `ed67b9e`, two weeks early, with the old archives they recorded |
+| The restore tests read the archives the clusters write | `backup/restore-test/` | done: `forgejo-postgres-2`, `zitadel-db-2` |
+
+**Summary:** The old archives `forgejo-postgres` and `zitadel-db` are deleted, so every archive git names is one a
+cluster writes today.
+
+**Action Required:** A branch option for `bootstrap.sh`, then a rebuild test in a lab cluster.
+
 ### 2026-10-01
 
 **Status:** Pending
