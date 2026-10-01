@@ -96,8 +96,8 @@ site=hov1; ns=forgejo; bucket=cnpg-forgejo
 ```
 
 Then add both files to `apps/<namespace>/kustomization.yaml` (it lists resources by name), commit, and point the writer
-at them: the CNPG `ObjectStore` reads `s3Credentials` from `s3-<bucket>` and `endpointCA` from `<site>-s3`; restic's
-environment reads both. `--filename-override`, resolved from the repository root, is what makes sops pick the
+at them: the CNPG `ObjectStore` reads `s3Credentials` from `s3-<bucket>` and `endpointCA` from `<site>-s3`; kopia's
+repository config reads both. `--filename-override`, resolved from the repository root, is what makes sops pick the
 cluster-files rule; run from anywhere else and no rule matches.
 
 `bin/user` creates the bucket owned by the new account, or hands over an existing one. The bucket must not belong to
@@ -106,7 +106,7 @@ another writer.
 ### Rotate a writer key
 
 Same pipeline as [Add a writer](#add-a-writer) with `--rotate` after the namespace, into the same file, then commit at
-once. The old key stops working the moment the new one is minted; WAL archiving and restic retry, so the gap is the
+once. The old key stops working the moment the new one is minted; WAL archiving and kopia retry, so the gap is the
 time until Flux applies the new Secret.
 
 ### Reissue the certificate
@@ -122,7 +122,7 @@ root (compromise, or the root itself expiring): `rm certs/ca.crt certs/ca.key`, 
 2. [Reissue the certificate](#reissue-the-certificate).
 3. For each writing namespace: `bin/site-secret` again into `apps/<namespace>/<site>-s3.yaml`, commit. A plaintext
    diff; no sops edit, since writer Secrets carry no endpoint.
-4. Verify the writers: the next WAL archive and the next restic run succeed.
+4. Verify the writers: the next WAL archive and the next kopia snapshot succeed.
 
 ### Site host lost
 

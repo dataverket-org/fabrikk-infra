@@ -21,6 +21,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `bin/`, `share/` | The tasks | One executable per task over shared libraries. Nothing here names this cluster, this Omni or this cloud, so another repository reuses them unchanged (decision 008). |
 | `models/`, `workflows/`, `vaults/`, `extensions/` | `swamp` | The swamp repository: the instances a human uses to operate what is deployed here. See Operating models below. |
 | `vaults/operator/` | Nobody, by design | Values only a person reads, behind the two YubiKeys: plain sops with no process key and no swamp vault config (decision 016). `break-glass/` for when a login fails, `hov1/` for the hov1 gateway's CA key and root key pair. |
+| `talos/<cluster>/` | swamp's Omni and Talos models, never Flux | Talos machine config patches, one file each, applied to machines below Kubernetes; `workers-storage.yaml` is the workers' disk layout and kubelet thresholds (decisions 017, 019). |
 | `docs/decisions/`, `docs/plans/` | Nobody | Why the repository is shaped as it is, and what is being changed next. `task decisions` lists the records with what is still pending. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
 
@@ -88,8 +89,8 @@ they recognise a former name as ours, mint the new one, and remove what the old 
 |---|---|---|
 | `registry.dataverket.org` | Everything that pushes or pulls artifacts: CI, developers, other clusters, cosign | The registry's identity (TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
 | `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 013) |
-| `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to codeberg.org | The source of record |
-| `213.128.185.82:443` | CNPG's Barman Cloud plugin and restic, the backup writers | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |
+| `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to GitHub | The source of record; `github.com/dataverket-org/fabrikk-infra` is Flux's source for a rebuild (decision 021) |
+| `213.128.185.82:443` | CNPG's Barman Cloud plugin, the backup writer; kopia later | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |
 
 ## Secrets
 
@@ -109,7 +110,7 @@ readable and diffs stay meaningful. Flux decrypts them on apply; nothing else ev
 secrets by reference (`existingSecret`, `secretKeyRef`, a mounted Secret), never as inline values. The humans are
 recipients so that the files can be edited and re-encrypted; `swamp-fabrikk-infra` is not. What that buys is
 bounded and worth stating exactly: a leak of the swamp host's key opens the vault files, which are mirrored to
-codeberg with the rest of this repository, but not the cluster manifests beside them, and re-keying after such a
+GitHub with the rest of this repository, but not the cluster manifests beside them, and re-keying after such a
 leak is the vault alone. It does not keep the swamp host away from a live cluster Secret: an admin kubeconfig
 reaches every Secret through the API. What bounds that is decision 001's second invariant, that the credentials
 opening the door are minted, short-lived and logged at Omni, not the recipient list here.

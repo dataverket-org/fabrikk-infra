@@ -57,7 +57,7 @@ dropping a file from a kustomization never deletes the key.
 
 ### Retention and protection
 
-- Retention is each writer's job: Barman's `retentionPolicy`, restic's `forget`.
+- Retention is each writer's job: Barman's `retentionPolicy`, and kopia's policy when it comes.
 - Bucket versioning is **off**. versitygw 1.8 has no lifecycle rules, so versioning would keep every deleted object
   forever, and a bucket's owner can suspend it anyway.
 - Protection against a leaked writer key is the second copy, or object lock the day it is wanted. Neither exists yet.

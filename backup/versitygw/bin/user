@@ -5,7 +5,7 @@
 # The account is named after the bucket, gets the role "user", which sees only buckets it owns, and the bucket is
 # created owned by it (or handed over when it already exists). --rotate deletes an existing account first and
 # mints a new key pair: the writer fails from that moment until the new Secret is applied, which WAL archiving
-# and restic tolerate, so commit at once. Without --rotate an existing account is an error.
+# and kopia tolerate, so commit at once. Without --rotate an existing account is an error.
 set -eu
 [ -f .env ] || { echo "run from a site directory: no .env here" >&2; exit 2; }
 set -a; . ./.env; set +a
