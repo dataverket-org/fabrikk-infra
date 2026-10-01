@@ -1,7 +1,7 @@
 # Plan: a swamp extension that administers Zitadel
 
 Written 2026-09-29, updated 2026-10-01. The extension is built, unit tested, and exercised against a throwaway
-Zitadel 4.19.3 in podman. It is published as `@dataverket/zitadel` and pulled here at 2026.10.01.2, and seven
+Zitadel 4.19.3 in podman. It is published as `@dataverket/zitadel` and pulled here at 2026.10.01.3, and seven
 models name it. Every read method has run against the real instance on 4.15.3. What is left is the write path on
 a throwaway project.
 
@@ -76,7 +76,7 @@ Three properties the repository cares about:
   afterwards says it exists and when it expires, never what it is.
 - **A password is never an argument.** A person sets their own from the link `passwordResetLinkCreate` mints.
 
-The suite lives in the extension at `smoke/`: sixteen batches, around 180 checks against a throwaway instance, the
+The suite lives in the extension at `smoke/`: sixteen batches, 216 checks against a throwaway instance, the
 large majority negative — a `confirm` that does not match, a delete of something already gone, a token id
 belonging to nobody, a human where a machine was meant, credentials missing or doubled or malformed, a converge
 that must not clobber the rest of a client, a project named `Prosjekt æøå / test`, the cascade when a user with a
@@ -99,7 +99,9 @@ that exists without touching the real instance.
 2. **The key where the models find it.** Done 2026-10-01: `task admin:zitadel-key` writes
    `~/.config/zitadel/fabrikk-infra-reader.json`, and nothing goes in the vault.
 3. **Publish and pull.** Done: 2026.09.29.2, then 2026.10.01.1, which expands a leading `~/` in `keyJsonFile`.
-   2026.10.01.2 names grants as `ensure` does and reads a `basic` auth method.
+   2026.10.01.2 names grants as `ensure` does and reads a `basic` auth method. 2026.10.01.3 moves the seven types
+   to that version with an upgrade each, so the definitions here were migrated on their first run, and `grant list`
+   forgets the record it wrote under the old id name.
 4. **Model definitions.** Done (`dd7fcc4`, then `fc133d1`), under `models/@dataverket/zitadel/`, one per type, all
    pointing at `https://zitadel.dataverket.org` and `keyJsonFile: '~/.config/zitadel/fabrikk-infra-reader.json'`.
 5. **Verify against the instance.** The read methods are done, below. Left: the write path on a throwaway
@@ -148,9 +150,11 @@ It was refused, and a project list afterwards showed nothing new.
 
 **The write path on the real instance**, as step 5 says.
 
-**The smoke suite on 2026.10.01.1 and 2026.10.01.2.** It was not run again for either. The two fixes were checked
-on the real instance from the registry: the grant is stored as `grant-linus-dataverket-org-zitadel` and Forgejo's
-client reads `basic`. The record `grant list` wrote under the old id name is still in the datastore beside it.
+**The published archive against a throwaway instance.** The smoke suite ran from the working tree, not from the
+registry: fixtures and sixteen batches, 216 checks, none failed, on Zitadel 4.15.3 and again on 4.19.3
+(2026-10-01). It is set up by `smoke/setup.sh` now, and batch P covers a reader key, an owner of one project, the
+grant name, the `basic` auth method and a definition from an older type version. On the real instance, from the
+registry, the seven read methods ran again on 2026.10.01.3 and the id-named grant record is gone.
 
 Also out of scope and untried: SAML applications, instance-wide policy writes through the v1 Admin API (deliberate:
 a key that can read every policy is smaller than one that can weaken them), identity providers and login
