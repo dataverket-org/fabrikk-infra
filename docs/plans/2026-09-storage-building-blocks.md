@@ -99,15 +99,15 @@ flowchart TB
     subgraph group["Server group dataverket-prod-workers, anti-affinity: one worker per hypervisor"]
       subgraph w4["wrkr-4, m5.large, root disk 30 GiB"]
         e4["EPHEMERAL 16 GiB"]
-        z4["u-pg-zitadel ~12 GiB<br/>zitadel-db primary"]
+        z4["u-pg-zitadel 11 GiB<br/>zitadel-db primary"]
       end
       subgraph w5["wrkr-5, m5.large, root disk 30 GiB"]
         e5["EPHEMERAL 16 GiB"]
-        z5["u-pg-zitadel ~12 GiB<br/>zitadel-db instance"]
+        z5["u-pg-zitadel 11 GiB<br/>zitadel-db instance"]
       end
       subgraph w6["wrkr-6, m5.large, root disk 30 GiB"]
         e6["EPHEMERAL 16 GiB"]
-        z6["u-pg-zitadel ~12 GiB<br/>zitadel-db instance"]
+        z6["u-pg-zitadel 11 GiB<br/>zitadel-db instance"]
       end
     end
     subgraph cinder["Cinder, 60 GB SSD and 10 GB Standard, three copies each"]
@@ -148,9 +148,11 @@ Usage is almost entirely container images; logs are under 105 MiB. At 16 GiB the
 percent, with image collection from 80. Every disk already has 2 GiB unallocated that EPHEMERAL never took.
 
 **The worker disk after the change**, 30 GiB on m5.large: 2,102 MiB of Talos partitions, EPHEMERAL 16,384 MiB,
-and the remaining 12,234 MiB all for `u-pg-zitadel`, at least 6 GiB and grown into the rest. WAL is budgeted at
-1.5 GiB (`max_wal_size` 1 GB plus 512 MB retained by replication slots), leaving about 10.5 GiB for data,
-seventeen times today's 620 MB. Zitadel's append-only event store grows slowly and predictably at this size, it
+`u-pg-zitadel` a fixed 11 GiB, and about 0.9 GiB unused. Neither volume grows: both share the disk, Talos does not
+promise which it lays out first, and on 2026-10-01 a growing `pg-zitadel` went first and left EPHEMERAL no room
+(step 4). Growing is for a volume certain to come last, and on one shared disk none is. WAL is budgeted at
+1.5 GiB (`max_wal_size` 1 GB plus 512 MB retained by replication slots), leaving about 9.5 GiB for data,
+fifteen times today's 620 MB. Zitadel's append-only event store grows slowly and predictably at this size, it
 mostly reads from memory, and it writes a few events per login, so image pulls and CI on the same 500 IOPS slow
 it without stalling it. Forgejo's database stays on Cinder: its growth follows issues, pull requests and CI, it
 writes most while CI is busiest, and its repositories volume keeps Cinder in its failover path anyway. A larger
@@ -334,8 +336,9 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    Once, before the first swap: `openstack-server-group create` with `name: dataverket-prod-workers` and
    `policy: anti-affinity` (an existing name is reused; no `maxServerPerHost`, so one member per host). And the
    patch, written once and applied as a machine-scoped Omni `ConfigPatch` to each new machine before it joins,
-   not to the machine set: `VolumeConfig` EPHEMERAL with `maxSize: 16GiB`; `UserVolumeConfig` `pg-zitadel`
-   (`diskSelector.match: system_disk`, `minSize: 6GiB`, `grow: true`, xfs); kubelet `extraConfig` with `imageGCHighThresholdPercent: 80`,
+   not to the machine set: `VolumeConfig` EPHEMERAL with `minSize: 16GiB` and `grow: false`; `UserVolumeConfig`
+   `pg-zitadel` (`diskSelector.match: system_disk`, `minSize: 11GiB`, `grow: false`, xfs), sizes stated rather than
+   grown, for the reason under "Measured"; kubelet `extraConfig` with `imageGCHighThresholdPercent: 80`,
    `imageGCLowThresholdPercent: 70`, `imageMaximumGCAge: 168h`, `containerLogMaxSize: 20Mi`, `evictionHard`
    `imagefs.available: 2Gi` and `nodefs.available: 1Gi`. The patch is a file,
    `talos/dataverket-prod/workers-storage.yaml`, outside `clusters/` so Flux never reads it, and `applyPatch` is
@@ -357,7 +360,7 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    2. `omni-cluster applyPatch` for the machine, then `omni-cluster addMachine` into `dataverket-prod-workers`;
       the stored `configPatch` and `machineSetNode` are the record. Omni installs Talos: EPHEMERAL at 16 GiB,
       the user volume behind it, the kubelet thresholds. The node joins.
-   3. Check: `fleet-volumes` shows the new node with EPHEMERAL 16,384 MiB and `u-pg-zitadel` of about 12 GiB,
+   3. Check: `fleet-volumes` shows the new node with EPHEMERAL 16,384 MiB and `u-pg-zitadel` of 11 GiB,
       and every Cinder disk on it untouched; `omni discover` shows it running in the workers machine set with
       `siderolabs/kata-containers` among its extensions; `openstack-server get` shows the group under
       `serverGroups`, a `hostId` unlike the other new workers', and the load balancers' `lb-sg-*` groups, which
@@ -388,7 +391,18 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    `m5.large` with 2 vCPU, 8 GB and a 30 GB disk, `infra1-net` active, security group `default`, the join token
    active, default and without expiry, and no server group yet. The swaps start with `openstack-server-group
    create`. Machine UUIDs of the old workers, from `omni`: wrkr-1 `e1affc47-…`, wrkr-2 `a9220d2b-…`, wrkr-3
-   `a68effa4-…`.
+   `a68effa4-…`; a worker's Nova server ID is its Omni machine UUID.
+
+   **First attempt, 2026-10-01.** The server group `dataverket-prod-workers` (`ea672eab-…`) was created and
+   `dataverket-wrkr-4` (`b02c2eaa-…`) booted in it, on the same hypervisor as old wrkr-3, which is not in the
+   group. Two things failed, and neither dry run could have shown them. First, `addMachine` created a MachineSetNode
+   without the machine set's role label (`omni.sidero.dev/role-worker`), which Omni accepted, counted as requested
+   and never allocated; `@dataverket/omnictl` 2026.10.01.1 copies the label, and its new pre-flight checks also
+   stop a run whose key has expired, which had happened to the Operator key that morning. Second, once allocated,
+   Talos laid out `pg-zitadel` before EPHEMERAL, and the user volume, growing without a ceiling, took all 28 GB:
+   EPHEMERAL failed for want of space and the CRI waited for its volumes. The patch now states both sizes (`72331b0`
+   capped the user volume; the fixed sizes replaced that). That wrkr-4's disk is laid out and cannot be changed, so
+   it is retired and created again; wrkr-2 was not touched.
 5. **Provisioner (decision 014).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), class `pg-zitadel-storage` on its mount pattern,
    `WaitForFirstConsumer`. Check: three `local` PVs, one per worker, capacity just under the partition size.
@@ -461,7 +475,7 @@ So is a flavor change.
 **Alerts, six:** CNPG WAL archiving failing for over two hours, which is the hov1 site unreachable: `max_wal_size`
 and the slot budget cap nothing here, Postgres keeps every unarchived segment until the archive takes it, and with
 CNPG's default `archive_timeout` of five minutes a barely busy primary makes a 16 MiB segment every five minutes,
-about 190 MiB an hour, so the smallest headroom, about 9 GiB on Forgejo's 10 GB volume and 10.5 GiB on Zitadel's
+about 190 MiB an hour, so the smallest headroom, about 9 GiB on Forgejo's 10 GB volume and 9.5 GiB on Zitadel's
 partition, is gone in about two days and the alert leaves most of that to act; the certificate at `213.128.185.82:443` expiring within 30 days, probed from the cluster, since nothing at the
 site renews a three-year certificate and the reissue is a calendar event; CNPG last successful backup older than 36
 hours; any volume, user volumes included, above 70 percent (`fleet-volumes` on a schedule feeds it for the worker
@@ -505,7 +519,7 @@ them.
 
 ## Future disk expansions
 
-**Databases.** Zitadel's partition is fixed by the flavor: about 12 GiB per worker. The escape hatch is recreating
+**Databases.** Zitadel's partition is a fixed 11 GiB per worker, as much as the flavor's disk leaves. The escape hatch is recreating
 the cluster on a Cinder class from the object store, the outage of step 6. At Nexthop every flavor with this CPU and
 RAM has the same 30 GB, so only a larger flavor buys disk: r5.large has 40 GB. Databases on Cinder grow online like
 any volume.
@@ -515,7 +529,9 @@ first; the 70 percent alert is the trigger.
 
 **Bare metal and lab clusters** follow the same standard: EPHEMERAL 32 GiB, a separate CRI volume where images
 are large, everything else as user volumes. Where an NVMe node has a data disk beside its system disk, the user
-volumes go there, and `diskSelector` is the one line that changes from step 4's patch.
+volumes go there: `diskSelector` names that disk, and the database volume may grow into it, since it is the only
+volume there. On a node with one disk the sizes are stated, as in step 4's patch, because nothing guarantees which
+volume Talos lays out first.
 
 ## Backups
 
@@ -558,7 +574,7 @@ Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026
 |---|---|---|---|---|---|---|
 | Forgejo | postgres, CNPG ×1 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | Barman to `213.128.185.82`, PITR |
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | push mirror to GitHub; later kopia to `213.128.185.82` |
-| Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × ~12 GiB, claim 10Gi | app ×3, one per worker | Barman to `213.128.185.82`, PITR |
+| Zitadel | postgres, CNPG ×3 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 11 GiB, claim 10Gi | app ×3, one per worker | Barman to `213.128.185.82`, PITR |
 | Zulip (planned) | postgres, CNPG ×1 | Cinder | `csi-cinder-sc-delete`, SSD | sized at install | Cinder ×3 | Barman to `213.128.185.82`, PITR |
 | zot | blobs and config | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | Cinder ×3 | none, rebuildable |
 | Runner, org | docker-lib cache | Cinder, or root disk if local | SSD, or decision 014 | 20 GB | disposable | none |

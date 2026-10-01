@@ -4,26 +4,30 @@
 # Never to a running worker: Talos sizes volumes only when it first provisions a machine. Outside clusters/, so Flux
 # never reads it. Talos 1.14.
 #
-# EPHEMERAL is capped at 16 GiB, so the kubelet's percentages are a budget and not a share of whatever the disk is.
+# Both volumes share the system disk, and Talos does not promise which it lays out first: on 2026-10-01 pg-zitadel
+# went first and, growing, took all 28 GB, so EPHEMERAL failed for want of space. So neither grows, and each states its
+# size: 2.1 GiB of Talos partitions, 16 GiB and 11 GiB fit in 30 in either order, about 0.9 GiB left unused. Growing
+# only makes sense for a volume that is certain to come last, which on one shared disk none is; a node with a data
+# disk of its own gives pg-zitadel that disk instead, and there it can grow.
+#
+# EPHEMERAL at a fixed 16 GiB, so the kubelet's percentages are a budget and not a share of whatever the disk is.
 apiVersion: v1alpha1
 kind: VolumeConfig
 name: EPHEMERAL
 provisioning:
-  maxSize: 16GiB
+  minSize: 16GiB
+  grow: false
 ---
-# Zitadel's database, on the system disk beside EPHEMERAL; the static provisioner publishes its mount as a local PV
-# of class pg-zitadel-storage. system_disk keeps Talos off the Cinder volumes attached to the same machine. maxSize is
-# what leaves EPHEMERAL its 16 GiB: Talos may provision this volume first, and on 2026-10-01 a grow without a ceiling
-# took all 28 GB and EPHEMERAL failed for want of space. 2.1 GiB of Talos partitions, 16 GiB and 11 GiB fit in 30.
+# Zitadel's database; the static provisioner publishes its mount as a local PV of class pg-zitadel-storage.
+# system_disk keeps Talos off the Cinder volumes attached to the same machine.
 apiVersion: v1alpha1
 kind: UserVolumeConfig
 name: pg-zitadel
 provisioning:
   diskSelector:
     match: system_disk
-  minSize: 6GiB
-  maxSize: 11GiB
-  grow: true
+  minSize: 11GiB
+  grow: false
 filesystem:
   type: xfs
 ---
