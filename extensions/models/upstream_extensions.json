@@ -107,8 +107,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/openstack": {
-    "version": "2026.09.20.1",
-    "pulledAt": "2026-09-20T17:44:46.175Z",
+    "version": "2026.10.01.1",
+    "pulledAt": "2026-10-01T10:23:53.363Z",
     "files": [
       ".swamp/bundles/b1dc30cb/application_credential.js",
       ".swamp/bundles/b1dc30cb/availability_zone.js",
@@ -148,8 +148,8 @@
       ".swamp/pulled-extensions/@dataverket/openstack/models/volume.ts",
       ".swamp/pulled-extensions/@dataverket/openstack/models/volume_type.ts"
     ],
-    "checksum": "40c3e8ea684fa36b1e7f6f4fca5c860027cec1bf32b59f41540d23508f1595e3",
-    "filesChecksum": "08cd7db7b1762437cac728f1086064a45bab73598e1a8ddf7c5af121ff241db6",
+    "checksum": "e5381aff19984ece63fda79ec27a407b53015bdfbc03cff59f8d7361ae645d2f",
+    "filesChecksum": "d876d4825798b22eca0ec9267bc2c8153aee895cfe46a483d95ef601bebcfd46",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/talosctl": {

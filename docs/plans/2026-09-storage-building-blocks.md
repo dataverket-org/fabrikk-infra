@@ -37,15 +37,15 @@ the same day as the bare-metal rehearsal.
 ## Next, for whoever picks this up
 
 **State, 2026-10-01.** Steps 1 to 6 applied: Forgejo's database is one instance on 10 GB, zot is on 10 GB
-Standard, and Zitadel's three instances are on the workers' `u-pg-zitadel` partitions. Cinder holds 156 GB SSD and
-10 GB Standard until the three retained 32 GB volumes of Zitadel's old cluster are deleted (step 6). The workers are wrkr-4 (`86e3cfc3-…`), wrkr-5 (`cfe2744a-…`)
+Standard, and Zitadel's three instances are on the workers' `u-pg-zitadel` partitions. Cinder holds 60 GB SSD and
+10 GB Standard, layout 3. The workers are wrkr-4 (`86e3cfc3-…`), wrkr-5 (`cfe2744a-…`)
 and wrkr-6 (`589b001b-…`), all in `dataverket-prod-workers` on three distinct hypervisors, each with EPHEMERAL
 14 GiB, `u-pg-zitadel` of 11 GiB and kata; the storage patch is on the machine set as `500-workers-storage`.
 Zitadel's database: the primary `zitadel-db-1` on wrkr-5, synchronous standbys `zitadel-db-2` on wrkr-6 and
 `zitadel-db-3` on wrkr-4, archiving to `zitadel-db-2` at the hov1 site. Forgejo's database is on wrkr-4, Forgejo and
 zot on wrkr-5.
 
-**Next is step 7**, records and models, after the retained volumes are deleted. A worker now holds a Zitadel
+**Next is step 7**, records and models. A worker now holds a Zitadel
 replica on its own disk, so a swap is no longer only the two workflows: the replica on the retired worker cannot
 move, and "Replacing a worker" under Operations applies (`kubectl cnpg destroy`, then the orphaned PV), which
 `docs/plans/2026-09-worker-replacement-test.md` runs first. The workflows are the same; a check that
@@ -581,9 +581,18 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    is 17 MB; the 619 MB `kubectl cnpg status` showed before was mostly retained WAL. The last event before the
    downtime, 08:40:56, and the day's 18 events came back. The archive's one failure was the new timeline's history
    file at 09:47:18, during promotion; archiving worked from then on. The user logged in. The recovery-source
-   commit `8e8decc` followed, after a server-side dry run on the running cluster passed. Left: the three retained
-   32 GB volumes, `33f0ebfd-…`, `4b691955-…` and `7eec1cea-…` (PVs `pvc-89d9be7a-…`, `pvc-d425045b-…`,
-   `pvc-078fe2a6-…`), and after 14 days `zitadel-db-first` and the `zitadel-db` folder at the hov1 site.
+   commit `8e8decc` followed, after a server-side dry run on the running cluster passed. Left for 2026-10-15:
+   `zitadel-db-first` removed from `apps/zitadel/backup.yaml` and the `zitadel-db` folder at the hov1 site deleted.
+
+   **Old volumes deleted, 2026-10-01.** The three retained PVs were deleted once each showed `Released` with its
+   old claim, then the three 32 GB SSD volumes, `33f0ebfd-…`, `4b691955-…` and `7eec1cea-…`, each after
+   `openstack-volume get` showed it available, unattached and tagged `zitadel` (rule 5). The first `delete` exposed a
+   bug: the `delete` methods of `@dataverket/openstack` declared no lifecycle kind, so swamp took the name for
+   kind delete and marked every volume record deleted, and the next `get` refused. 2026.10.01.1 declares the
+   twelve `delete` methods `kind: "action"`, with `method_kind_test.ts` and a live smoke test,
+   `smoke/delete-kind.sh` (three 1 GiB volumes and three CirrOS images in this project, all removed); it was
+   published and pinned, a `list` rewrote the marked records, and `get` on the last volume after the second
+   delete proved the fix. Cinder holds 60 GB SSD and 10 GB Standard. Stopped here: layout 3.
 7. **Records and models.** Decision 014 is the mechanism. New decisions for: workers placed by a Nova server
    group and replaced through Omni, never changed in place; Zitadel's database replicated on worker disks as the
    rehearsal for bare metal, and every other database one instance on Cinder; the 14 GiB EPHEMERAL standard on this flavor;
