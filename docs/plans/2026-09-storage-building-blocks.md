@@ -28,6 +28,51 @@ does by hand is scaffolding that leaves nothing git does not describe. The Talos
 database's `bootstrap.recovery` stays in git so a rebuild restores from the hov1 site, and "Rebuild from git"
 says what comes back and what does not, with the GitHub mirror as Flux's source while Forgejo is gone.
 
+Tenth revision, 2026-10-01: steps 2 and 3 are applied, and swap 1 of step 4. Worker sizes, the Omni extension and
+the swap workflows changed on the way, each recorded in step 4. Omni is to be used as little as possible, and the
+move off it is its own plan, `docs/plans/2026-10-talosctl-over-omni.md`, for after this one.
+
+## Next, for whoever picks this up
+
+**State, 2026-10-01.** Steps 1 to 3 applied: Forgejo's database is one instance on 10 GB, zot is on 10 GB Standard,
+Cinder holds 156 GB SSD and 10 GB Standard. Step 4: swap 1 done. Workers are wrkr-1 and wrkr-3 (old layout, no
+group) and wrkr-4 (`86e3cfc3-…`, in `dataverket-prod-workers`, EPHEMERAL 14 GiB, `u-pg-zitadel` 11 GiB, kata).
+Zitadel's instances: `zitadel-db-1` on wrkr-1, the primary `zitadel-db-2` on wrkr-3, `zitadel-db-3` on wrkr-4.
+Forgejo's database, zot and a runner volume are on wrkr-1.
+
+**Swap 2**, git and the registry down a few minutes while wrkr-1's volumes move, so at a time the user picks:
+
+```sh
+swamp workflow run worker-join --input name=dataverket-wrkr-5
+swamp workflow resume worker-join --run <id>          # while node-ready fails: installing takes minutes
+swamp workflow run worker-retire --input name=dataverket-wrkr-1
+```
+
+**Swap 3** is the same with wrkr-6 and wrkr-3, but `worker-retire` stops on wrkr-3 while it holds Zitadel's primary.
+There is no CNPG model and no `kubectl cnpg` plugin: promote `zitadel-db-1` or `-3` first, the way the plugin does
+(`status.targetPrimary` on the Cluster), or build the CNPG model of the Omni plan first. After swap 3, apply the
+patch to the machine set (`omni-cluster applyPatch` with `id: 500-workers-storage`, `dataFile`
+`talos/dataverket-prod/workers-storage.yaml`, `machineSet: dataverket-prod-workers`, `cluster: dataverket-prod`),
+check every worker's `serverGroups` and three distinct `hostId`s, then step 5.
+
+**Not yet proven.** `worker-join` has not run end to end; wrkr-4 joined by hand, through the same calls.
+`worker-retire` ran on wrkr-2 up to `delete-machine`, which 2026.10.01.3 fixed and no run has used yet.
+
+**Working here.**
+
+- Each production change needs the user's explicit approval of that exact sequence in chat; a bare "go" is not
+  enough for the permission check. Ask with the sequence written out.
+- Credentials expire daily: `task admin:status` says what; the user runs `task admin:renew`, and the Omni Operator
+  key separately with `task admin:omni-operator-key`. The pre-flight checks of `@dataverket/omnictl` name an
+  expired key.
+- Commits and pushes are SSH-signed with the user's YubiKey: export `SSH_AUTH_SOCK=/run/user/1000/keyring/ssh`,
+  expect a touch, retry once when it is missed.
+- Check once and act; a check that fails is resumed, not polled in a long loop.
+- The extension source is `~/kode/swamp-extensions`; a publish needs an adversarial review report that the
+  permission check lets only the user place.
+- Due 2026-10-14: delete the `forgejo-postgres` folder in `cnpg-forgejo` at the hov1 site, and remove
+  `forgejo-postgres-first` from `apps/forgejo/backup.yaml`.
+
 ## Building blocks
 
 1. **One redundancy layer per kind of data.** Zitadel's database replicates itself: CNPG runs three instances,
