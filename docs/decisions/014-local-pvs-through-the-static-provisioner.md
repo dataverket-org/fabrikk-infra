@@ -10,7 +10,7 @@ tags:
   - cinder
 status: accepted
 created: 2026-09-19
-updated: 2026-09-30
+updated: 2026-10-01
 author: dataverket
 project: plattform
 ---
@@ -18,7 +18,7 @@ project: plattform
 
 ## Status
 
-Accepted
+Accepted. The EPHEMERAL figure of 16 GiB is superseded by 019 on 2026-10-01: 14 GiB on the workers.
 
 ## Context
 
@@ -48,6 +48,22 @@ Storage for a workload costs a partition rather than a Cinder volume, and a non-
 init container to own its directory.
 
 ## Audit
+
+### 2026-10-01
+
+**Status:** Implemented
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| EPHEMERAL capped, user volumes carved | `talos/dataverket-prod/workers-storage.yaml` | done: EPHEMERAL 14 GiB, not 16, and `u-pg-zitadel` 11 GiB on every worker (019) |
+| Mounts published as `local` PVs | `infrastructure/local-static-provisioner/` | done: three PVs of `pg-zitadel-storage`, all bound by Zitadel's database |
+| No init container for ownership | `zitadel-db` pods | done: the kubelet sets group 26 on the mount, which is what "chowns" means here; the owner stays root |
+
+**Summary:** Steps 4 to 6 of `docs/plans/2026-09-storage-building-blocks.md`. The EPHEMERAL figure is 019's.
+
+**Action Required:** None.
 
 ### 2026-09-30
 

@@ -30,6 +30,7 @@ what it supersedes.
 | [006](006-cluster-repo-owns-credentials.md) | A credential the cluster uses is authored here; the factory copies it | A credential the cluster uses is authored here and copied outward, never the other way around. | 2026-09-17 |
 | [007](007-published-extensions-stay-general.md) | Published extensions stay general; our policy stays here | A published extension states the trade-off and ranks neither option; our rules stay in this repository. | 2026-09-29 |
 | [010](010-omni-is-not-the-long-term-control-plane.md) | Omni is not the long-term control plane | Omni is a single point of failure and not part of future designs, so the replacement starts now. | 2026-09-29 |
+| [021](021-git-describes-the-cluster.md) | Git describes the cluster; a rebuild restores its databases | Every change ends with the cluster matching git, and each database's recovery source is in git, so Flux rebuilds the cluster with its data. | 2026-10-01 |
 
 ## How the repository is run
 
@@ -40,12 +41,16 @@ what it supersedes.
 | [011](011-zot-hosts-its-own-config.md) | zot hosts its own config; git is the bootstrap and recovery source | zot serves the artifact that deploys zot; git is the bootstrap and the way back from a bad one. | 2026-09-17 |
 | [012](012-zot-as-plain-manifests.md) | zot is plain manifests, not a Helm chart | zot is a hand-written StatefulSet with a pinned digest, not a chart to render and track. | 2026-09-17 |
 | [013](013-cluster-fetches-registry-through-service.md) | The cluster fetches its own registry through the Service, not the public name | The cluster pulls its own registry through the Service, so the edge being broken cannot lock it out. | 2026-09-17 |
+| [017](017-workers-are-replaced-never-changed-in-place.md) | Workers are replaced, never changed in place | A worker's placement and disk layout arrive with a new machine; the old one is retired, not reconfigured. | 2026-10-01 |
 
 ## Storage
 
 | # | Decision | In one line | Accepted |
 |---|---|---|---|
 | [014](014-local-pvs-through-the-static-provisioner.md) | Talos leaves room on the system disk, and the static provisioner turns it into PVs | EPHEMERAL is capped so user volumes fit on the system disk, published as local PVs. | 2026-09-19 |
+| [018](018-one-redundancy-layer-per-kind-of-data.md) | One redundancy layer per kind of data | Zitadel's database replicates itself on worker disks as the rehearsal for bare metal; every other database is one instance on Cinder. | 2026-10-01 |
+| [019](019-ephemeral-is-a-fixed-14-gib-on-the-workers.md) | EPHEMERAL is a fixed 14 GiB on the workers | Volume sizes on a shared system disk are stated with minSize equal to maxSize; 14 GiB EPHEMERAL on m5.large workers, 32 GiB at most anywhere. | 2026-10-01 |
+| [020](020-backups-go-to-the-hov1-site.md) | Backups go to the hov1 site, by address, over the public internet | The copy that matters is off the provider: a versitygw at the hov1 site, reached by IP with its own private CA. | 2026-10-01 |
 
 ## Renumbered 2026-09-29
 
