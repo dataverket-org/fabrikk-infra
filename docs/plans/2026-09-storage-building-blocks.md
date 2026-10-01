@@ -31,22 +31,24 @@ says what comes back and what does not, with the GitHub mirror as Flux's source 
 Tenth revision, 2026-10-01: steps 2 and 3 are applied, and swap 1 of step 4. Worker sizes, the Omni extension and
 the swap workflows changed on the way, each recorded in step 4. Omni is to be used as little as possible, and the
 move off it is its own plan, `docs/plans/2026-10-talosctl-over-omni.md`, for after this one. Swaps 2 and 3 the same
-day, both halves by workflow: step 4 is applied. Step 5's provisioner the same day, and its `pgbench` gate, which failed: step 6 does not go ahead as written.
+day, both halves by workflow: step 4 is applied. Step 5's provisioner the same day, and its `pgbench` gate, which failed; the user accepted the result and step 6 ran
+the same day as the bare-metal rehearsal.
 
 ## Next, for whoever picks this up
 
-**State, 2026-10-01.** Steps 1 to 4 applied: Forgejo's database is one instance on 10 GB, zot is on 10 GB
-Standard, Cinder holds 156 GB SSD and 10 GB Standard. The workers are wrkr-4 (`86e3cfc3-…`), wrkr-5 (`cfe2744a-…`)
+**State, 2026-10-01.** Steps 1 to 6 applied: Forgejo's database is one instance on 10 GB, zot is on 10 GB
+Standard, and Zitadel's three instances are on the workers' `u-pg-zitadel` partitions. Cinder holds 156 GB SSD and
+10 GB Standard until the three retained 32 GB volumes of Zitadel's old cluster are deleted (step 6). The workers are wrkr-4 (`86e3cfc3-…`), wrkr-5 (`cfe2744a-…`)
 and wrkr-6 (`589b001b-…`), all in `dataverket-prod-workers` on three distinct hypervisors, each with EPHEMERAL
-14 GiB, an empty `u-pg-zitadel` of 11 GiB and kata; the storage patch is on the machine set as
-`500-workers-storage`. Zitadel's database is still on Cinder: the primary `zitadel-db-3` on wrkr-4, `zitadel-db-1`
-on wrkr-5, `zitadel-db-2` on wrkr-6. Forgejo's database is on wrkr-4, Forgejo and zot on wrkr-5.
+14 GiB, `u-pg-zitadel` of 11 GiB and kata; the storage patch is on the machine set as `500-workers-storage`.
+Zitadel's database: the primary `zitadel-db-1` on wrkr-5, synchronous standbys `zitadel-db-2` on wrkr-6 and
+`zitadel-db-3` on wrkr-4, archiving to `zitadel-db-2` at the hov1 site. Forgejo's database is on wrkr-4, Forgejo and
+zot on wrkr-5.
 
-**Next is a decision, not a step.** Step 5's gate failed: under load on the root disk, Postgres on the
-`u-pg-zitadel` partition averaged 19.4 ms a transaction against 6.0 ms on a Cinder SSD claim, past the 2x limit,
-and was slower than Cinder even with the disk quiet (step 5). Step 6 does not go ahead as written; whether it
-goes ahead anyway as a rehearsal, waits for a better test, or is dropped is the user's to decide. Three PVs stay
-published, nothing bound. A swap later, for a flavor change or the worker replacement test, is the same two workflows; a check that
+**Next is step 7**, records and models, after the retained volumes are deleted. A worker now holds a Zitadel
+replica on its own disk, so a swap is no longer only the two workflows: the replica on the retired worker cannot
+move, and "Replacing a worker" under Operations applies (`kubectl cnpg destroy`, then the orphaned PV), which
+`docs/plans/2026-09-worker-replacement-test.md` runs first. The workflows are the same; a check that
 waits is resumed from the step it reads, never without `--from`, which reruns only the check against the records
 it already failed on:
 
@@ -58,7 +60,7 @@ kubectl cnpg promote zitadel-db <instance> -n zitadel --context dataverket-prod-
 swamp workflow run worker-retire --input name=dataverket-wrkr-M
 ```
 
-**Not yet proven.** Nothing new; the gate proved the mount. The `kubectl cnpg` plugin (Brewfile, 1.30.1) needs the admin context: the
+**Not yet proven.** Replacing a worker that holds a replica. The `kubectl cnpg` plugin (Brewfile, 1.30.1) needs the admin context: the
 readers group has `view` in `forgejo-runners` only, and CNPG 1.30.0 ships no `aggregate-to-view` role. Whether
 an `@dataverket/kubectl-cnpg` extension with `status`, `promote` and `backup` should replace the by-hand promote
 in `worker-retire` is open.
@@ -562,6 +564,26 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
 
    **Git.** `apps/zitadel/postgres.yaml` with the fields above, the recovery-source commit the same day, and
    after 14 days `zitadel-db-first` removed, as in step 2.
+
+   **Applied, 2026-10-01.** The gate in step 5 failed against its own criterion; the user accepted the result and
+   ran this step as the bare-metal rehearsal, and the analysis since puts the cause in the flavor: `m5.large`
+   caps the root disk at 500 read and 500 write IOPS and 100 MiB/s each way (`quota:disk_*`), which 522 tps of
+   4-client pgbench already meets, while Zitadel commits a few events per login. The commit is `ae4809c` (image
+   `18.4-system-trixie`, recovery from `zitadel-db`, archiving to `zitadel-db-2`); a server-side create of it
+   passed and the webhook refused it on the running cluster (two bootstrap methods, storage cannot shrink from
+   32Gi). `apps` and the HelmRelease were suspended through swamp before the push. Zitadel was down from 09:45:57
+   to 09:48:43 UTC; the final backup `zitadel-db-final` and the first `zitadel-db-2-first` took 6 seconds each, both
+   with `kubectl cnpg backup` now that the plugin is installed; the old PVs were patched to `Retain`; the cluster
+   was healthy with three ready instances 87 seconds after the apply, timeline 4, the same system ID, the primary
+   `zitadel-db-1` on wrkr-5 and both standbys `sync`. Claims bound `local-pv-8bd3b909` (wrkr-5), `local-pv-47f3d4b8`
+   (wrkr-6) and `local-pv-7df3b8f6` (wrkr-4). The mount is `/dev/vda5`, `root:26` mode 2775 with `pgdata`
+   `26:26`, and the only init containers are CNPG's `bootstrap-controller` and the plugin's sidecar. The database
+   is 17 MB; the 619 MB `kubectl cnpg status` showed before was mostly retained WAL. The last event before the
+   downtime, 08:40:56, and the day's 18 events came back. The archive's one failure was the new timeline's history
+   file at 09:47:18, during promotion; archiving worked from then on. The user logged in. The recovery-source
+   commit `8e8decc` followed, after a server-side dry run on the running cluster passed. Left: the three retained
+   32 GB volumes, `33f0ebfd-…`, `4b691955-…` and `7eec1cea-…` (PVs `pvc-89d9be7a-…`, `pvc-d425045b-…`,
+   `pvc-078fe2a6-…`), and after 14 days `zitadel-db-first` and the `zitadel-db` folder at the hov1 site.
 7. **Records and models.** Decision 014 is the mechanism. New decisions for: workers placed by a Nova server
    group and replaced through Omni, never changed in place; Zitadel's database replicated on worker disks as the
    rehearsal for bare metal, and every other database one instance on Cinder; the 14 GiB EPHEMERAL standard on this flavor;
@@ -689,7 +711,7 @@ Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026
 |---|---|---|---|---|---|---|---|
 | Forgejo | postgres, CNPG ×1, since 2026-09-30 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 620 MB | Cinder ×3 | wrkr-4 |
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 11 MB | Cinder ×3 | wrkr-2 |
-| Zitadel | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 32 GB | 617 MB | app ×3 on Cinder ×3 | wrkr-5, wrkr-6, wrkr-4 |
+| Zitadel | postgres, CNPG ×3, since 2026-10-01 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 11 GiB, claim 10Gi | 17 MB | app ×3, one per worker, one synchronous | wrkr-5, wrkr-6, wrkr-4 |
 | zot | blobs and config, since 2026-09-30 | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | 44 MiB | Cinder ×3 | wrkr-5 |
 | Runner, org | docker-lib cache (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3, disposable | wrkr-1 |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3 | wrkr-3 |
