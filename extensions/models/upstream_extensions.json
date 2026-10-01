@@ -186,8 +186,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/omnictl": {
-    "version": "2026.10.01.2",
-    "pulledAt": "2026-10-01T08:05:49.260Z",
+    "version": "2026.10.01.3",
+    "pulledAt": "2026-10-01T08:18:47.247Z",
     "files": [
       ".swamp/bundles/c94a60e9/cluster.js",
       ".swamp/bundles/c94a60e9/inventory.js",
@@ -203,8 +203,8 @@
       ".swamp/pulled-extensions/@dataverket/omnictl/models/transform.ts",
       ".swamp/pulled-extensions/@dataverket/omnictl/models/util.ts"
     ],
-    "checksum": "0c9257e043e0f47cc928758e9fb16fe1a40e876413e5094784f0340ee82af9eb",
-    "filesChecksum": "010d866553158f7df85b48a788f81e996f72f9664abc87ffbc32151efd0b869a",
+    "checksum": "b96d3579e03607db5ab6d76cb1838ef6c665656efb5baf504c8d12743e1a7986",
+    "filesChecksum": "0d48b538662e7ce81828441ebb83889c57291eda9aa71e82f3b73df2f88e1850",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/forgejo": {
