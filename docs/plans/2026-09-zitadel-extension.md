@@ -1,9 +1,9 @@
 # Plan: a swamp extension that administers Zitadel
 
 Written 2026-09-29, updated 2026-10-01. The extension is built, unit tested, and exercised against a throwaway
-Zitadel 4.19.3 in podman. It is published as `@dataverket/zitadel` and pulled here at 2026.10.01.1, and seven
+Zitadel 4.19.3 in podman. It is published as `@dataverket/zitadel` and pulled here at 2026.10.01.2, and seven
 models name it. Every read method has run against the real instance on 4.15.3. What is left is the write path on
-a throwaway project, and a release that waits for its review.
+a throwaway project.
 
 ## Why
 
@@ -99,7 +99,7 @@ that exists without touching the real instance.
 2. **The key where the models find it.** Done 2026-10-01: `task admin:zitadel-key` writes
    `~/.config/zitadel/fabrikk-infra-reader.json`, and nothing goes in the vault.
 3. **Publish and pull.** Done: 2026.09.29.2, then 2026.10.01.1, which expands a leading `~/` in `keyJsonFile`.
-   2026.10.01.2 is committed (`6c064af`) and waits for its review report.
+   2026.10.01.2 names grants as `ensure` does and reads a `basic` auth method.
 4. **Model definitions.** Done (`dd7fcc4`, then `fc133d1`), under `models/@dataverket/zitadel/`, one per type, all
    pointing at `https://zitadel.dataverket.org` and `keyJsonFile: '~/.config/zitadel/fabrikk-infra-reader.json'`.
 5. **Verify against the instance.** The read methods are done, below. Left: the write path on a throwaway
@@ -148,8 +148,9 @@ It was refused, and a project list afterwards showed nothing new.
 
 **The write path on the real instance**, as step 5 says.
 
-**The release that fixes the two findings** has run from source against the throwaway 4.15.3 instance, and not
-yet from the registry.
+**The smoke suite on 2026.10.01.1 and 2026.10.01.2.** It was not run again for either. The two fixes were checked
+on the real instance from the registry: the grant is stored as `grant-linus-dataverket-org-zitadel` and Forgejo's
+client reads `basic`. The record `grant list` wrote under the old id name is still in the datastore beside it.
 
 Also out of scope and untried: SAML applications, instance-wide policy writes through the v1 Admin API (deliberate:
 a key that can read every policy is smaller than one that can weaken them), identity providers and login
