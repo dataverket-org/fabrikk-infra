@@ -1,0 +1,263 @@
+id: a154bebb-7c3b-47ab-820e-d927dc2cbe9b
+name: worker-retire
+description: >-
+  Take one worker out of the cluster for good, the second half of a swap (docs/plans/2026-09-storage-building-blocks.md,
+  step 4), and also the way to clear a new machine that never joined properly. Before anything changes: at least
+  minWorkers other workers are Ready, and no CNPG primary of Zitadel or Forgejo runs on the node (promote it away
+  first; there is no CNPG model yet). Then cordon, removeMachine (Omni drains, wipes and waits; on a machine that
+  never finished booting it times out, which is allowed, and the next check decides), the server deleted once no
+  volume is attached, and the machine deleted from Omni as the dashboard's Delete Machine does. The machine's UUID,
+  which is also its server ID, is read once from Omni at the start, since deleting the server drops its record. A
+  check that fails while Omni or Cinder catches up is rerun with swamp workflow resume worker-retire --run <id>.
+tags: {}
+inputs:
+  properties:
+    name:
+      type: string
+      description: The worker's name, e.g. dataverket-wrkr-2; server, hostname and node name
+    minWorkers:
+      type: integer
+      default: 3
+      description: How many other Ready workers must remain
+    removeTimeout:
+      type: string
+      default: 15m
+      description: How long removeMachine waits for Omni's drain and wipe
+  required:
+    - name
+jobs:
+  - name: before
+    description: Stop here unless the cluster can lose this worker.
+    steps:
+      - name: discover-before
+        description: Every machine Omni knows; the worker's UUID comes from here.
+        task:
+          type: model_method
+          modelIdOrName: omni
+          methodName: discover
+          inputs: {}
+        dependsOn: []
+        weight: 0
+        allowFailure: false
+      - name: known
+        description: Omni knows exactly one machine of this hostname.
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec("omni", "node").filter(r, r.tags.?workflowRunId.orValue("") == run.id
+            && r.tags.?step.orValue("") == "discover-before" && r.attributes.hostname == inputs.name).size() == 1
+          message: Omni does not know exactly one machine named ${{ inputs.name }}. Nothing was changed.
+          severity: high
+        dependsOn:
+          - step: discover-before
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: nodes
+        description: Every Kubernetes node.
+        task:
+          type: model_method
+          modelIdOrName: dataverket-prod-nodes
+          methodName: list
+          inputs: {}
+        dependsOn: []
+        weight: 0
+        allowFailure: false
+      - name: enough-workers
+        description: At least minWorkers other workers are Ready.
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec("dataverket-prod-nodes", "node").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.attributes.name != inputs.name
+            && !("node-role.kubernetes.io/control-plane" in r.attributes.labels)
+            && r.attributes.conditions.exists(c, c.type == "Ready" && c.status == "True")).size() >= inputs.minWorkers
+          message: >-
+            Fewer than ${{ inputs.minWorkers }} other workers are Ready; join a new one first. Nothing was changed.
+          severity: high
+        dependsOn:
+          - step: nodes
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: zitadel-pods
+        description: Zitadel's pods, its CNPG instances among them.
+        task:
+          type: model_method
+          modelIdOrName: zitadel-pods
+          methodName: list
+          inputs: {}
+        dependsOn: []
+        weight: 0
+        allowFailure: false
+      - name: forgejo-pods
+        description: Forgejo's pods, its CNPG instance among them.
+        task:
+          type: model_method
+          modelIdOrName: forgejo-pods
+          methodName: list
+          inputs: {}
+        dependsOn: []
+        weight: 0
+        allowFailure: false
+      - name: no-primary
+        description: No CNPG primary runs on the node.
+        task:
+          type: assert
+          expr: >-
+            !data.findBySpec("zitadel-pods", "pod").exists(r, r.tags.?workflowRunId.orValue("") == run.id && r.attributes.nodeName == inputs.name
+            && r.attributes.labels[?"cnpg.io/instanceRole"].orValue("") == "primary")
+            && !data.findBySpec("forgejo-pods", "pod").exists(r, r.tags.?workflowRunId.orValue("") == run.id && r.attributes.nodeName == inputs.name
+            && r.attributes.labels[?"cnpg.io/instanceRole"].orValue("") == "primary")
+          message: >-
+            A CNPG primary runs on ${{ inputs.name }}; promote another instance first, or the drain stops on its
+            PodDisruptionBudget. Nothing was changed.
+          severity: high
+        dependsOn:
+          - step: zitadel-pods
+            condition:
+              type: succeeded
+          - step: forgejo-pods
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+    dependsOn: []
+    weight: 0
+  - name: retire
+    description: Cordon, out of the cluster, server deleted, machine deleted.
+    steps:
+      - name: cordon
+        description: No new pods on the node.
+        task:
+          type: model_method
+          modelIdOrName: dataverket-prod-nodes
+          methodName: cordon
+          inputs:
+            nodeName: ${{ inputs.name }}
+        dependsOn: []
+        weight: 0
+        allowFailure: false
+      - name: remove-machine
+        description: Omni drains, wipes and returns the machine; on a machine that cannot be reached it times out, which the next check judges.
+        task:
+          type: model_method
+          modelIdOrName: omni-cluster
+          methodName: removeMachine
+          inputs:
+            machine: ${{ data.findBySpec("omni", "node").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "discover-before" && r.attributes.hostname == inputs.name)[0].attributes.id }}
+            timeout: ${{ inputs.removeTimeout }}
+        dependsOn:
+          - step: cordon
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: true
+      - name: discover-after
+        description: Every machine Omni knows, after the removal.
+        task:
+          type: model_method
+          modelIdOrName: omni
+          methodName: discover
+          inputs: {}
+        dependsOn:
+          - step: remove-machine
+            condition:
+              type: completed
+        weight: 0
+        allowFailure: false
+      - name: out-of-set
+        description: The machine is in no machine set any more.
+        task:
+          type: assert
+          expr: >-
+            !data.findBySpec("omni", "node").exists(r, r.tags.?workflowRunId.orValue("") == run.id
+            && r.tags.?step.orValue("") == "discover-after" && r.attributes.id == data.findBySpec("omni", "node").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "discover-before" && r.attributes.hostname == inputs.name)[0].attributes.id
+            && r.attributes.machineSet != null)
+          message: >-
+            ${{ inputs.name }} is still in a machine set; removeMachine did not take it out. See its report. The server
+            was not touched.
+          severity: high
+        dependsOn:
+          - step: discover-after
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: server-after
+        description: The server, after the drain.
+        task:
+          type: model_method
+          modelIdOrName: openstack-server
+          methodName: get
+          inputs:
+            server: ${{ data.findBySpec("omni", "node").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "discover-before" && r.attributes.hostname == inputs.name)[0].attributes.id }}
+        dependsOn:
+          - step: out-of-set
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: detached
+        description: No Cinder volume is attached any more.
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec("openstack-server", "server").exists(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "server-after"
+            && r.attributes.volumesAttached.size() == 0)
+          message: >-
+            A volume is still attached to ${{ inputs.name }}; Cinder detaches it once its pod has moved. Resume from
+            server-after. The server was not deleted.
+          severity: high
+        dependsOn:
+          - step: server-after
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: delete-server
+        description: The server, by its ID.
+        task:
+          type: model_method
+          modelIdOrName: openstack-server
+          methodName: delete
+          inputs:
+            server: ${{ data.findBySpec("omni", "node").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "discover-before" && r.attributes.hostname == inputs.name)[0].attributes.id }}
+        dependsOn:
+          - step: detached
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: delete-machine
+        description: The dashboard's Delete Machine; Omni removes the Link.
+        task:
+          type: model_method
+          modelIdOrName: omni-cluster
+          methodName: deleteMachine
+          inputs:
+            machine: ${{ data.findBySpec("omni", "node").filter(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "discover-before" && r.attributes.hostname == inputs.name)[0].attributes.id }}
+        dependsOn:
+          - step: delete-server
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+      - name: fleet-volumes
+        description: A fresh talosconfig and volume records without the node.
+        task:
+          type: workflow
+          workflowIdOrName: fleet-volumes
+        dependsOn:
+          - step: delete-machine
+            condition:
+              type: succeeded
+        weight: 0
+        allowFailure: false
+    dependsOn:
+      - job: before
+        condition:
+          type: succeeded
+    weight: 0
+version: 1

@@ -412,10 +412,23 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    had failed rather than been laid out, Talos laid it out at the new size on the same machine (`86e3cfc3-…`,
    10.0.0.117), which joined. The broken machines were deleted at OpenStack; Omni's teardown of a machine that never
    finished booting hangs, and the Operator role may not reset through Omni's Talos proxy, so the stuck
-   ClusterMachines were deleted in the Omni dashboard. Then: extensions in Omni are per machine
-   (`schematic-<uuid>`, made by the dashboard), so the new worker had no `siderolabs/kata-containers`; it was added
-   in the dashboard before wrkr-2 was retired, and `@dataverket/omnictl` needs a method for a machine-set-scoped
-   extensions configuration before swap 2.
+   machines were removed in the Omni dashboard (Delete Machine). Then: extensions in Omni are per machine
+   (`schematic-<uuid>`, made by the dashboard), so the new worker had no `siderolabs/kata-containers`.
+
+   **Swap 1 applied, 2026-10-01.** `@dataverket/omnictl` 2026.10.01.2 added `setExtensions`, and kata was set once on
+   the `dataverket-prod-workers` machine set (`schematic-dataverket-prod-workers`); wrkr-4 took it and every new worker
+   inherits it, while the old workers keep their own. The swap's two halves are now workflows: `worker-join` (server
+   in the group, patch from `dataFile`, `addMachine`, then checks that the node is Ready with the extension label and
+   the layout the patch states) and `worker-retire` (at least three other Ready workers, no CNPG primary on the node,
+   cordon, `removeMachine`, server deleted once no volume is attached, `deleteMachine`, `fleet-volumes`). A wait is a
+   failed check that is resumed, not a poll. `worker-retire` retired wrkr-2 (`a9220d2b-…`): its checks passed, Omni
+   drained and wiped it within a minute, `zitadel-db-3` reattached elsewhere and Zitadel was back at three ready
+   instances, and the server was deleted. Its last Omni step failed: deleting a Machine is refused to every role, and
+   only deleting its Link works, which the Operator may do; Omni then removed the Machine and the Kubernetes node.
+   2026.10.01.3 deletes the patches and the Link. The Link was deleted by hand that time, with the Operator key.
+   Workers after swap 1: wrkr-1 and wrkr-3 as before, and wrkr-4 with EPHEMERAL 14,336 MiB and `u-pg-zitadel`. Swaps 2
+   and 3 are `worker-join` for wrkr-5 and wrkr-6 and `worker-retire` for wrkr-3 and wrkr-1; wrkr-3 holds Zitadel's
+   primary today, so `worker-retire` will stop on it until another instance is promoted. There is no CNPG model yet.
 5. **Provisioner (decision 014).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), class `pg-zitadel-storage` on its mount pattern,
    `WaitForFirstConsumer`. Check: three `local` PVs, one per worker, capacity just under the partition size.

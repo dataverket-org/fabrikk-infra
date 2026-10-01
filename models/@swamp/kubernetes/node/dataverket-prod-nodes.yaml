@@ -1,0 +1,9 @@
+type: '@swamp/kubernetes/node'
+typeVersion: 2026.09.03.1
+id: f8268924-6daf-4d38-892e-012a2f048135
+name: dataverket-prod-nodes
+version: 1
+tags: {}
+globalArguments:
+  context: dataverket-prod-admin
+methods: {}
