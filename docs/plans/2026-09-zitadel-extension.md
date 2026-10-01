@@ -1,8 +1,9 @@
 # Plan: a swamp extension that administers Zitadel
 
 Written 2026-09-29. The extension is built, unit tested, and exercised against a throwaway Zitadel 4.19.3 in
-podman. What is left is the service-user credential for the real instance, which only a person can mint, and the
-publish that follows it.
+podman. It is published as `@dataverket/zitadel` 2026.09.29.2 and pulled here, and seven models name it. What is
+left is the service-user credential for the real instance, which only a person can mint, and the verification
+that follows it.
 
 ## Why
 
@@ -100,8 +101,8 @@ that exists without touching the real instance.
 
    Or keep it out of the vault entirely and let the definitions name the file with `keyJsonFile`.
 3. **Publish** `swamp extension push manifest.yaml --yes` from `~/kode/swamp-extensions/zitadel`, then
-   `swamp extension pull @dataverket/zitadel --yes` here.
-4. **Model definitions** under `models/@dataverket/zitadel/`, one per type, all pointing at
+   `swamp extension pull @dataverket/zitadel --yes` here. Done: 2026.09.29.2.
+4. **Model definitions**, done (`dd7fcc4`), under `models/@dataverket/zitadel/`, one per type, all pointing at
    `https://zitadel.dataverket.org` and `${{ vault.get('infra', 'zitadel/key_json') }}` — quoted arguments,
    which is the spelling `swamp model validate` recognizes.
 5. **Verify against the instance**: the read methods first, then the write path on a throwaway project, walking

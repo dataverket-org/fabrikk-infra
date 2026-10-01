@@ -37,16 +37,21 @@ failed; the user accepted the result and step 6 ran the same day as the bare-met
 Eleventh revision, 2026-10-01: step 7 is applied, and with it the plan. What is left is listed under "Next" and
 belongs to other work: two cleanups with dates, the alerts, and a rebuild test.
 
+Twelfth revision, 2026-10-01: the worker replacement test ran, twice, and passed
+(`docs/plans/2026-09-worker-replacement-test.md`, "Result"). The workers are wrkr-5, wrkr-6 and wrkr-8. "State",
+"Replacing a worker" and "Placement today" say what it found: the group holds no fourth worker, and CNPG rejoins
+without waiting for the PV to be deleted.
+
 ## Next, for whoever picks this up
 
 **State, 2026-10-01.** Steps 1 to 7 applied: Forgejo's database is one instance on 10 GB, zot is on 10 GB
 Standard, and Zitadel's three instances are on the workers' `u-pg-zitadel` partitions. Cinder holds 60 GB SSD and
-10 GB Standard, layout 3. The workers are wrkr-4 (`86e3cfc3-…`), wrkr-5 (`cfe2744a-…`)
-and wrkr-6 (`589b001b-…`), all in `dataverket-prod-workers` on three distinct hypervisors, each with EPHEMERAL
-14 GiB, `u-pg-zitadel` of 11 GiB and kata; the storage patch is on the machine set as `500-workers-storage`.
-Zitadel's database: the primary `zitadel-db-1` on wrkr-5, synchronous standbys `zitadel-db-2` on wrkr-6 and
-`zitadel-db-3` on wrkr-4, archiving to `zitadel-db-2` at the hov1 site. Forgejo's database is on wrkr-4, Forgejo and
-zot on wrkr-5.
+10 GB Standard, layout 3. The workers, since the replacement test the same evening, are wrkr-5 (`cfe2744a-…`),
+wrkr-6 (`589b001b-…`) and wrkr-8 (`90bf77b4-…`), all in `dataverket-prod-workers` on three distinct hypervisors,
+each with EPHEMERAL 14 GiB, `u-pg-zitadel` of 11 GiB and kata; the storage patch is on the machine set as
+`500-workers-storage`. Zitadel's database: the primary `zitadel-db-1` on wrkr-5, synchronous standbys
+`zitadel-db-2` on wrkr-6 and `zitadel-db-3` on wrkr-8, archiving to `zitadel-db-2` at the hov1 site. Forgejo, its
+database and zot are on wrkr-5.
 
 **Next.** Nothing in this plan; what follows is for other work.
 
@@ -64,7 +69,9 @@ before 2026-09-30 13:52 UTC nor Zitadel to before 2026-10-01 09:48 UTC. There ne
 
 A worker now holds a Zitadel replica on its own disk, so a swap is no longer only the two workflows: the replica on the retired worker cannot
 move, and "Replacing a worker" under Operations applies (`kubectl cnpg destroy`, then the orphaned PV), which
-`docs/plans/2026-09-worker-replacement-test.md` runs first. The workflows are the same; a check that
+`docs/plans/2026-09-worker-replacement-test.md` ran twice on 2026-10-01. The group is full at three workers, so a
+`worker-join` in it fails with "No valid host was found" until a worker is gone; "Replacing a worker" gives the two
+orders that work. The workflows are the same; a check that
 waits is resumed from the step it reads, never without `--from`, which reruns only the check against the records
 it already failed on:
 
@@ -74,12 +81,15 @@ swamp workflow resume worker-join --run <id> --from discover   # while registere
 swamp workflow resume worker-join --run <id> --from node-get   # while node-get or node-ready fails: install takes minutes
 kubectl cnpg promote zitadel-db <instance> -n zitadel --context dataverket-prod-admin   # if the old worker holds the primary
 swamp workflow run worker-retire --input name=dataverket-wrkr-M
+swamp workflow resume worker-retire --run <id> --from server-after   # while detached fails: a Cinder volume takes about six minutes to leave
+kubectl cnpg destroy zitadel-db <instance> -n zitadel --context dataverket-prod-admin   # the instance that was on the retired worker
 ```
 
-**Not yet proven.** Replacing a worker that holds a replica. The `kubectl cnpg` plugin (Brewfile, 1.30.1) needs the admin context: the
-readers group has `view` in `forgejo-runners` only, and CNPG 1.30.0 ships no `aggregate-to-view` role. Whether
-an `@dataverket/kubectl-cnpg` extension with `status`, `promote` and `backup` should replace the by-hand promote
-in `worker-retire` is open.
+**Proven, 2026-10-01.** Replacing a worker that holds a replica: 68 seconds from the destroy to three ready
+instances, both times. The `kubectl cnpg` plugin (Brewfile, 1.30.1) needs the admin context: the
+readers group has `view` in `forgejo-runners` only, and CNPG 1.30.0 ships no `aggregate-to-view` role. A CNPG model
+with `status`, `promote`, `destroy` and `backup` should replace the by-hand promote and destroy, as a last job of
+`worker-retire`; it is in `docs/plans/2026-10-talosctl-over-omni.md`.
 
 **Working here.**
 
@@ -651,14 +661,18 @@ it is there, need the `out-of-service` taint before they move, and are down unti
 all three workers at once loses Zitadel's database; the hov1 site is the recovery.
 
 **Replacing a worker** is step 4's swap, and it is the only way a worker changes: a new machine in the group,
-the old one retired. It does not self-heal for Zitadel's database: the instance whose volume was on the old node keeps
+the old one retired. With three workers in the group and three hypervisors in the zone, the new machine cannot
+come first: either the old worker is retired first and the cluster runs on two until the new one joins, or a
+stand-in joins outside the group (`worker-join` with an empty `serverGroup`) and is itself replaced once the group
+has room, which is two swaps. It does not self-heal for Zitadel's database: the instance whose volume was on the old node keeps
 a claim bound to a `local` PV on a node that no longer exists (or, under a reused hostname, to an empty
 partition), and CNPG will not re-clone into it. Sequence: `kubectl cnpg destroy <cluster> <n>` for that instance,
 delete the orphaned PV, and CNPG joins a fresh replica on the new worker, where the required anti-affinity and the
-class's `WaitForFirstConsumer` put it. Check: three ready instances, lag zero, the new server in the group.
+class's `WaitForFirstConsumer` put it. CNPG starts the join as soon as the instance is destroyed, with the same
+serial, and does not wait for the PV; deleting it is cleanup. Check: three ready instances, lag zero, the new server in the group.
 Destroying an instance on a node that stays is different: the class keeps a released PV's data, and the
 provisioner republishes the partition as it is once the PV is deleted, so the partition is reset first
-(`dataverket-prod-talos reset` with `u-pg-zitadel` named). The sequence runs for the first time in `docs/plans/2026-09-worker-replacement-test.md`, not during an outage.
+(`dataverket-prod-talos reset` with `u-pg-zitadel` named). The sequence ran for the first time in `docs/plans/2026-09-worker-replacement-test.md`, on 2026-10-01, not during an outage.
 
 **Changing EPHEMERAL later** is three swaps with a new patch; a machine never changes its layout in place, so
 the gap a shrunk EPHEMERAL would leave never arises. Plan the cap once anyway: a swap moves every replica.
@@ -744,20 +758,21 @@ their placement: they are in no server group either, and placing one is an etcd 
 An in-cluster S3 endpoint, versitygw on Cinder Standard in the earlier revisions, comes with its first writer,
 Zulip's uploads or Forgejo's LFS and packages, in its own plan. Nothing here needs it.
 
-Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026-09-worker-replacement-test.md`.
+Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026-09-worker-replacement-test.md`,
+done 2026-10-01. The Node column below is as of that evening.
 
 ## Placement today
 
 | Service | Component | Storage | Class, tier | Size | Used | Redundancy | Node |
 |---|---|---|---|---|---|---|---|
-| Forgejo | postgres, CNPG ×1, since 2026-09-30 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 620 MB | Cinder ×3 | wrkr-4 |
-| Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 11 MB | Cinder ×3 | wrkr-2 |
-| Zitadel | postgres, CNPG ×3, since 2026-10-01 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 11 GiB, claim 10Gi | 17 MB | app ×3, one per worker, one synchronous | wrkr-5, wrkr-6, wrkr-4 |
+| Forgejo | postgres, CNPG ×1, since 2026-09-30 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 620 MB | Cinder ×3 | wrkr-5 |
+| Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 11 MB | Cinder ×3 | wrkr-5 |
+| Zitadel | postgres, CNPG ×3, since 2026-10-01 | worker root disk, `u-pg-zitadel` | `pg-zitadel-storage`, local | 3 × 11 GiB, claim 10Gi | 17 MB | app ×3, one per worker, one synchronous | wrkr-5, wrkr-6, wrkr-8 |
 | zot | blobs and config, since 2026-09-30 | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | 44 MiB | Cinder ×3 | wrkr-5 |
-| Runner, org | docker-lib cache (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3, disposable | wrkr-1 |
-| Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3 | wrkr-3 |
+| Runner, org | docker-lib cache (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3, disposable | wrkr-5 |
+| Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3 | wrkr-6 |
 | Control planes ×3 | Talos system, etcd | flavor root disk, EPHEMERAL 21 GiB | c5.large | 3 × 25 GiB | 1.1 GiB | etcd ×3, disk unknown | ctrl-1..3 |
-| Workers ×3 | Talos system, images, logs | flavor root disk, EPHEMERAL 14 GiB, `u-pg-zitadel` 11 GiB empty | m5.large | 3 × 30 GiB | not measured since step 4 | disk unknown; anti-affinity group, three hypervisors | wrkr-4..6 |
+| Workers ×3 | Talos system, images, logs | flavor root disk, EPHEMERAL 14 GiB, `u-pg-zitadel` 11 GiB empty | m5.large | 3 × 30 GiB | not measured since step 4 | disk unknown; anti-affinity group, three hypervisors | wrkr-5, wrkr-6, wrkr-8 |
 | Backups | Postgres WAL and daily base backups, since 2026-09-20 | versitygw at the hov1 site, `213.128.185.82:443` | posix, `backup/hov1` | | | one disk | is the backup |
 
 ## Placement planned

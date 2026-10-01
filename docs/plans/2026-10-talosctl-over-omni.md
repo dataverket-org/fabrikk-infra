@@ -31,10 +31,14 @@ Omni-only features such as machine classes or cluster templates.
 
 1. `@dataverket/talosctl/node`: `etcdSnapshot`, `upgradeK8s`, and `genConfig`, which renders a role's machine config
    from a secrets bundle and patch files, both named as files, never carried.
-2. A `drain` method for `@swamp/kubernetes/node`, as an extension of that type; `delete` for a node.
+2. A `drain` method for `@swamp/kubernetes/node`, as an extension of that type; `delete` for a node. The drain
+   waits until the node's Cinder volumes are detached before anything wipes it: in the worker replacement test a
+   wipe right after Omni's drain left Forgejo's database volume attached for about six minutes.
 3. An Image Factory schematic file in `talos/`, and a method or workflow that builds the OpenStack image from it with
    `openstack-image create`, so kata is in the image and not in Omni.
-4. A CNPG model (`status`, `promote`, `backup`), needed with or without Omni.
+4. A CNPG model (`status`, `promote`, `destroy`, `backup`), needed with or without Omni. It comes first: with it
+   `worker-retire` gets a last job that destroys the instance the retired worker held, deletes the released PV and
+   checks three ready instances, which were `kubectl` by hand on 2026-10-01.
 5. Workflows: `worker-join` and `worker-retire` in a talosctl form beside the Omni form, chosen by the cluster, and
    `talos-upgrade` and `etcd-snapshot`.
 
@@ -55,5 +59,9 @@ Omni-only features such as machine classes or cluster templates.
   limited to the operators' addresses. This decides step 4's order.
 - `userData` puts the bootstrap token in Nova's metadata, readable by every project member; `apply-config
   --insecure` avoids that but needs the network path.
+- The workers' server group is full at three, on the three hypervisors the zone gives the project. Every swap is
+  retire first on two workers, or a stand-in outside the group and two swaps
+  (`docs/plans/2026-09-worker-replacement-test.md`, "Result"). Ask Nexthop for a fourth hypervisor, or choose one
+  order and write it into decision 017, which says new machine first.
 - Whether a running cluster can leave Omni without replacing its machines; if not, step 4 is three swaps, and the
   control planes need a plan of their own.
