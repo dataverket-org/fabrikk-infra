@@ -25,4 +25,4 @@ spec:
         name: barman-cloud.cloudnative-pg.io
         parameters:
           barmanObjectName: hov1
-          serverName: forgejo-postgres
+          serverName: forgejo-postgres-2

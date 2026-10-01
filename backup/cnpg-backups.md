@@ -64,7 +64,7 @@ kubectl exec -n forgejo forgejo-postgres-1 -c postgres -- psql -U postgres -tAc 
   'select archived_count, last_archived_wal, last_archived_time, failed_count, last_failed_time from pg_stat_archiver'
 
 # One Backup in full (WAL range, timings, error)
-kubectl get backup -n forgejo forgejo-postgres-first -o yaml | sed -n '/^status:/,$p'
+kubectl get backup -n forgejo forgejo-postgres-2-first -o yaml | sed -n '/^status:/,$p'
 
 # Events, newest last: rollouts, switchovers, backup start/complete/fail
 kubectl get events -n forgejo --sort-by=.lastTimestamp | grep -i -E 'backup|archiv|switchover|failover' | tail -20
