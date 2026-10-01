@@ -186,14 +186,15 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/omnictl": {
-    "version": "2026.09.29.1",
-    "pulledAt": "2026-09-29T10:17:58.892Z",
+    "version": "2026.10.01.1",
+    "pulledAt": "2026-10-01T06:55:41.836Z",
     "files": [
       ".swamp/bundles/c94a60e9/cluster.js",
       ".swamp/bundles/c94a60e9/inventory.js",
       ".swamp/pulled-extensions/@dataverket/omnictl/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/omnictl/files/README.md",
       ".swamp/pulled-extensions/@dataverket/omnictl/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/omnictl/models/checks.ts",
       ".swamp/pulled-extensions/@dataverket/omnictl/models/cluster.ts",
       ".swamp/pulled-extensions/@dataverket/omnictl/models/common.ts",
       ".swamp/pulled-extensions/@dataverket/omnictl/models/inventory.ts",
@@ -202,8 +203,8 @@
       ".swamp/pulled-extensions/@dataverket/omnictl/models/transform.ts",
       ".swamp/pulled-extensions/@dataverket/omnictl/models/util.ts"
     ],
-    "checksum": "1f4ce283960e33d463dcda1df0b189bcf0ad32c7ec91e72348c0945741e73810",
-    "filesChecksum": "56ba10d5521520d3724cb6ce617912e69b555a31dc4794cbdb507a3477c55cff",
+    "checksum": "ca9fba6ebe1f3182785761086504bd1b9d44e4dd284895fa7ee39855b497abbb",
+    "filesChecksum": "23c1dbdfa2a4e23773cfa234fa7f2f0cc0fc86b04a0ab03cfb48d3c66a4c0fa2",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/forgejo": {
