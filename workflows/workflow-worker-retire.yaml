@@ -3,8 +3,9 @@ name: worker-retire
 description: >-
   Take one worker out of the cluster for good, the second half of a swap (docs/plans/2026-09-storage-building-blocks.md,
   step 4), and also the way to clear a new machine that never joined properly. Before anything changes: at least
-  minWorkers other workers are Ready, and no CNPG primary of Zitadel or Forgejo runs on the node (promote it away
-  first; there is no CNPG model yet). Then cordon, removeMachine (Omni drains, wipes and waits; on a machine that
+  minWorkers other workers are Ready, and Zitadel's CNPG primary does not run on the node (promote it away first;
+  there is no CNPG model yet). Forgejo's database is one instance without a PodDisruptionBudget, so it is not
+  checked: it is down while its volume moves. Then cordon, removeMachine (Omni drains, wipes and waits; on a machine that
   never finished booting it times out, which is allowed, and the next check decides), the server deleted once no
   volume is attached, and the machine deleted from Omni as the dashboard's Delete Machine does. The machine's UUID,
   which is also its server ID, is read once from Omni at the start, since deleting the server drops its record. A
@@ -91,34 +92,19 @@ jobs:
         dependsOn: []
         weight: 0
         allowFailure: false
-      - name: forgejo-pods
-        description: Forgejo's pods, its CNPG instance among them.
-        task:
-          type: model_method
-          modelIdOrName: forgejo-pods
-          methodName: list
-          inputs: {}
-        dependsOn: []
-        weight: 0
-        allowFailure: false
       - name: no-primary
-        description: No CNPG primary runs on the node.
+        description: Zitadel's CNPG primary does not run on the node.
         task:
           type: assert
           expr: >-
             !data.findBySpec("zitadel-pods", "pod").exists(r, r.tags.?workflowRunId.orValue("") == run.id && r.attributes.nodeName == inputs.name
             && r.attributes.labels[?"cnpg.io/instanceRole"].orValue("") == "primary")
-            && !data.findBySpec("forgejo-pods", "pod").exists(r, r.tags.?workflowRunId.orValue("") == run.id && r.attributes.nodeName == inputs.name
-            && r.attributes.labels[?"cnpg.io/instanceRole"].orValue("") == "primary")
           message: >-
-            A CNPG primary runs on ${{ inputs.name }}; promote another instance first, or the drain stops on its
-            PodDisruptionBudget. Nothing was changed.
+            Zitadel's CNPG primary runs on ${{ inputs.name }}; promote another instance first, or the drain stops on
+            its PodDisruptionBudget. Nothing was changed.
           severity: high
         dependsOn:
           - step: zitadel-pods
-            condition:
-              type: succeeded
-          - step: forgejo-pods
             condition:
               type: succeeded
         weight: 0

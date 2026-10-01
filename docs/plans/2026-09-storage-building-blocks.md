@@ -464,7 +464,7 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    the `dataverket-prod-workers` machine set (`schematic-dataverket-prod-workers`); wrkr-4 took it and every new worker
    inherits it, while the old workers keep their own. The swap's two halves are now workflows: `worker-join` (server
    in the group, patch from `dataFile`, `addMachine`, then checks that the node is Ready with the extension label and
-   the layout the patch states) and `worker-retire` (at least three other Ready workers, no CNPG primary on the node,
+   the layout the patch states) and `worker-retire` (at least three other Ready workers, Zitadel's CNPG primary not on the node,
    cordon, `removeMachine`, server deleted once no volume is attached, `deleteMachine`, `fleet-volumes`). A wait is a
    failed check that is resumed, not a poll. `worker-retire` retired wrkr-2 (`a9220d2b-…`): its checks passed, Omni
    drained and wiped it within a minute, `zitadel-db-3` reattached elsewhere and Zitadel was back at three ready
