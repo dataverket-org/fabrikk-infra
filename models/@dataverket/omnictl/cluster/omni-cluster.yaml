@@ -1,5 +1,5 @@
 type: '@dataverket/omnictl/cluster'
-typeVersion: 2026.10.01.2
+typeVersion: 2026.10.01.3
 id: d03267ff-fdad-489d-8433-e5ce48235ed0
 name: omni-cluster
 version: 1
