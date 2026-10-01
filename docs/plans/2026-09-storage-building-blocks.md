@@ -31,12 +31,15 @@ says what comes back and what does not, with the GitHub mirror as Flux's source 
 Tenth revision, 2026-10-01: steps 2 and 3 are applied, and swap 1 of step 4. Worker sizes, the Omni extension and
 the swap workflows changed on the way, each recorded in step 4. Omni is to be used as little as possible, and the
 move off it is its own plan, `docs/plans/2026-10-talosctl-over-omni.md`, for after this one. Swaps 2 and 3 the same
-day, both halves by workflow: step 4 is applied. Step 5's provisioner the same day, and its `pgbench` gate, which failed; the user accepted the result and step 6 ran
-the same day as the bare-metal rehearsal.
+day, both halves by workflow: step 4 is applied. Step 5's provisioner the same day, and its `pgbench` gate, which
+failed; the user accepted the result and step 6 ran the same day as the bare-metal rehearsal.
+
+Eleventh revision, 2026-10-01: step 7 is applied, and with it the plan. What is left is listed under "Next" and
+belongs to other work: two cleanups with dates, the alerts, and a rebuild test.
 
 ## Next, for whoever picks this up
 
-**State, 2026-10-01.** Steps 1 to 6 applied: Forgejo's database is one instance on 10 GB, zot is on 10 GB
+**State, 2026-10-01.** Steps 1 to 7 applied: Forgejo's database is one instance on 10 GB, zot is on 10 GB
 Standard, and Zitadel's three instances are on the workers' `u-pg-zitadel` partitions. Cinder holds 60 GB SSD and
 10 GB Standard, layout 3. The workers are wrkr-4 (`86e3cfc3-…`), wrkr-5 (`cfe2744a-…`)
 and wrkr-6 (`589b001b-…`), all in `dataverket-prod-workers` on three distinct hypervisors, each with EPHEMERAL
@@ -45,8 +48,17 @@ Zitadel's database: the primary `zitadel-db-1` on wrkr-5, synchronous standbys `
 `zitadel-db-3` on wrkr-4, archiving to `zitadel-db-2` at the hov1 site. Forgejo's database is on wrkr-4, Forgejo and
 zot on wrkr-5.
 
-**Next is step 7**, records and models. A worker now holds a Zitadel
-replica on its own disk, so a swap is no longer only the two workflows: the replica on the retired worker cannot
+**Next.** Nothing in this plan; what follows is for other work.
+
+- 2026-10-14: remove `forgejo-postgres-first` from `apps/forgejo/backup.yaml` and delete the `forgejo-postgres`
+  folder in `cnpg-forgejo` at the hov1 site. 2026-10-15: the same for `zitadel-db-first` and `zitadel-db`.
+- The six alerts under "Operations after the change" are written down and not deployed (decision 020's audit).
+- A branch option for `bootstrap.sh`, then a rebuild test in a lab cluster (decision 021's audit).
+- Two stale lines outside this plan's scope: the comment in `clusters/production/flux-system/gotk-sync.yaml` still
+  names Codeberg as the mirror, and `backup/hov1/README.md` lists a `restic-forgejo` bucket that may or may not
+  exist at the site.
+
+A worker now holds a Zitadel replica on its own disk, so a swap is no longer only the two workflows: the replica on the retired worker cannot
 move, and "Replacing a worker" under Operations applies (`kubectl cnpg destroy`, then the orphaned PV), which
 `docs/plans/2026-09-worker-replacement-test.md` runs first. The workflows are the same; a check that
 waits is resumed from the step it reads, never without `--from`, which reruns only the check against the records
@@ -610,6 +622,22 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    since the site's endpoint is an address: a `@dataverket/directadmin` `dns-record` model for names that are not
    cluster services, and the `dvkt.no` credential in `nordhost-config`. Both arrive the day the endpoint gets a name
    (`s3.hov1.dvkt.no`), which is what an address change would ask for.
+
+   **Applied, 2026-10-01.** Decisions 017 (workers are replaced, never changed in place), 018 (one redundancy layer
+   per kind of data), 019 (EPHEMERAL a fixed 14 GiB, superseding 014's figure), 020 (backups to the hov1 site, by
+   address) and 021 (git describes the cluster; a rebuild restores its databases), an implemented audit on 014, and
+   the index from `bin/decisions-index`. The README gains a `talos/` row; the mirror is GitHub and the later file
+   backup kopia wherever the README, `backup/` and `bootstrap.sh` said Codeberg or restic. `bin/check-recovery-names`
+   is new: every CNPG `Cluster` under `apps/` that recovers must archive elsewhere, compared as object store and
+   `serverName` with the plugin's defaults, and with a URL Flux's `GitRepository` must read it; it prints the `yq -i`
+   commands to make and refuses to pass on a file `yq` cannot read. On today's repository it stops, as it should,
+   with both clusters moving to `-3`; on a copy with those commands applied it passes. `bootstrap.sh` takes
+   `--source dataverket|github`; on a fresh cluster it requires a clean checkout equal to what the source serves,
+   runs the check, and on GitHub installs Flux from the repository's own `gotk-components.yaml` and applies
+   `gotk-sync.yaml`, read-only; it ends by backing up every CNPG cluster git names that has no completed backup
+   since it was created, or says which are not there yet. A subagent's adversarial review found eleven problems,
+   among them that the check's advice could break a restore if pushed while the old cluster runs and that the backup
+   step did nothing on a fresh cluster; all are fixed except the two stale lines under "Next". Not tested: a rebuild.
 
 ## Operations after the change
 
