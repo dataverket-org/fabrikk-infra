@@ -11,9 +11,10 @@ name: EPHEMERAL
 provisioning:
   maxSize: 16GiB
 ---
-# The rest of the system disk, about 12 GiB on a 30 GiB m5.large, for Zitadel's database; the static provisioner
-# publishes its mount as a local PV of class pg-zitadel-storage. system_disk keeps Talos off the Cinder volumes
-# attached to the same machine.
+# Zitadel's database, on the system disk beside EPHEMERAL; the static provisioner publishes its mount as a local PV
+# of class pg-zitadel-storage. system_disk keeps Talos off the Cinder volumes attached to the same machine. maxSize is
+# what leaves EPHEMERAL its 16 GiB: Talos may provision this volume first, and on 2026-10-01 a grow without a ceiling
+# took all 28 GB and EPHEMERAL failed for want of space. 2.1 GiB of Talos partitions, 16 GiB and 11 GiB fit in 30.
 apiVersion: v1alpha1
 kind: UserVolumeConfig
 name: pg-zitadel
@@ -21,6 +22,7 @@ provisioning:
   diskSelector:
     match: system_disk
   minSize: 6GiB
+  maxSize: 11GiB
   grow: true
 filesystem:
   type: xfs
