@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - occm
   - cinder-csi-provider
+  - local-static-provisioner
   - cnpg-operator
   - cnpg-barman-plugin
   - envoy
