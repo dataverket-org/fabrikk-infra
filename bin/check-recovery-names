@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+#
+# Before a rebuild, says whether git is ready for one (decision 021). Every
+# CNPG Cluster under apps/ that recovers from an archive must write to a
+# different archive than the one it recovers from, since a restored cluster
+# cannot archive into the archive it came from. When it does not, this prints
+# the commit to make: each archive's serverName moved to the next number.
+#
+# With a URL as argument it also checks that Flux's own GitRepository in
+# clusters/ reads that URL, since Flux's first reconcile applies it and would
+# otherwise point the new cluster back at the old source.
+#
+# Reads the working tree only: no cluster, no YubiKey. bootstrap.sh runs it
+# when flux-system does not exist yet, after making sure the tree is what the
+# source serves; run it alone at any time.
+#
+
+# shellcheck source=share/logging.sh
+source "${0%/*}/../share/logging.sh" || exit $?
+
+repo_dir="$(cd "${0%/*}/.." && pwd)" || exit $?
+want_url="${1:-}"
+failures=0
+
+#
+# Prints the next name in a series: name-N becomes name-(N+1), name becomes
+# name-2.
+#
+function next_name()
+{
+	local name="$1"
+	local base="${name%-*}"
+	local number="${name##*-}"
+
+	if [[ "$base" != "$name" && "$number" =~ ^[0-9]+$ ]]; then
+		echo "$base-$(( number + 1 ))"
+	else
+		echo "$name-2"
+	fi
+}
+
+#
+# Prints "index|name|archive|source" for every CNPG Cluster in a file. Archive
+# and source are "objectStore/serverName", or empty when there is none; an unset
+# serverName is the Barman Cloud plugin's default, the Cluster's name when
+# archiving and the external cluster's name when recovering. Not tabs: read
+# collapses adjacent whitespace separators, and an empty field would vanish.
+#
+function clusters_in()
+{
+	local file="$1"
+
+	# shellcheck disable=SC2016  # the $ names belong to yq
+	yq -r '
+		select(.kind == "Cluster" and
+			(.apiVersion // "" | test("^postgresql.cnpg.io/"))) |
+		. as $c |
+		([$c.spec.plugins[]? | select(.isWALArchiver == true) |
+			(.parameters.barmanObjectName // "") + "/" +
+			(.parameters.serverName // $c.metadata.name)][0] // "")
+			as $archive |
+		($c.spec.bootstrap.recovery.source // "") as $src |
+		([$c.spec.externalClusters[]? | select(.name == $src) |
+			select(.plugin != null) |
+			(.plugin.parameters.barmanObjectName // "") + "/" +
+			(.plugin.parameters.serverName // $src)][0] // "") as $from |
+		[document_index, $c.metadata.name, $archive, $from] | join("|")
+	' "$file"
+}
+
+#
+# Checks every Cluster in one file and prints the edit each one needs.
+#
+function check_file()
+{
+	local file="$1"
+	local relative="${file#"$repo_dir"/}"
+	local rows index name archive from next
+
+	if ! rows="$(clusters_in "$file")"; then
+		error "$relative: yq could not read it"
+		failures=$(( failures + 1 ))
+		return 0
+	fi
+
+	while IFS='|' read -r index name archive from; do
+		[[ -n "$name" ]] || continue
+
+		if [[ -z "$from" ]]; then
+			warn "$relative: $name does not recover from an archive; a rebuild brings it back empty"
+			continue
+		fi
+
+		if [[ -z "$archive" ]]; then
+			error "$relative: $name recovers from $from but archives nowhere"
+			failures=$(( failures + 1 ))
+			continue
+		fi
+
+		if [[ "$archive" == "$from" ]]; then
+			next="$(next_name "${archive#*/}")"
+			error "$relative: $name archives to $archive, the archive it recovers from"
+			echo "  yq -i '(select(document_index == $index) | .spec.plugins[] | select(.isWALArchiver == true) | .parameters.serverName) = \"$next\"' $relative"
+			failures=$(( failures + 1 ))
+			continue
+		fi
+
+		log "$relative: $name recovers from $from and archives to $archive"
+	done <<<"$rows"
+}
+
+#
+# Checks that Flux's own GitRepository reads the URL a rebuild will use.
+#
+function check_source()
+{
+	local url="$1"
+	local file="$repo_dir/clusters/production/flux-system/gotk-sync.yaml"
+	local actual
+
+	if ! actual="$(yq -r 'select(.kind == "GitRepository") | .spec.url' "$file")" ||
+	   [[ -z "$actual" ]]; then
+		error "clusters/production/flux-system/gotk-sync.yaml: no GitRepository URL found"
+		failures=$(( failures + 1 ))
+		return 0
+	fi
+
+	if [[ "$actual" != "$url" ]]; then
+		error "clusters/production/flux-system/gotk-sync.yaml reads $actual, not $url"
+		echo "  yq -i '(select(.kind == \"GitRepository\") | .spec.url) = \"$url\"' clusters/production/flux-system/gotk-sync.yaml"
+		failures=$(( failures + 1 ))
+		return 0
+	fi
+
+	log "Flux's GitRepository reads $url"
+}
+
+command -v yq >/dev/null || fail "yq is not on PATH"
+
+files="$(find "$repo_dir/apps" -name '*.yaml' ! -name '*.enc.yaml' | sort)" ||
+	fail "Could not list $repo_dir/apps!"
+
+while read -r file; do
+	[[ -n "$file" ]] || continue
+	grep -q 'postgresql.cnpg.io' "$file" || continue
+	check_file "$file"
+done <<<"$files"
+
+[[ -n "$want_url" ]] && check_source "$want_url"
+
+if (( failures )); then
+	cat <<'MSG'
+
+Make the edits above, commit them and push them to the source the new cluster's
+Flux will read. Never push them where the old cluster's Flux reads while the old
+cluster runs: plugin parameters are live, so it would start writing to the new
+name, and the restore would find that archive taken.
+MSG
+	fail "$failures change(s) needed before a rebuild"
+fi
+
+log "Ready for a rebuild: every restored cluster writes a new archive"
