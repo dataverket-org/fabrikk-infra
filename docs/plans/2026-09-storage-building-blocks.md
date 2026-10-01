@@ -31,7 +31,7 @@ says what comes back and what does not, with the GitHub mirror as Flux's source 
 Tenth revision, 2026-10-01: steps 2 and 3 are applied, and swap 1 of step 4. Worker sizes, the Omni extension and
 the swap workflows changed on the way, each recorded in step 4. Omni is to be used as little as possible, and the
 move off it is its own plan, `docs/plans/2026-10-talosctl-over-omni.md`, for after this one. Swaps 2 and 3 the same
-day, both halves by workflow: step 4 is applied. Step 5's provisioner the same day; its `pgbench` gate is not run.
+day, both halves by workflow: step 4 is applied. Step 5's provisioner the same day, and its `pgbench` gate, which failed: step 6 does not go ahead as written.
 
 ## Next, for whoever picks this up
 
@@ -42,8 +42,11 @@ and wrkr-6 (`589b001b-…`), all in `dataverket-prod-workers` on three distinct 
 `500-workers-storage`. Zitadel's database is still on Cinder: the primary `zitadel-db-3` on wrkr-4, `zitadel-db-1`
 on wrkr-5, `zitadel-db-2` on wrkr-6. Forgejo's database is on wrkr-4, Forgejo and zot on wrkr-5.
 
-**Next is step 5's `pgbench` gate**; the provisioner is applied and three PVs are published, nothing bound.
-Nothing is prepared for the gate yet, and step 6 waits on it. A swap later, for a flavor change or the worker replacement test, is the same two workflows; a check that
+**Next is a decision, not a step.** Step 5's gate failed: under load on the root disk, Postgres on the
+`u-pg-zitadel` partition averaged 19.4 ms a transaction against 6.0 ms on a Cinder SSD claim, past the 2x limit,
+and was slower than Cinder even with the disk quiet (step 5). Step 6 does not go ahead as written; whether it
+goes ahead anyway as a rehearsal, waits for a better test, or is dropped is the user's to decide. Three PVs stay
+published, nothing bound. A swap later, for a flavor change or the worker replacement test, is the same two workflows; a check that
 waits is resumed from the step it reads, never without `--from`, which reruns only the check against the records
 it already failed on:
 
@@ -55,7 +58,7 @@ kubectl cnpg promote zitadel-db <instance> -n zitadel --context dataverket-prod-
 swamp workflow run worker-retire --input name=dataverket-wrkr-M
 ```
 
-**Not yet proven.** That the kubelet on Talos mounts `/var/mnt/pg-zitadel` into a pod; the first `pgbench` pod shows it. The `kubectl cnpg` plugin (Brewfile, 1.30.1) needs the admin context: the
+**Not yet proven.** Nothing new; the gate proved the mount. The `kubectl cnpg` plugin (Brewfile, 1.30.1) needs the admin context: the
 readers group has `view` in `forgejo-runners` only, and CNPG 1.30.0 ships no `aggregate-to-view` role. Whether
 an `@dataverket/kubectl-cnpg` extension with `status`, `promote` and `backup` should replace the by-hand promote
 in `worker-retire` is open.
@@ -519,6 +522,31 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    `10Gi`, not the filesystem's size just under 11 GiB, since the provisioner rounds capacity down to whole GiB;
    step 6's `10Gi` claim still fits. Not yet proven: that the kubelet on Talos mounts `/var/mnt/pg-zitadel` into a
    pod, which the first `pgbench` pod shows. The gate has not run. Stopped here: PVs published, nothing bound.
+
+   **Gate run, 2026-10-01: failed.** Scaffolding only, in a namespace `storage-gate` deleted afterwards; nothing in
+   git. Two Jobs on wrkr-6 in turn, each Postgres 18 (`18.4-system-trixie`) as uid 26 with `fsGroup: 26` on a 5Gi
+   claim, one on `pg-zitadel-storage` (bound `local-pv-47f3d4b8`), one on `csi-cinder-sc-delete`; `pgbench -i -s 50`,
+   then two runs of 60 s at `-c 4 -j 2 -P 10`, quiet and then with a second container writing and reading back
+   1 GiB with direct I/O in a loop on an emptyDir, which is the root disk; that stands in for the plan's CI build
+   and image pull, and is harsher than both. The first attempt never scheduled: wrkr-6 had 1760m of 1950m CPU
+   requested, wrkr-4 1500m and wrkr-5 1670m, and the pods asked for 600m; they ran with 150m requested and a
+   1 vCPU limit on the bench. That is also the headroom Zulip starts from.
+
+   | Target | Quiet: tps, average latency | Loaded: tps, average latency | Loaded: slowest 10 s interval |
+   |---|---|---|---|
+   | Local partition | 522, 7.7 ms | 206, 19.4 ms | 103.5 tps, 38.7 ms |
+   | Cinder SSD | 625, 6.4 ms | 664, 6.0 ms | 63.3 tps, 63.4 ms |
+
+   Against the criteria set before the run: `/data` owned `26:26`, not met as written, since it was `0:26` on
+   both: `fsGroup` sets the group and leaves the owner, and Postgres as uid 26 wrote through the group, so the
+   mount and the permissions work, and decision 014's "chowns" means the group; no 10 s interval at 0 tps in the
+   local loaded run, met, at least 103.5 tps; the local loaded average at most twice Cinder's, not met, 3.2 times.
+   The root disk is slower than a Cinder SSD claim here even when quiet, and loses two thirds of its throughput
+   under load, while Cinder did not notice the load. Two 60 s runs on one worker are a thin sample, but the
+   difference is not marginal. Cleanup: the namespace deleted, the Cinder volume gone with its claim (eight volumes
+   listed by `openstack-volume` afterwards, none of them the test's), the released `local-pv-47f3d4b8` deleted
+   once it showed `Released` with claimRef `storage-gate/bench-local`, and republished empty under the same name;
+   three PVs `Available`. Stopped here: PVs published, nothing bound, step 6 not started.
 6. **Zitadel's database to the worker disks.** The same migration as step 2, in the same order, with
    `helmrelease zitadel -n zitadel` suspended beside `apps`; git stays up, so Flux could fetch, but the order
    keeps it from applying half a change. Scale Zitadel to zero (identity is down for the restore time from
