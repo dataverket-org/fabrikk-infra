@@ -6,7 +6,8 @@ description: >-
   added to the workers' machine set, and checks that it is a Ready node with the extensions and the disk layout the
   patch states. The server's ID is its Omni machine UUID. Nothing here touches an existing worker. Steps that wait on
   the machine, its registration in Omni and the node becoming Ready, fail rather than poll; rerun them with
-  swamp workflow resume worker-join --run <id>. Extensions come from the machine set (setExtensions), not from here.
+  swamp workflow resume worker-join --run <id> --from <step>, naming the step the failed check reads, since without
+  --from only the check reruns, against the same records. Extensions come from the machine set (setExtensions), not from here.
 tags: {}
 inputs:
   properties:
@@ -101,7 +102,7 @@ jobs:
             && r.attributes.machineSet == null)
           message: >-
             Omni does not list ${{ inputs.name }} as a free machine yet; it registers within a minute of booting.
-            Resume from discover.
+            swamp workflow resume worker-join --run <id> --from discover
           severity: high
         dependsOn:
           - step: discover
@@ -167,7 +168,7 @@ jobs:
             && inputs.extensionLabel in r.attributes.labels)
           message: >-
             ${{ inputs.name }} is not a Ready node with ${{ inputs.extensionLabel }} yet; installing and joining takes a
-            few minutes. Resume from node-get. If it stays so, read its Talos services and volumes.
+            few minutes. swamp workflow resume worker-join --run <id> --from node-get. If it stays so, read its Talos services and volumes.
           severity: high
         dependsOn:
           - step: node-get

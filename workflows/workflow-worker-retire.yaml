@@ -9,7 +9,8 @@ description: >-
   never finished booting it times out, which is allowed, and the next check decides), the server deleted once no
   volume is attached, and the machine deleted from Omni as the dashboard's Delete Machine does. The machine's UUID,
   which is also its server ID, is read once from Omni at the start, since deleting the server drops its record. A
-  check that fails while Omni or Cinder catches up is rerun with swamp workflow resume worker-retire --run <id>.
+  check that fails while Omni or Cinder catches up is rerun with swamp workflow resume worker-retire --run <id> --from
+  <step>, naming the step the check reads, since without --from only the check reruns, against the same records.
 tags: {}
 inputs:
   properties:
@@ -193,8 +194,8 @@ jobs:
             data.findBySpec("openstack-server", "server").exists(r, r.tags.?workflowRunId.orValue("") == run.id && r.tags.?step.orValue("") == "server-after"
             && r.attributes.volumesAttached.size() == 0)
           message: >-
-            A volume is still attached to ${{ inputs.name }}; Cinder detaches it once its pod has moved. Resume from
-            server-after. The server was not deleted.
+            A volume is still attached to ${{ inputs.name }}; Cinder detaches it once its pod has moved. swamp workflow
+            resume worker-retire --run <id> --from server-after. The server was not deleted.
           severity: high
         dependsOn:
           - step: server-after

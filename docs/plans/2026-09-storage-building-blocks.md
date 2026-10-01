@@ -30,33 +30,36 @@ says what comes back and what does not, with the GitHub mirror as Flux's source 
 
 Tenth revision, 2026-10-01: steps 2 and 3 are applied, and swap 1 of step 4. Worker sizes, the Omni extension and
 the swap workflows changed on the way, each recorded in step 4. Omni is to be used as little as possible, and the
-move off it is its own plan, `docs/plans/2026-10-talosctl-over-omni.md`, for after this one.
+move off it is its own plan, `docs/plans/2026-10-talosctl-over-omni.md`, for after this one. Swap 2 the same day,
+both halves by workflow.
 
 ## Next, for whoever picks this up
 
 **State, 2026-10-01.** Steps 1 to 3 applied: Forgejo's database is one instance on 10 GB, zot is on 10 GB Standard,
-Cinder holds 156 GB SSD and 10 GB Standard. Step 4: swap 1 done. Workers are wrkr-1 and wrkr-3 (old layout, no
-group) and wrkr-4 (`86e3cfc3-…`, in `dataverket-prod-workers`, EPHEMERAL 14 GiB, `u-pg-zitadel` 11 GiB, kata).
-Zitadel's instances: `zitadel-db-1` on wrkr-1, the primary `zitadel-db-2` on wrkr-3, `zitadel-db-3` on wrkr-4.
-Forgejo's database, zot and a runner volume are on wrkr-1.
+Cinder holds 156 GB SSD and 10 GB Standard. Step 4: swaps 1 and 2 done. Workers are wrkr-3 (old layout, no group),
+wrkr-4 (`86e3cfc3-…`) and wrkr-5 (`cfe2744a-…`), both in `dataverket-prod-workers` on different hypervisors, with
+EPHEMERAL 14 GiB, `u-pg-zitadel` 11 GiB and kata. Zitadel's instances: the primary `zitadel-db-2` on wrkr-3,
+`zitadel-db-3` on wrkr-4, `zitadel-db-1` on wrkr-5. Forgejo's database is on wrkr-4, Forgejo and zot on wrkr-5.
 
-**Swap 2**, git and the registry down a few minutes while wrkr-1's volumes move, so at a time the user picks:
+**Swap 3**, the same two workflows. A check that waits is resumed from the step it reads, never without `--from`,
+which reruns only the check against the records it already failed on:
 
 ```sh
-swamp workflow run worker-join --input name=dataverket-wrkr-5
-swamp workflow resume worker-join --run <id>          # while node-ready fails: installing takes minutes
-swamp workflow run worker-retire --input name=dataverket-wrkr-1
+swamp workflow run worker-join --input name=dataverket-wrkr-6
+swamp workflow resume worker-join --run <id> --from discover   # while registered fails: Omni sees it within a minute
+swamp workflow resume worker-join --run <id> --from node-get   # while node-get or node-ready fails: install takes minutes
+swamp workflow run worker-retire --input name=dataverket-wrkr-3
 ```
 
-**Swap 3** is the same with wrkr-6 and wrkr-3, but `worker-retire` stops on wrkr-3 while it holds Zitadel's primary.
+`worker-retire` stops on wrkr-3 while it holds Zitadel's primary.
 There is no CNPG model and no `kubectl cnpg` plugin: promote `zitadel-db-1` or `-3` first, the way the plugin does
 (`status.targetPrimary` on the Cluster), or build the CNPG model of the Omni plan first. After swap 3, apply the
 patch to the machine set (`omni-cluster applyPatch` with `id: 500-workers-storage`, `dataFile`
 `talos/dataverket-prod/workers-storage.yaml`, `machineSet: dataverket-prod-workers`, `cluster: dataverket-prod`),
 check every worker's `serverGroups` and three distinct `hostId`s, then step 5.
 
-**Not yet proven.** `worker-join` has not run end to end; wrkr-4 joined by hand, through the same calls.
-`worker-retire` ran on wrkr-2 up to `delete-machine`, which 2026.10.01.3 fixed and no run has used yet.
+**Not yet proven.** Promoting Zitadel's primary without the `kubectl cnpg` plugin. Both workflows ran end to end in
+swap 2.
 
 **Working here.**
 
@@ -474,6 +477,14 @@ a stand-in can do the rest once it is merged, except the zot artifact push in st
    Workers after swap 1: wrkr-1 and wrkr-3 as before, and wrkr-4 with EPHEMERAL 14,336 MiB and `u-pg-zitadel`. Swaps 2
    and 3 are `worker-join` for wrkr-5 and wrkr-6 and `worker-retire` for wrkr-3 and wrkr-1; wrkr-3 holds Zitadel's
    primary today, so `worker-retire` will stop on it until another instance is promoted. There is no CNPG model yet.
+
+   **Swap 2 applied, 2026-10-01.** `worker-retire` checked Forgejo's primary too and would have stopped on wrkr-1,
+   though a single instance without a PodDisruptionBudget has nothing to promote and nothing that blocks a drain;
+   `13898d1` checks only Zitadel's. `worker-join` (run `b24928a5-…`) created wrkr-5 (`cfe2744a-…`, 10.0.0.140) in the
+   group on a hypervisor apart from wrkr-4's, and passed every check after two resumes: a plain `resume --run`
+   retries only the failed assert against the same records, so a wait is resumed `--from` the step it reads.
+   `worker-retire` (run `fb75db40-…`) retired wrkr-1 from 08:38 to 08:40 UTC, `delete-machine` included; Forgejo's
+   database moved to wrkr-4, Forgejo, zot and `zitadel-db-1` to wrkr-5, and every pod was Running afterwards.
 5. **Provisioner (decision 014).** Chart 2.8.0 into `kube-system`, DaemonSet kept off the control planes by node
    affinity (Talos labels control planes, not workers), class `pg-zitadel-storage` on its mount pattern,
    `WaitForFirstConsumer`. Check: three `local` PVs, one per worker, capacity just under the partition size.
@@ -629,14 +640,14 @@ Replacing a worker that holds a Zitadel replica, on purpose, is `docs/plans/2026
 
 | Service | Component | Storage | Class, tier | Size | Used | Redundancy | Node |
 |---|---|---|---|---|---|---|---|
-| Forgejo | postgres, CNPG ×1, since 2026-09-30 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 620 MB | Cinder ×3 | wrkr-1 |
+| Forgejo | postgres, CNPG ×1, since 2026-09-30 | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 620 MB | Cinder ×3 | wrkr-4 |
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | 11 MB | Cinder ×3 | wrkr-2 |
-| Zitadel | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 32 GB | 617 MB | app ×3 on Cinder ×3 | wrkr-1, wrkr-3, wrkr-2 |
-| zot | blobs and config, since 2026-09-30 | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | 44 MiB | Cinder ×3 | wrkr-1 |
+| Zitadel | postgres, CNPG ×3 | Cinder ×3 | `csi-cinder-sc-delete`, SSD | 3 × 32 GB | 617 MB | app ×3 on Cinder ×3 | wrkr-5, wrkr-3, wrkr-4 |
+| zot | blobs and config, since 2026-09-30 | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | 44 MiB | Cinder ×3 | wrkr-5 |
 | Runner, org | docker-lib cache (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3, disposable | wrkr-1 |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | not measured | Cinder ×3 | wrkr-3 |
 | Control planes ×3 | Talos system, etcd | flavor root disk, EPHEMERAL 21 GiB | c5.large | 3 × 25 GiB | 1.1 GiB | etcd ×3, disk unknown | ctrl-1..3 |
-| Workers ×3 | Talos system, images, logs | flavor root disk, EPHEMERAL 26 GiB | m5.large | 3 × 30 GiB | 5.5, 5.5, 8.4 GiB | disk unknown, no server group | wrkr-1..3 |
+| Workers ×3 | Talos system, images, logs | flavor root disk, EPHEMERAL 26 GiB on wrkr-3, 14 GiB on wrkr-4 and wrkr-5 | m5.large | 3 × 30 GiB | not measured since swap 2 | disk unknown; wrkr-4 and wrkr-5 in the server group | wrkr-3..5 |
 | Backups | Postgres WAL and daily base backups, since 2026-09-20 | versitygw at the hov1 site, `213.128.185.82:443` | posix, `backup/hov1` | | | one disk | is the backup |
 
 ## Placement planned
