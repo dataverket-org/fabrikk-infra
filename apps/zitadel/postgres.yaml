@@ -4,19 +4,47 @@ metadata:
   name: zitadel-db
   namespace: zitadel
 spec:
+  # Three instances, one per worker, each on that worker's u-pg-zitadel partition, published as a local PV by the
+  # static provisioner (decision 014). The database replicates itself and Cinder is not under it: the rehearsal for
+  # bare-metal nodes with NVMe (storage plan, building blocks 1 and 3).
   instances: 3
+  # Recovery needs the archive's Postgres major; the same image the cluster ran before.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+  # The PV reports the filesystem's capacity rounded down, 10Gi on an 11 GiB partition; a larger claim never binds.
   storage:
-    size: 32Gi
-  # WAL archiving and base backups to the hov1 site through the Barman Cloud plugin (backup.yaml). Adding this
-  # gives every instance a plugin sidecar, which is a rolling restart and one primary switchover.
+    storageClass: pg-zitadel-storage
+    size: 10Gi
+  affinity:
+    podAntiAffinityType: required
+  postgresql:
+    # One replica acknowledges each commit, whichever is first, so a failover loses no acknowledged commit.
+    synchronous:
+      method: any
+      number: 1
+    parameters:
+      max_wal_size: 1GB
+      max_slot_wal_keep_size: 512MB
+  enableSuperuserAccess: true
+  # WAL archiving and base backups to the hov1 site through the Barman Cloud plugin (backup.yaml). Each cluster
+  # restored from an archive writes its own: zitadel-db-2 is the one created on the storage plan's step 6.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
         barmanObjectName: hov1
-        serverName: zitadel-db
-  enableSuperuserAccess: true
+        serverName: zitadel-db-2
+  # Created from the hov1 archive on the storage plan's step 6, and a rebuild from git is too. CNPG reads bootstrap
+  # and externalClusters only when it creates the cluster. Until the first backup under zitadel-db-2 completes, the
+  # source is the archive the old cluster wrote; then it moves to zitadel-db-2 (storage plan, "Rebuild from git").
   bootstrap:
-    initdb:
+    recovery:
+      source: hov1-archive
       database: zitadel
       owner: zitadel
+  externalClusters:
+    - name: hov1-archive
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: hov1
+          serverName: zitadel-db
