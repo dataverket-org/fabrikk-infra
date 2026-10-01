@@ -263,8 +263,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/zitadel": {
-    "version": "2026.09.29.2",
-    "pulledAt": "2026-09-29T19:17:35.266Z",
+    "version": "2026.10.01.1",
+    "pulledAt": "2026-10-01T17:37:05.260Z",
     "files": [
       ".swamp/bundles/0fedae52/action.js",
       ".swamp/bundles/0fedae52/app.js",
@@ -288,8 +288,8 @@
       ".swamp/pulled-extensions/@dataverket/zitadel/models/settings.ts",
       ".swamp/pulled-extensions/@dataverket/zitadel/models/user.ts"
     ],
-    "checksum": "cf7415f1f445b89106f85fd61d4ee3789a202332eac9c46d6d0d026754a02b09",
-    "filesChecksum": "62cce41888060b78c07446099fc72b9563492937bc3599c2201157f063a6e547",
+    "checksum": "a68bd30ae1c5f978773a12c07c4fd4104c56dd55d4fcdb6c3a2c0aca4aeb1acc",
+    "filesChecksum": "0edf6644afe0582febab27a4b92adfcb723024511540058faec99b44274ba04a",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/forgejo-github-mirror": {

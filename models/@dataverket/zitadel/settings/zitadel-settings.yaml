@@ -6,5 +6,5 @@ version: 1
 tags: {}
 globalArguments:
   apiUrl: 'https://zitadel.dataverket.org'
-  keyJson: "${{ vault.get('infra', 'zitadel/key_json') }}"
+  keyJsonFile: '~/.config/zitadel/fabrikk-infra-reader.json'
 methods: {}
