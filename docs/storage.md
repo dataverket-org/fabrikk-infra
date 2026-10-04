@@ -11,7 +11,7 @@ are 014 and 017 to 021. What is backed up, to where and how a restore runs is `b
 | Forgejo | repositories, LFS, attachments | Cinder | `csi-cinder-sc-delete`, SSD | 10 GB | Cinder ×3 | push mirror to GitHub; kopia to the hov1 site later |
 | Zitadel | postgres, CNPG ×3, one synchronous replica | each worker's `u-pg-zitadel` partition | `pg-zitadel-storage`, local | 3 × 11 GiB, claim 10Gi | the database itself, one instance per worker | Barman to the hov1 site, 14 days, PITR |
 | zot | blobs and config | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | Cinder ×3 | none; mirrors re-copy, artifacts come from git |
-| Runner, org | docker-lib cache (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | disposable | none |
+| Runner, org | docker-store, a raw disk dind formats itself, overlay2 (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | disposable | none |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | Cinder ×3 | none |
 | Control planes ×3 | Talos, etcd | flavor root disk, `c5.large` | EPHEMERAL default | 3 × 25 GiB | etcd ×3 | none: Omni's etcd backup store is not configured (decision 003's audit) |
 | Workers ×3 | Talos, images, logs | flavor root disk, `m5.large` | EPHEMERAL 14 GiB | 3 × 30 GiB | none needed | none |
