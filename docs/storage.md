@@ -19,7 +19,8 @@ are 014 and 017 to 021. What is backed up, to where and how a restore runs is `b
 Cinder holds 60 GB of SSD and 10 GB of Standard. Every Cinder class allows expansion. Each database is one redundancy
 layer (decision 018): Zitadel's replicates itself, every other one is a single instance on a volume Cinder keeps three
 copies of. Zulip's database, when it comes, is one more single instance on its own SSD volume, sized at install. An
-in-cluster S3 endpoint comes with its first writer, Zulip's uploads or Forgejo's LFS and packages, in a plan of its own.
+in-cluster S3 endpoint, one versitygw on one Cinder volume, is `docs/plans/2026-10-s3-osl1.md`; Forgejo's LFS and
+packages are its first writer, Zulip's uploads the second.
 
 ## The workers
 

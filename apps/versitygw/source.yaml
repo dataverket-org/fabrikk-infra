@@ -1,0 +1,40 @@
+# versitygw is delivered gitless, the way zot is (README, "Gitless delivery"): git holds only this pointer, the
+# manifests travel as an OCI artifact (artifacts/versitygw, pushed by artifacts/versitygw/push.sh) that zot hosts.
+# After a rebuild zot is empty, so the artifact is pushed again from the checkout before Flux can apply it; the
+# gateway's data is on a retained volume and comes back with it.
+#
+# Fetched through the Service, not registry.dataverket.org, for the same reason as zot's own config (decision 013).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: versitygw-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: oci://zot.zot.svc.cluster.local:5000/platform/versitygw-config
+  insecure: true
+  ref:
+    tag: current
+  # TODO verify.provider: cosign with the platform signing key once it exists; until then only fabrikk-ci can push.
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: versitygw
+  namespace: flux-system
+spec:
+  interval: 10m
+  dependsOn:
+    - name: infrastructure
+    - name: zot
+  sourceRef:
+    kind: OCIRepository
+    name: versitygw-config
+  path: ./
+  prune: true
+  wait: true
+  timeout: 5m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

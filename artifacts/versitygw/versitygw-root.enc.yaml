@@ -1,0 +1,46 @@
+# The gateway's root key pair, source of record. Every admin call signs with it; nothing unattended reads it. A
+# person copies it into vaults/operator/osl1/root.enc.json for the osl1-s3 model (decision 016); rotate here first.
+apiVersion: v1
+kind: Secret
+metadata:
+    name: versitygw-root
+    namespace: versitygw
+type: Opaque
+stringData:
+    ROOT_ACCESS_KEY: ENC[AES256_GCM,data:mj5Vv5j18ROMiZjn0gTCvgK779o=,iv:v96zNTbgWekksuE3AtFKZd5/dIYDKUY+Y0+pyew9rGA=,tag:XTCu1qncz6Ao9Uq8aigxGQ==,type:str]
+    ROOT_SECRET_KEY: ENC[AES256_GCM,data:f3DPkNeY2emMDQ+mlujPMQIHxLbsi8BcIdxhJb4yz8LHPQT8g2Lynw==,iv:yS64KdRriFMqZuRXriJXYX/cvqqlxq820UN7/+LcR2U=,tag:PeKBuAfnlEn8LvKqPKlxrg==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBaczJCRnFaVU8rZjZTdFl2
+            SzYyaVk0am9ITURUZG9salBhU0p0SG9BTEJ3CmdQSTZ1MDdwUTRtcnB0M1JlVlpX
+            NStpRHVNQ2tHOHFqb3FqQ1dzbTZxWDgKLS0tIFZxQzVRNUxCYzI1ZFdNeVhlaTRF
+            R0l5T1RncUZBL0kydVJpck5BOEdRRm8KbNleFLjFIEZc3jz34hzRcKdCVB3kiyaL
+            MM1OWWs00DbCMrNkdvyvXqO0vHsDaBClCge3pumpxSALvzxCmTXlNQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHBpdi1wMjU2IDhENXluZyBBbFNtN3Jl
+            ZUh0bk9ZT0tKSzBOL1RIUVp4UjRlOWEvaEN2OHl1NElSbGFwdQp1VWUxb0dpRytr
+            cjBDNDQyMG44KzhXR25jRzJtWW0ybHVCaTJxMjRsTUJzCi0tLSBmUENHN2VsYTUz
+            ZHlSb3NJK3RicjQ1TGduN094R3I2Sy8ybitwbFZjNjlrCrKiD3UQE4FUCGtx2Yx2
+            sj3yHfw+fni599cAvr+L3uE3gHc8qXnEe/DczDlGUG/Z01GpGluKTOBw0Ir+5x5H
+            JpE=
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHBpdi1wMjU2IDNweXF3ZyBBam5qVmRY
+            YkNESkRkVU53QVdBdVJKOHViY1NNMTJyM2d1bXlSTkVRNUxISwpIdnJJdk5DbE5K
+            MWM2S2NnM3daRnhjMCtLVUxoWUJXdXo5dUxNYXBncVFFCi0tLSBWYnZaNXN2N0Mx
+            b2hpZkRtWkh2V0ZRck45M3hLUXNOS0Q5V3pmWlNNaFp3CiQkpK4Ohe49+r2S6pDt
+            /1IraPUy5kmvJj/QDomyrfq7lqwWKf/Mu3PHbfD9xMg7ApAalDP/TWucyxOi/K92
+            jd0=
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-04T15:51:42Z"
+    mac: ENC[AES256_GCM,data:Iu81fvQOJaS6VyPdpCVcZzqbX6BzKzI8+/QB19DUm94uYybdab5t3r5s78v90+V9DaibgJkEi0qTfJOrhOANmYisueQreoCgNh/Soul+aOVWa0yEqCYmcGHOzWdxlM4fSrWl1eY7tr1AOTSWKfx8OmOmZWwqh4ntSAE+vGXh6NM=,iv:0T9juoVTzS4nCo60qWH8vh0X+Aj0SBStfybnw008Ecc=,tag:GlRxodZVJF/j40QWeSqRWw==,type:str]
+    version: 3.13.3

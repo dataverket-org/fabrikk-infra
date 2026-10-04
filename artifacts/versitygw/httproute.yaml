@@ -1,0 +1,41 @@
+# The public name, path-style only. Read right to left: zone, site, service, org. The org is the leftmost label so
+# that the listener's wildcard, *.s3.osl1.dvkt.no, covers every org's gateway; the bare s3.osl1.dvkt.no is reserved.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: versitygw
+  namespace: versitygw
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: https-s3-osl1
+  hostnames:
+    - "dataverket.s3.osl1.dvkt.no"
+  rules:
+    - backendRefs:
+        - name: versitygw
+          port: 7070
+      # An object upload is one long request; the gateway's default request timeout would cut large ones short.
+      # Zero disables it (Gateway API: "Setting a timeout to the zero duration disables the timeout").
+      timeouts:
+        request: 0s
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: versitygw-redirect
+  namespace: versitygw
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: http
+  hostnames:
+    - "dataverket.s3.osl1.dvkt.no"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

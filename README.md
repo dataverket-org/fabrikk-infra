@@ -182,6 +182,8 @@ Forgejo's generated security keys are here since 2026-09-30, pinned, since a res
 `apps/zot/source.yaml` is the pattern: an `OCIRepository` on the registry and a Kustomization that applies whatever
 the artifact holds, decrypting with the cluster key. `artifacts/zot/` is the artifact's source, plain manifests with
 the image pinned by digest; `push.sh` pushes the directory as it is, tagged with the commit and `current`.
+`artifacts/versitygw/` and `apps/versitygw/source.yaml` are the second use of the pattern, the S3 service at the
+osl1 site (`docs/plans/2026-10-s3-osl1.md`).
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
 directory straight from the repository, without prune, until zot serves its first artifact, and again whenever a bad
