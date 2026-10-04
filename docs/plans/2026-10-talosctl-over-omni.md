@@ -61,7 +61,7 @@ Omni-only features such as machine classes or cluster templates.
   --insecure` avoids that but needs the network path.
 - The workers' server group is full at three, on the three hypervisors the zone gives the project. Every swap is
   retire first on two workers, or a stand-in outside the group and two swaps
-  (`docs/plans/2026-09-worker-replacement-test.md`, "Result"). Ask Nexthop for a fourth hypervisor, or choose one
+  (`docs/storage.md`, "Replacing a worker"). Ask Nexthop for a fourth hypervisor, or choose one
   order and write it into decision 017, which says new machine first.
 - Whether a running cluster can leave Omni without replacing its machines; if not, step 4 is three swaps, and the
   control planes need a plan of their own.

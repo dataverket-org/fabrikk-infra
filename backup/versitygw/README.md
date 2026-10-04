@@ -33,7 +33,7 @@ is the first site. Everything here is run **from the site directory**: `../versi
 | Root and certificate valid three years | Long enough that renewal is an event, not a process; short enough to be a calendar entry. Reissue is one script, watched by an expiry alert from the cluster |
 | One account per writer, role `user`, owner of one bucket | A leaked writer key reaches one bucket. versitygw's `user` role sees only buckets it owns |
 | Bucket versioning off | versitygw 1.8 has no lifecycle rules, so versioning keeps every deleted object forever; a bucket's owner can suspend it anyway. Retention is the writers' job; protection against a bad key is a second copy, or object lock later |
-| Root key pair only in `.env` and the operator's shell | Nothing unattended ever holds it |
+| Root key pair only in `.env`, in `vaults/operator/<site>/` and in the operator's shell | Nothing unattended ever holds it; a swamp run gets it through `sops exec-env`, one touch |
 | Writer secrets leave the site only sops-encrypted | Flux decrypts them with the cluster key; no plaintext file in the repository or on an operator disk |
 
 ## Prerequisites
@@ -139,7 +139,16 @@ Without `ca.key`: `bin/cert` makes a new root; add `bin/site-secret` per namespa
 
 ## Operating a site through swamp
 
-Not yet. The registry's `@smith/docker-compose` (up, down, ps, logs, restart, pull) writes a data item named `latest`,
+Reading a gateway: `@dataverket/versitygw/gateway`, one model per site, read-only, over the admin API and the S3 API as
+root. `health`, `accounts` (every account's role and ids, never the secret), `buckets`, `bucketSettings` (versioning,
+policy, ACL, object lock, ownership, CORS, tags), `inventory` (all of the above in one execution) and `check` (the
+findings against the one-account-one-bucket rule, with the rules as arguments). The root key pair comes from
+`rootKeyFile` or `rootKeyEnv`, never from a vault; the admin API is reached on the site host's loopback, so the swamp
+host is the site host or has a tunnel to it. Pinned to v1.8.0; the admin path prefix newer releases add is a value of
+`adminUrl`. Writes (`create-user`, `update-user`, `delete-user`, `create-bucket`, `change-bucket-owner`) are not in the
+extension; `bin/user` does them.
+
+The lifecycle: not yet. The registry's `@smith/docker-compose` (up, down, ps, logs, restart, pull) writes a data item named `latest`,
 which current swamp reserves, so every method fails; it declares no repository to report the bug to and no license
 to fork it under. Until a `@dataverket` compose model exists, the lifecycle is `docker compose` from the site
 directory. Note for that model: it must run from the site directory and pass it as an absolute

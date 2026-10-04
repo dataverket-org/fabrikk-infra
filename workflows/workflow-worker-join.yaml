@@ -1,7 +1,7 @@
 id: d1d71cd7-09c2-4d55-95c3-4dc55e65e7bf
 name: worker-join
 description: >-
-  Add one worker to the cluster, the first half of a swap (docs/plans/2026-09-storage-building-blocks.md, step 4):
+  Add one worker to the cluster, the first half of a swap (decision 017; docs/storage.md):
   a new server in the anti-affinity group, its storage patch from a file in git scoped to that machine, the machine
   added to the workers' machine set, and checks that it is a Ready node with the extensions and the disk layout the
   patch states. The server's ID is its Omni machine UUID. Nothing here touches an existing worker. Steps that wait on

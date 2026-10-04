@@ -45,7 +45,7 @@ the plans call it.
 ## Consequences
 
 - `sops updatekeys` and the copy are never automated, which keeps them rare and reviewed.
-- A leak of the swamp host's key costs the vault, which is mirrored to codeberg with the rest of this repository,
+- A leak of the swamp host's key costs the vault, which is mirrored to GitHub with the rest of this repository,
   and not the cluster manifests beside it. Re-keying after such a leak is the vault alone.
 - The rule is about the repository at rest and about re-keying, nothing more. The swamp host can still read a
   live cluster Secret through the API with an admin kubeconfig; what bounds that is invariant 2 of 001.

@@ -93,7 +93,7 @@ that exists without touching the real instance.
 
 1. **A service user in Zitadel.** Done 2026-10-01, and not as first written. A permanent key with `ORG_OWNER` in
    the `infra` vault would have been the Omni operator key again, so the credential is a tier 2 item: a session
-   mints a key that expires (`docs/plans/2026-09-credential-tiers.md`, "Zitadel"). The reader is
+   mints a key that expires (decision 001; the README's Commands section). The reader is
    `fabrikk-infra-<operator>-reader` with `IAM_OWNER_VIEWER`. The operator is `fabrikk-infra-<operator>-operator`,
    owner of the projects in `ZITADEL_PROJECTS`.
 2. **The key where the models find it.** Done 2026-10-01: `task admin:zitadel-key` writes

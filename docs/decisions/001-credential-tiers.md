@@ -56,8 +56,8 @@ Five invariants follow:
 - Unattended work is read-only until a machine identity exists under `swamp serve`. No nightly job may change a
   cluster.
 - The cluster's `system:masters` kubeconfig is tier 2. The Talos PKI behind it is tier 3 with a human owner.
-- Steps and status: `docs/plans/2026-09-credential-tiers.md`. The request model that generalises tier 1:
-  `docs/plans/2026-09-access-requests.md`.
+- Applied 2026-09-29. The session, its tasks and the files it writes are the README's Commands section. The request
+  model that generalises tier 1: `docs/plans/2026-09-access-requests.md`.
 
 ## Decision Outcome
 

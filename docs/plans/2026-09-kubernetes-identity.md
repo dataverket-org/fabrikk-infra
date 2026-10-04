@@ -1,8 +1,8 @@
 # Plan: Kubernetes authenticates against Zitadel
 
-Written 2026-09-29 for decision 015. Nothing is applied, and nothing here can start yet: this plan runs after
-`docs/plans/2026-09-credential-tiers.md`, which is done, and after `docs/plans/2026-09-break-glass.md`, which is
-not, because it needs that plan's route.
+Written 2026-09-29 for decision 015. Nothing is applied, and nothing here can start yet: this plan runs after the
+credential tiers (decision 001, applied 2026-09-29) and after `docs/plans/2026-09-break-glass.md`, which is not
+applied, because it needs that plan's route.
 
 ## Why
 

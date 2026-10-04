@@ -61,7 +61,7 @@ init container to own its directory.
 | Mounts published as `local` PVs | `infrastructure/local-static-provisioner/` | done: three PVs of `pg-zitadel-storage`, all bound by Zitadel's database |
 | No init container for ownership | `zitadel-db` pods | done: the kubelet sets group 26 on the mount, which is what "chowns" means here; the owner stays root |
 
-**Summary:** Steps 4 to 6 of `docs/plans/2026-09-storage-building-blocks.md`. The EPHEMERAL figure is 019's.
+**Summary:** Applied 2026-10-01 with the worker swaps (017) and the provisioner; the layout is `docs/storage.md`. The EPHEMERAL figure is 019's.
 
 **Action Required:** None.
 
@@ -76,10 +76,10 @@ init container to own its directory.
 | EPHEMERAL capped, user volumes carved | Talos machine config | not done: `fleet-volumes` shows EPHEMERAL on the whole disk (21,495 and 26,615 MiB) and no `u-` partitions |
 | Mounts published as `local` PVs | `infrastructure/` | not done: no provisioner in `infrastructure/` |
 
-**Summary:** The audit of 2026-09-29 was wrong. The mechanism arrives with the replaced workers, steps 4 and 5 of
-`docs/plans/2026-09-storage-building-blocks.md`.
+**Summary:** The audit of 2026-09-29 was wrong. The mechanism arrives with the replaced workers (017) and the
+provisioner.
 
-**Action Required:** Steps 4 and 5 of the storage plan.
+**Action Required:** Replace the workers and install the provisioner.
 
 ### 2026-09-29
 

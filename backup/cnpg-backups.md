@@ -48,6 +48,9 @@ kubectl get backup -A --sort-by=.status.startedAt -o custom-columns='NS:.metadat
 kubectl get scheduledbackup -A -o custom-columns='NS:.metadata.namespace,NAME:.metadata.name,SCHEDULE:.spec.schedule,LAST:.status.lastScheduleTime,NEXT:.status.nextScheduleTime'
 ```
 
+The `serverRecoveryWindow` map keeps an entry for every `serverName` it has ever seen, so the archives deleted on
+2026-10-01 (`forgejo-postgres`, `zitadel-db`) still show their last times; read the entry of the current `serverName`.
+
 Healthy reads: archiving `ContinuousArchivingSuccess` on both; `lastSuccessfulBackupTime` within 24 hours; newest
 `Backup` completed; `NEXT` tomorrow at 03:00 (forgejo) and 03:30 (zitadel) UTC. On the Cluster itself,
 `status.firstRecoverabilityPoint` and `status.lastSuccessfulBackup` stay empty with the plugin; read the ObjectStore.

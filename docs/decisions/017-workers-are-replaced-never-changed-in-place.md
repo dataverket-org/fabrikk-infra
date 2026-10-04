@@ -47,7 +47,7 @@ does not depend on Omni: when the workers move off it (010), the same two halves
 - Placement is declared, not observed: a worker that cannot be placed on its own hypervisor fails to boot, which is
   a conversation with the provider before a `soft-anti-affinity` retreat.
 - A worker holding a replica on its own disk (018) cannot hand it over. Retiring it also runs "Replacing a worker"
-  in the storage plan: the replica is destroyed and CNPG joins a new one on the new worker.
+  in `docs/storage.md`: the replica is destroyed and CNPG joins a new one on the new worker.
 - Nothing is reset in place, so no rehearsal cluster is needed for a swap: every swap is the path the workers took
   when they were made.
 

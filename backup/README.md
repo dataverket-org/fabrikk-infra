@@ -1,10 +1,17 @@
 # Backups
 
-Status: **live since 2026-09-20 21:10 UTC: both Postgres clusters archive WAL to hov1 continuously; daily base backups at 03:00 and 03:30 UTC; first restore test passed 2026-09-21.** Design and
-sequencing: `docs/plans/2026-09-storage-building-blocks.md`, step 1. The gateway's lifecycle is `docker compose` from
+Status: **live since 2026-09-20 21:10 UTC: both Postgres clusters archive WAL to hov1 continuously; daily base backups at 03:00 and 03:30 UTC; first restore test passed 2026-09-21.** The
+decision is 020; what the backups protect is `docs/storage.md`. The gateway's lifecycle is `docker compose` from
 the site directory; accounts and certificates are the scripts in `versitygw/bin`. A swamp model for the lifecycle is
 pending: the registry's `@smith/docker-compose` fails on current swamp and declares neither a repository to report to nor a license to fork under, so a `@dataverket` one is the
 follow-up.
+
+What the gateway holds is read through swamp: the model `hov1-s3` (`@dataverket/versitygw/gateway`, read-only) has
+`health`, `accounts`, `buckets`, `bucketSettings`, `inventory` and `check`; `check` finds a bucket not owned by the
+account of its own name, an account owning nothing, an `admin` role on a writer, versioning on, or a policy granting
+anyone. Every admin call signs with the root key pair, supplied for one run from `vaults/operator/hov1/root.enc.json`
+(`vaults/operator/README.md`); without it `swamp model validate hov1-s3 --label policy` still validates the definition.
+No account secret and no root key is ever recorded.
 
 Every backup of dataverket-prod lands outside the provider, on the hov1 site, in one bucket per writer. This page is
 the map: what is copied, by what, to where, how far back, and what fires when it stops. How the target runs is in
@@ -28,7 +35,7 @@ the map: what is copied, by what, to where, how far back, and what fires when it
 | Zitadel's Postgres, `Cluster zitadel-db` | `zitadel` | CNPG Barman Cloud plugin | `cnpg-zitadel` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-zitadel`, `hov1-s3` |
 | Forgejo's repositories, PVC `gitea-shared-storage` | `forgejo` | The push mirror to GitHub for now; later a kopia CronJob, pod-affine to the forgejo pod | GitHub; later `kopia-forgejo` | On push; later nightly, 30 daily, 6 monthly | The mirror's token; later `s3-kopia-forgejo`, `hov1-s3`, the kopia password |
 | Forgejo's LFS, attachments, packages, once on the in-cluster versitygw | `forgejo` | The kopia CronJob, as a directory tree | `kopia-forgejo` | With the repositories | As above |
-| etcd of the three control planes | `kube-system` | Omni | Omni's backup store | Omni's schedule, decision 003 | Omni's |
+| etcd of the three control planes | `kube-system` | Nothing. Omni's etcd backup store is not configured (checked 2026-10-04: `EtcdBackupStoreStatus` reads "not initialized", no backup exists) | None | None | None |
 
 Account names equal bucket names. Each account owns its bucket and sees nothing else.
 
@@ -53,7 +60,7 @@ dropping a file from a kustomization never deletes the key.
 | Target | Location | Endpoint | Trust | Second copy |
 |---|---|---|---|---|
 | hov1 | The hov1 site, stack `versitygw/`, instance `hov1/` | `https://213.128.185.82:443`, path-style, region `us-east-1` | The site's private CA root (three years), in Secret `hov1-s3` of each writing namespace | None yet. Nexthop Object Storage as a second `ObjectStore` if the site proves unreachable too often |
-| Omni | Sidero's hosted Omni | Omni's | Omni | Omni's |
+| Omni | Sidero's hosted Omni; not configured, so etcd has no backup. `talosctl etcd snapshot` to the hov1 site is in `docs/plans/2026-10-talosctl-over-omni.md` | none | none | none |
 
 ### Retention and protection
 
@@ -66,7 +73,7 @@ dropping a file from a kustomization never deletes the key.
 
 | Alert | Threshold | Meaning | First action |
 |---|---|---|---|
-| CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so today's volumes last many days; after the storage plan's step 2 the smallest headroom, about 9 GiB, lasts about two days | Reach the site: `versitygw/README.md`, failure modes |
+| CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so the smallest headroom, about 9 GiB on Forgejo's volume and 9.5 GiB on Zitadel's partition, lasts about two days | Reach the site: `versitygw/README.md`, failure modes |
 | CNPG last successful base backup | Older than 36 hours | The `ScheduledBackup` did not complete | `kubectl cnpg status`, then the plugin's Backup objects |
 | Certificate at `213.128.185.82:443` | Expires within 30 days | The three-year certificate or root is running out; nothing at the site renews it | `versitygw/README.md`, runbook "Reissue the certificate" |
 | kopia snapshot, once it exists | Older than 48 hours | The CronJob failed or cannot reach hov1 | The CronJob's last Job logs |

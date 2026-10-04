@@ -1,8 +1,7 @@
 # Plan: access requests
 
-Written 2026-09-29, after the invariants in decision 001 and the tier 1 session that
-`docs/plans/2026-09-credential-tiers.md` builds. That plan makes this repository's credentials obey the tiers.
-This one
+Written 2026-09-29, after the invariants in decision 001 and the tier 1 session the `admin:` tasks open (the
+README's Commands section), which makes this repository's credentials obey the tiers. This one
 generalises the way a person enters tier 1, from five tasks that know one cluster and one cloud by name into a
 request over a list of services. Nothing is applied.
 
@@ -198,7 +197,7 @@ Signing the request is the step after these, and not in this plan.
 
 ## Not in this plan
 
-- The tiers themselves and the steps that make this repository obey them: `docs/plans/2026-09-credential-tiers.md`.
+- The tiers themselves: decision 001, applied 2026-09-29; the session is the README's Commands section.
 - A machine identity for unattended work. Until `swamp serve` has one, a request is a person's and so is
   everything that runs inside it.
 - Per-artifact requests. The narrowing beyond `read` and `admin` belongs to a policy engine deciding whether to

@@ -80,6 +80,6 @@ The mechanism under Zitadel's database is 014; the workers it lives on are 017; 
 | Zitadel's database on three `local` PVs, one synchronous replica | `apps/zitadel/postgres.yaml` | done 2026-10-01 |
 | No database replicated on top of Cinder | `apps/` | done |
 
-**Summary:** Steps 2 and 6 of `docs/plans/2026-09-storage-building-blocks.md`.
+**Summary:** Forgejo's database moved 2026-09-30, Zitadel's 2026-10-01; the layout is `docs/storage.md`.
 
 **Action Required:** None.

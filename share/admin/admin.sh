@@ -3,33 +3,22 @@
 # Shared by bin/*: names, the one lifetime, and the helpers every action uses.
 # Sourced, never run.
 #
-# Tier 1 (docs/plans/2026-09-credential-tiers.md) runs as the operator with
-# the operator's own identities, the Omni browser login, the OpenStack login
-# and the Zitadel browser login, and writes only tier 2 files: kube and talos
-# contexts, an Omni Reader key file, a clouds.yaml cloud, a Zitadel reader key
-# file. It never reads or writes the swamp vault and
-# does not need swamp on PATH; what swamp keeps in tier 3 is put there by hand.
+# Tier 1 of decision 001: runs as the operator, with the Omni browser login,
+# the OpenStack login and the Zitadel browser login, and writes only tier 2
+# files (README, Commands). It never reads or writes the swamp vault and does
+# not need swamp on PATH.
 #
-# Every tier 2 item has the same lifetime, a working day, and `task admin:renew`
-# renews all of them in one session as soon as one is due, so the operator logs
-# in once at the start of the day instead of once per item.
+# Every tier 2 item has the one lifetime TIER2_TTL, and `task admin:renew`
+# renews all of them in one session as soon as one is due.
 #
-# The two logins behind tier 1, Omni and OpenStack, are web credentials kept
-# in Proton Pass. Omni's is used in the browser, where the extension fills it.
-# OpenStack's reaches the scripts as OS_PASSWORD, typed once per run, or
-# resolved by `pass-cli run` from a pass:// reference for that one run (see
-# Taskfile.yml). Never a personal access token: that would let tier 1 run
-# unattended, which is the one thing it must not do.
+# The Omni and OpenStack logins are web credentials in Proton Pass. Omni's is
+# used in the browser. OpenStack's reaches the scripts as OS_PASSWORD, typed
+# once per run, or resolved by `pass-cli run` from a pass:// reference for that
+# one run. Never a personal access token (invariant 1 of decision 001).
 #
-# Everything is an environment variable, because the entry points are task
-# names and not command lines. They fall in two groups, and the difference is
-# what the group below the values explains.
-#
-# What this repository administers, set in taskfiles/admin.yml and required
-# unless a default is named below.
-# Every one of them is a name, never an address: the two logins are named the
-# way `kubectl` names a context, and each CLI's own config file says where that
-# name points. Nothing here holds a URL.
+# Everything is an environment variable (decision 008). What this repository
+# administers is set in taskfiles/admin.yml and required unless a default is
+# named below; every one of them is a name, never an address (decision 009).
 #
 #	SWAMP_REPO	This repository's name, which every provider name is built from
 #	CLUSTER		The cluster
@@ -60,9 +49,8 @@ source "$admin_dir/../logging.sh"
 enable_debug="${DEBUG:-0}"
 
 #
-# Stops unless every named variable is set. What this repository administers
-# comes from the environment and never from a default here, because a default
-# would be a guess at somebody else's cluster or endpoint.
+# Stops unless every named variable is set; nothing here defaults what this
+# repository administers.
 #
 function require_settings()
 {
@@ -76,19 +64,8 @@ function require_settings()
 	done
 }
 
-# What this repository administers: its name in a provider, its cluster, and
-# the two names its logins go by. taskfiles/admin.yml sets these, because the
-# Taskfile is the driver and this is the whole of what a second repository
-# would change while reusing bin/ and share/admin/ unchanged. None of the four
-# required here is defaulted, so there is no guess at somebody else's cluster
-# or endpoint to go wrong.
-#
-# Both logins are named, not addressed. `omnictl --context <name>` and
-# `openstack --os-cloud <name>` each read the address, and the identity behind
-# it, out of the operator's own config file, exactly as `kubectl --context`
-# does. Where these services actually answer is therefore stated once in the
-# README, for a person setting their own config up, and never passed to a CLI
-# by these scripts.
+# What this repository administers, from taskfiles/admin.yml: its name in a
+# provider, its cluster, and the names its logins go by (decisions 008, 009).
 require_settings SWAMP_REPO CLUSTER OMNI_CONTEXT OS_CLOUD ZITADEL_CONTEXT
 
 repo="$SWAMP_REPO"

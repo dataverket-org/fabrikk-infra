@@ -69,3 +69,19 @@ Refined by 001 and 002.
 "attesters".
 
 **Action Required:** None.
+
+### 2026-10-04
+
+**Status:** Implemented
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| Omni's etcd backups, which the consequences say contain the key | `omnictl get etcdbackupstorestatus` | do not exist: the store reads "not initialized" and no `EtcdBackupStatus` or `EtcdBackup` exists |
+
+**Summary:** The decision holds as written: the key exists in one place, the cluster. The consequence about Omni's
+backups holding a copy does not apply, and neither does their encryption as a boundary. etcd itself has no backup;
+`backup/README.md` says so, and the talosctl plan names `talosctl etcd snapshot` to the hov1 site as the replacement.
+
+**Action Required:** Decide whether etcd gets a backup before the move off Omni, and where.

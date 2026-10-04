@@ -22,23 +22,30 @@ the site hov1.
 |---|---|---|
 | `compose.yaml` | yes | Includes `../versitygw/compose.yaml` with this directory as project directory |
 | `.env.example` | yes | Template for `.env` |
-| `.env` | never | The site's values and root key pair; also in the operator's password manager |
+| `.env` | never | The site's values and root key pair; the key pair also in `vaults/operator/hov1/root.enc.json` |
 | `certs/ca.crt` | yes | The CA root every client pins |
-| `certs/ca.key` | never | The CA key; also in the operator's password manager, so a rebuilt host keeps the same root |
+| `certs/ca.key` | never | The CA key; also in `vaults/operator/hov1/ca.key.enc.json`, so a rebuilt host keeps the same root |
 | `certs/tls.*` | never | The gateway's certificate and key, written by `bin/cert` |
 
 ## Operating it
 
 From this directory: `docker compose ps`, `docker compose logs --tail 100`, `docker compose restart`. Accounts and
 certificates are the scripts in `../versitygw/bin`, run from here. A swamp model for the lifecycle is the follow-up
-noted in `../README.md`.
+noted in `../README.md`. What the gateway holds is read from the swamp host by the model `hov1-s3`
+(`models/@dataverket/versitygw/gateway/hov1-s3.yaml`): the admin API on the host's loopback, the S3 API at the
+endpoint above, the CA root from `certs/ca.crt`, and the root key pair from `vaults/operator/hov1/` for one run:
+
+```sh
+sops exec-env vaults/operator/hov1/root.enc.json 'swamp model method run hov1-s3 inventory'   # one touch
+swamp model method run hov1-s3 check
+```
 
 ## Bring-up
 
 1. `cp .env.example .env`; fill it in.
 2. On the host: create `DATA_DIR` and `VERSIONS_DIR`; forward 443.
 3. `../versitygw/bin/cert`.
-4. Commit `certs/ca.crt`; put `.env` and `certs/ca.key` in the password manager.
+4. Commit `certs/ca.crt`; copy the root key pair and `certs/ca.key` into `vaults/operator/hov1/` (`vaults/operator/README.md`).
 5. Writers: `../versitygw/README.md`, runbook "Add a writer", for `forgejo` and `zitadel`.
 
 ## When the address changes

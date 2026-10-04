@@ -1,18 +1,12 @@
-# The workers' disk layout and kubelet budget (docs/plans/2026-09-storage-building-blocks.md, step 4; decision 014).
-# Applied through Omni as a ConfigPatch by `omni-cluster applyPatch`, with this file as its data: to each new
-# worker before it joins, scoped to that machine, and after the third swap to the machine set dataverket-prod-workers.
+# The workers' disk layout and kubelet budget (decisions 014, 017 and 019; the state in docs/storage.md). Applied
+# through Omni as a ConfigPatch by `omni-cluster applyPatch`, with this file as its data: to each new worker before
+# it joins (worker-join), scoped to that machine, and on the machine set dataverket-prod-workers as 500-workers-storage.
 # Never to a running worker: Talos sizes volumes only when it first provisions a machine. Outside clusters/, so Flux
 # never reads it. Talos 1.14.
 #
-# Both volumes share the system disk, and Talos does not promise which it lays out first: on 2026-10-01 pg-zitadel
-# went first and took all 28 GB, so EPHEMERAL failed for want of space. So each states its size, minSize equal to
-# maxSize: Talos creates a partition as large as maxSize allows, the whole free disk when there is none, and grow only
-# decides later growth (grow: false with minSize alone still took 28 GB, the same day). Of the 30 GiB disk, 26,615 MiB
-# is free for volumes, what EPHEMERAL took on the first workers: the Talos partitions and about 2 GiB Talos does not
-# allocate come first. 14 GiB and 11 GiB fit in that in either order, about 1 GiB left; 16 GiB did not. A node with a data disk of its own gives
-# pg-zitadel that disk instead, and there it can take the whole disk.
-#
-# EPHEMERAL at a fixed 14 GiB, so the kubelet's percentages are a budget and not a share of whatever the disk is.
+# Both volumes share the system disk, and Talos does not promise which it lays out first, so each states its size
+# with minSize equal to maxSize (decision 019). Of the 30 GiB disk, 26,615 MiB is free for volumes; 14 GiB and
+# 11 GiB fit in either order, about 1 GiB left. A node with a data disk of its own gives pg-zitadel that disk instead.
 apiVersion: v1alpha1
 kind: VolumeConfig
 name: EPHEMERAL

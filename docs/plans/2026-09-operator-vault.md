@@ -20,7 +20,7 @@ swamp's key in its rule.
 3. **No vault config under vaults/operator/.** Extend `bin/check-recipients` to fail when any
    `vaults/@dataverket/sops/*.yaml` has a `secretsDir` inside `vaults/operator/`. `@dataverket/sops` encrypts to
    its own config's recipients, so such a config would write values swamp can read.
-4. **Old wording.** Done 2026-09-30. `docs/plans/2026-09-credential-tiers.md`, `2026-09-access-requests.md`,
+4. **Old wording.** Done 2026-09-30. The credential tiers plan (since removed), `2026-09-access-requests.md`,
    `2026-09-kubernetes-identity.md` and the finding in decision 010 name `vaults/operator/` and 016. Entries that
    record what was done on 2026-09-29 keep their history and say where the thing is now.
 5. **One copy of the hov1 root key pair.** Done 2026-09-30: `vaults/operator/hov1/root.enc.json` is the copy,

@@ -64,3 +64,19 @@ Refined by 001 and 002.
 
 **Action Required:** Migrate the remaining hand-applied secrets: Forgejo admin, mailer and OAuth, the Zitadel
 masterkey, `cloud.conf`.
+
+### 2026-10-04
+
+**Status:** Implemented
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The Zitadel masterkey and Forgejo's security keys authored here | `apps/zitadel/zitadel-masterkey.enc.yaml`, `apps/forgejo/forgejo-security.enc.yaml` | done 2026-09-30, pinned, since a restore needs them |
+| The hov1 writer keys authored here | `apps/<namespace>/s3-cnpg-<bucket>.enc.yaml` | done, born on the site and encrypted on the way in |
+
+**Summary:** Two more secrets a restore needs are in git. Still by hand: the Forgejo admin, mailer and OAuth secrets,
+the runner registration token and `cloud.conf`.
+
+**Action Required:** Migrate those.

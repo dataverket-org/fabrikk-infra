@@ -5,8 +5,7 @@ metadata:
   namespace: zitadel
 spec:
   # Three instances, one per worker, each on that worker's u-pg-zitadel partition, published as a local PV by the
-  # static provisioner (decision 014). The database replicates itself and Cinder is not under it: the rehearsal for
-  # bare-metal nodes with NVMe (storage plan, building blocks 1 and 3).
+  # static provisioner (decision 014). The database replicates itself and Cinder is not under it (decision 018).
   instances: 3
   # Recovery needs the archive's Postgres major; the same image the cluster ran before.
   imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
@@ -26,7 +25,7 @@ spec:
       max_slot_wal_keep_size: 512MB
   enableSuperuserAccess: true
   # WAL archiving and base backups to the hov1 site through the Barman Cloud plugin (backup.yaml). Each cluster
-  # restored from an archive writes its own: zitadel-db-2 is the one created on the storage plan's step 6.
+  # restored from an archive writes its own: zitadel-db-2 is this cluster's, created 2026-10-01.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
@@ -35,7 +34,7 @@ spec:
         serverName: zitadel-db-2
   # Created from the hov1 archive on 2026-10-01, and a rebuild from git is too. CNPG reads bootstrap and
   # externalClusters only when it creates the cluster. The source is the archive this cluster writes, so a rebuild
-  # restores the latest state; it moves serverName above to the next number first (storage plan, "Rebuild from git").
+  # restores the latest state; it moves serverName above to the next number first (decision 021; docs/storage.md).
   bootstrap:
     recovery:
       source: hov1-archive

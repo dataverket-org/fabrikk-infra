@@ -22,15 +22,19 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `models/`, `workflows/`, `vaults/`, `extensions/` | `swamp` | The swamp repository: the instances a human uses to operate what is deployed here. See Operating models below. |
 | `vaults/operator/` | Nobody, by design | Values only a person reads, behind the two YubiKeys: plain sops with no process key and no swamp vault config (decision 016). `break-glass/` for when a login fails, `hov1/` for the hov1 gateway's CA key and root key pair. |
 | `talos/<cluster>/` | swamp's Omni and Talos models, never Flux | Talos machine config patches, one file each, applied to machines below Kubernetes; `workers-storage.yaml` is the workers' disk layout and kubelet thresholds (decisions 017, 019). |
-| `docs/decisions/`, `docs/plans/` | Nobody | Why the repository is shaped as it is, and what is being changed next. `task decisions` lists the records with what is still pending. |
+| `docs/decisions/`, `docs/plans/`, `docs/storage.md` | Nobody | Why the repository is shaped as it is, what is being changed next, and where the cluster's data lives and how its workers are replaced. `task decisions` lists the records with what is still pending. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
 
 ## Bootstrap and recovery
 
 `bootstrap.sh`. Every step checks state and skips what is done, so it is the fresh-cluster path, the recovery path,
 and the record of both. It stops once on a new cluster, when the freshly generated SOPS recipient must be put in
-`.sops.yaml` and every `*.enc.yaml` re-encrypted with a YubiKey. It needs kubectl, flux, sops, git, and a YubiKey.
-The reasons behind each step are in `docs/decisions/`.
+`.sops.yaml` and every `*.enc.yaml` re-encrypted with a YubiKey. It needs kubectl, kubectl-cnpg, flux, sops, git,
+yq, jq and a YubiKey. The reasons behind each step are in `docs/decisions/`.
+
+A rebuild of a lost cluster runs `./bootstrap.sh --source github`: Flux reads the GitHub mirror while Forgejo is gone,
+and both databases come back from the hov1 site through the `bootstrap.recovery` in git (decision 021). The order,
+and the one commit that must precede it, is `docs/storage.md`, "Rebuild from git".
 
 ## Commands
 
@@ -39,7 +43,7 @@ which an operator has logged in and the short-lived credentials exist, opened de
 the end of it. The Proton Pass session, the shell it may open and the Omni login are parts of it, not other things
 with the same name. It runs on the swamp host with your own Omni, OpenStack and Zitadel logins, writes the credentials the
 models then use by name, touches only config files in your home directory, and never reads the swamp vault. The
-design behind it is `docs/plans/2026-09-credential-tiers.md`. What comes after it, in order: the second door in
+rule behind it is decision 001. What comes after it, in order: the second door in
 `docs/plans/2026-09-break-glass.md`, then Kubernetes authentication in `docs/plans/2026-09-kubernetes-identity.md`.
 `docs/plans/2026-09-access-requests.md` generalises the session itself and depends on neither.
 
@@ -54,6 +58,22 @@ design behind it is `docs/plans/2026-09-credential-tiers.md`. What comes after i
 | `task admin:zitadel-operator-key` | The Zitadel key that can write, and only to the projects named in `ZITADEL_PROJECTS`. Run deliberately; `admin:renew` leaves it out and `admin:logout` removes it. After changing the list, run it with `RENEW=1`. |
 | `task admin:zitadel-bootstrap` | Once per instance, and on a host whose config lacks the client id: the organization's name, the admin project and the application the browser login goes through. It acts as the machine user the chart made at install, whose key it reads from the cluster for that run and writes nowhere. |
 | `task check-recipients` | Every encrypted file is encrypted to the recipients its rule names, and to nobody else. `bootstrap.sh` runs it first, `admin:renew` before it mints anything. |
+
+What a session writes, and what reads it by name:
+
+| File | Named by | Content | Lifetime |
+|---|---|---|---|
+| `~/.config/openstack/clouds.yaml`, cloud `fabrikk-infra` | the openstack models | An application credential `fabrikk-infra-<operator>-<timestamp>`, role `member` | `TIER2_TTL`, 8 h |
+| `~/.kube/config`, contexts `dataverket-prod-readers` and `dataverket-prod-admin` | the kubernetes and flux models | Omni service-account kubeconfigs: group `fabrikk-readers`, and `system:masters` | `TIER2_TTL` |
+| `~/.talos/config`, context `dataverket-prod` | `dataverket-prod-talos` | The Omni-proxied talosconfig, which carries no credential | none; the key file beside it expires |
+| `~/.talos/omni/fabrikk-infra-reader.key` | `omni`, `dataverket-prod-talos` | An Omni service account key, role Reader | `TIER2_TTL` |
+| `~/.talos/omni/fabrikk-infra-operator.key` | `omni-cluster` only | An Omni service account key, role Operator; `admin:omni-operator-key` mints it, `admin:logout` removes it | `TIER2_TTL` |
+| `~/.config/zitadel/fabrikk-infra-reader.json` | the zitadel models | A Zitadel machine key, `IAM_OWNER_VIEWER` | `TIER2_TTL` |
+| `~/.config/zitadel/fabrikk-infra-operator.json` | a definition that writes | A Zitadel machine key, owner of the projects in `ZITADEL_PROJECTS` and of nothing else | `TIER2_TTL` |
+
+Every item shares the one lifetime, and `admin:renew` renews them all when any has less than a quarter of it left.
+`admin:status` reads each item's expiry from its own file or record. The two process keys of tier 3 never rotate on a
+schedule: `swamp-fabrikk-infra` lasts until the swamp host is rebuilt, `cluster-dataverket-prod` the cluster's life.
 
 The `decisions:` group is the records in `docs/decisions/`. `task decisions` lists them with their audit status, so
 what is decided and what is still pending read at a glance; `decisions:new` starts one from the template and opens
@@ -153,8 +173,9 @@ Decision 006 said the same thing about two repositories: a credential the cluste
 software factory copies it, never the other way around. Inside this repository it reads as "origin first", which
 is the rule above.
 
-Not migrated yet: the Forgejo admin, mailer, and OAuth secrets, the Zitadel masterkey, the runner registration
-token, and `cloud.conf` are still created by hand (see `apps/forgejo/*.example.yaml`). They move here one at a time.
+Not migrated yet: the Forgejo admin, mailer and OAuth secrets, the runner registration token, and `cloud.conf` are
+still created by hand (see `apps/forgejo/*.example.yaml`). They move here one at a time. The Zitadel masterkey and
+Forgejo's generated security keys are here since 2026-09-30, pinned, since a restore needs them (`backup/README.md`).
 
 ## Gitless delivery
 
@@ -182,7 +203,7 @@ the fleet disk survey, and `vaults/infra/` the credentials, one file per secret 
 `_bin` on `PATH` for the Flux model and `omnictl` and `talosctl` on `PATH` for the Omni and Talos models:
 
 ```sh
-swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, runner-pods, dataverket-prod-*, <namespace>-pods, forgejo-events
+swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, hov1-s3, runner-pods, dataverket-prod-*, <namespace>-pods, forgejo-events
 swamp model method run forgejo health
 swamp model method run omni discover                  # the Talos fleet, read-only
 swamp model method run dataverket-prod-kustomizations reconcile --input name=apps --input namespace=flux-system --input withSource=true
@@ -191,6 +212,8 @@ swamp model method run runner-pods list               # context dataverket-prod-
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
 swamp model method run registry copy --input source=<upstream>@sha256:<digest> --input name=<image> --input tag=<tag>
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
+swamp workflow run worker-join --input name=dataverket-wrkr-N   # one half of a worker swap, docs/storage.md
+swamp model method run hov1-s3 check                  # the hov1 gateway against its rules; inventory needs the root key, vaults/operator/README.md
 ```
 
 `dataverket-prod-talos` (`@dataverket/talosctl/node`) reaches the machines through Omni's proxy; its node list and

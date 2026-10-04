@@ -1,8 +1,8 @@
 id: a154bebb-7c3b-47ab-820e-d927dc2cbe9b
 name: worker-retire
 description: >-
-  Take one worker out of the cluster for good, the second half of a swap (docs/plans/2026-09-storage-building-blocks.md,
-  step 4), and also the way to clear a new machine that never joined properly. Before anything changes: at least
+  Take one worker out of the cluster for good, the second half of a swap (decision 017; docs/storage.md), and also
+  the way to clear a new machine that never joined properly. Before anything changes: at least
   minWorkers other workers are Ready, and Zitadel's CNPG primary does not run on the node (promote it away first;
   there is no CNPG model yet). Forgejo's database is one instance without a PodDisruptionBudget, so it is not
   checked: it is down while its volume moves. Then cordon, removeMachine (Omni drains, wipes and waits; on a machine that

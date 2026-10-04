@@ -1,19 +1,17 @@
 version: '3'
 
 #
-# Tier 1 of the credential tiers (docs/plans/2026-09-credential-tiers.md): the
-# operator's session on the swamp host. Every task here runs as you, with
-# your own Omni, OpenStack and Zitadel logins, and writes only tier 2 files. None of
-# them reads or writes the swamp vault, and none needs swamp on PATH.
+# The admin session, tier 1 of decision 001: every task runs as you, with your
+# own Omni, OpenStack and Zitadel logins, and writes only the tier 2 files the
+# README's Commands section lists. None reads or writes the swamp vault, and
+# none needs swamp on PATH.
 #
 # One task per tier 2 item, each safe to rerun and able to run alone.
-# `admin:renew` asks once whether any item is due and, if one is, renews them
-# all in that order, so they expire together and you log in once a day.
-# `admin:omni-operator-key` and `admin:zitadel-operator-key` are the exceptions
-# and are not in that list: each mints a key that can change something, so it
-# is run deliberately, when you are about to, and `admin:logout` removes it.
+# `admin:renew` renews them all in one session when any one is due.
+# `admin:omni-operator-key` and `admin:zitadel-operator-key` stay outside it:
+# each mints a key that can change something, and `admin:logout` removes it.
 #
-# Settings are environment variables, not options:
+# Settings are environment variables, not options (decision 008):
 #
 #	OPERATOR	You, in the names a provider records (default $USER); a
 #			file name or a kube context never carries it
@@ -24,20 +22,10 @@ version: '3'
 #			the one entry that reaches our Keystone is found
 #	OS_PASSWORD_REF	pass:// reference to your OpenStack password
 #
-# What this repository administers, below, is not a setting: it is the same for every
-# operator, and it is the whole of what another repository would change while
-# reusing bin/ and share/admin/ unchanged. The scripts require it and default
-# nothing, so a missing value stops a run instead of pointing it at the wrong
-# cluster. A shell that exports one of these wins over what is set here, which
-# is how an operator whose own config uses other names, or a test pointing
-# somewhere else, gets its way for one run.
-#
-# The three logins are named, never addressed: OMNI_CONTEXT is a context in
-# your omniconfig, OS_CLOUD an entry in your clouds.yaml and ZITADEL_CONTEXT a
-# context in your Zitadel config, exactly as a kube context is named, and the
-# address and the identity are read out of that config. Nothing here is a URL.
-# Where these services answer is in the README, for a person setting their own
-# config up once.
+# What this repository administers is set below and nowhere else; the scripts
+# require every value and default none. A shell that exports one wins for that
+# run. The three logins are names in your own config files, never addresses
+# (decision 009); where they answer is in the README.
 #
 
 env:

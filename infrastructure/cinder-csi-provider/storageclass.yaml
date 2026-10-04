@@ -16,7 +16,7 @@ provisioner: cinder.csi.openstack.org
 reclaimPolicy: Retain
 allowVolumeExpansion: true
 ---
-# Cinder's cheaper tier, for blobs that are rebuildable or backed up elsewhere; zot's first (storage plan, step 3).
+# Cinder's cheaper tier, for blobs that are rebuildable or backed up elsewhere; zot's (decision 018).
 # The type is the name Nexthop gives it, as the openstack-volume-type model records it.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
