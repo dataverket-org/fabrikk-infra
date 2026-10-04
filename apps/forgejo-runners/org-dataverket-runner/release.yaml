@@ -15,17 +15,6 @@ spec:
         name: forgejo-runner-helm
         namespace: flux-system
   values:
-    # Every volume in a Kata guest is a virtiofs share, and Talos starts virtiofsd
-    # without --xattr (its configuration.toml: virtio_fs_extra_args =
-    # ["--thread-pool-size=1", "--announce-submounts"]). Without xattrs, docker
-    # cannot register image layers that carry file capabilities
-    # (lsetxattr security.capability: operation not supported), so every job
-    # failed while pulling its image. Talos allows virtio_fs_extra_args as a pod
-    # annotation (enable_annotations); the value is a JSON array appended to the
-    # defaults. Verified 2026-09-18 with a test pod: user.* and
-    # security.capability xattrs stick on the Cinder volume with this set.
-    podAnnotations:
-      io.katacontainers.config.hypervisor.virtio_fs_extra_args: '["--xattr"]'
     dind:
       resources:
         requests:
@@ -45,20 +34,16 @@ spec:
       config:
         instance: https://git.dataverket.org
         existingSecret: org-dataverket-runner-secret
-    # dind's default /var/lib/docker sits directly on the Kata guest's own
-    # ephemeral rootfs, which gets wiped on every pod restart - meaning
-    # every crash forced a full re-pull of the multi-GB
-    # catthehacker/ubuntu:act-latest image, likely failing outright if the
-    # guest's ephemeral disk was too small to hold it. A Cinder-backed PVC
-    # (docker-lib-pvc.yaml) survives restarts and gives dind a real block
-    # device instead.
+    # The docker store is a Cinder volume, so it survives a pod restart; dind's
+    # default /var/lib/docker is on the guest's ephemeral rootfs and every
+    # restart would pull the multi-GB job image again. The claim is a raw disk
+    # (docker-store-pvc.yaml says why), so it is handed to dind as a device in
+    # the patch below, not mounted here; the chart's volumeMounts value has no
+    # place for a device.
     volumes:
-      - name: docker-lib
+      - name: docker-store
         persistentVolumeClaim:
-          claimName: org-dataverket-runner-docker-lib
-    volumeMounts:
-      - name: docker-lib
-        mountPath: /var/lib/docker
+          claimName: org-dataverket-runner-docker-store
   postRenderers:
     - kustomize:
         patches:
@@ -71,21 +56,19 @@ spec:
               metadata:
                 name: org-dataverket-runner-forgejo-runner
               spec:
-                # /var/lib/docker is one Cinder ReadWriteOnce claim
-                # (docker-lib-pvc.yaml), so two runner pods can never run at
-                # once: with the chart's default RollingUpdate the new pod
-                # waited for a volume the old pod held on another node, and
-                # the rollout of 2026-09-18 never finished (HelmRelease
-                # stalled, two pods for two weeks). With no surge and one
-                # unavailable, the one replica stops before its replacement
-                # starts, which is what Recreate does; Recreate itself is
-                # refused on this live Deployment, since helm-controller applies
-                # server-side and the defaulted rollingUpdate block it would
-                # forbid stays on the object (seen 2026-10-04). The runner is
-                # down while the volume moves, about the six minutes a Cinder
-                # detach takes (docs/storage.md). The chart has no strategy
-                # value, so it is set here (decision 021: nothing done by hand
-                # that git does not describe).
+                # The docker store is one ReadWriteOnce disk, attached to one
+                # worker at a time. A rollout therefore must stop the old pod
+                # before it starts the new one: maxSurge 0 says never run more
+                # than the one replica, maxUnavailable 1 says the one may be
+                # taken down first. With the default (surge 1) the new pod was
+                # started while the old one still held the disk on another
+                # worker, and waited for it forever (2026-09-18 to 2026-10-04).
+                # Recreate would say the same thing, but server-side apply
+                # refuses to switch a live Deployment to it, since the defaulted
+                # rollingUpdate block stays on the object. The runner is down
+                # for the minutes a Cinder detach and attach take, on every
+                # rollout. The chart has no strategy value (decision 021:
+                # nothing done by hand that git does not describe).
                 strategy:
                   type: RollingUpdate
                   rollingUpdate:
@@ -95,11 +78,29 @@ spec:
                   spec:
                     runtimeClassName: kata
                     containers:
-                      # overlay2 needs trusted.overlay.* xattrs, which virtiofsd
-                      # cannot set on the host without CAP_SYS_ADMIN (it keeps
-                      # only CAP_SETFCAP and friends), so overlay2 fails with
-                      # EINVAL (seen before --xattr; not retested with it). vfs
-                      # needs none of that, just slower (no layer CoW sharing).
                       - name: dind
+                        # The store arrives as a raw virtio-blk disk, so the
+                        # guest's own ext4 runs on it and overlay2 works, with
+                        # layers shared copy-on-write. On a Filesystem claim the
+                        # store was a virtiofs share, overlay2 failed with
+                        # EINVAL, and vfs copied the whole image for every job,
+                        # three minutes per docker create (tested 2026-10-04).
+                        # The disk is formatted once, when blkid finds no
+                        # filesystem on it; a formatted disk is only mounted.
+                        # Formatting unconditionally would wipe the store on
+                        # every restart. blkid, mkfs.ext4 and mount are in the
+                        # dind image, so no init container is needed.
+                        command: ["sh", "-ec"]
                         args:
-                          - --storage-driver=vfs
+                          - |
+                            dev=/dev/docker-store
+                            if ! blkid "$dev" | grep -q 'TYPE='; then
+                              echo "formatting $dev (blank disk)"
+                              mkfs.ext4 -q -F "$dev"
+                            fi
+                            mkdir -p /var/lib/docker
+                            mount -o noatime "$dev" /var/lib/docker
+                            exec dockerd-entrypoint.sh --storage-driver=overlay2
+                        volumeDevices:
+                          - name: docker-store
+                            devicePath: /dev/docker-store
