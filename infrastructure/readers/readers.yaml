@@ -1,0 +1,34 @@
+# What the readers group may read, cluster-wide. The group fabrikk-readers is the one both the operators' readers
+# context and the factory's service-account kubeconfig carry (README, Commands; apps/forgejo-runners/fabrikk-readers.yaml
+# is the per-namespace binding that preceded this one). Kubernetes' own `view` role is the right: every workload,
+# pod log, ConfigMap, event, Flux source and Kustomization (flux-view aggregates into it) and cert-manager object
+# (cert-manager-view aggregates too), and never a Secret, which is `view`'s own exclusion and decision 003's rule.
+# Gateway API resources are not in `view` by default, so the ClusterRole below aggregates them in.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fabrikk-readers-view
+subjects:
+  - kind: Group
+    name: fabrikk-readers
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+---
+# Gateway API and Envoy Gateway objects, read-only, aggregated into `view` so that every viewer sees the Gateway, its
+# listeners' status and the routes attached to it.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gateway-api-view
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [gatewayclasses, gateways, httproutes, grpcroutes, tcproutes, tlsroutes, udproutes, referencegrants, backendtlspolicies]
+    verbs: [get, list, watch]
+  - apiGroups: [gateway.envoyproxy.io]
+    resources: ["*"]
+    verbs: [get, list, watch]
