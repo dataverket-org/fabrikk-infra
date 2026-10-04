@@ -71,6 +71,18 @@ spec:
               metadata:
                 name: org-dataverket-runner-forgejo-runner
               spec:
+                # /var/lib/docker is one Cinder ReadWriteOnce claim
+                # (docker-lib-pvc.yaml), so two runner pods can never run at
+                # once: with the chart's default RollingUpdate the new pod
+                # waited for a volume the old pod held on another node, and
+                # the rollout of 2026-09-18 never finished (HelmRelease
+                # stalled, two pods for two weeks). Recreate stops the old pod
+                # first. The runner is down while the volume moves, about the
+                # six minutes a Cinder detach takes (docs/storage.md). The
+                # chart has no strategy value, so it is set here (decision 021:
+                # nothing done by hand that git does not describe).
+                strategy:
+                  type: Recreate
                 template:
                   spec:
                     runtimeClassName: kata
