@@ -23,6 +23,11 @@ spec:
           autoDiscoverUrl: "https://zitadel.dataverket.org/.well-known/openid-configuration"
           existingSecret: forgejo-zitadel-oauth-secret
       config:
+        # A workflow's "uses: actions/<name>" resolves on this forge, in the actions org the forge itself keeps
+        # as a mirror of the Forgejo project's vetted set (decision 022), not on data.forgejo.org. An action
+        # from elsewhere needs its full address in the workflow.
+        actions:
+          DEFAULT_ACTIONS_URL: self
         database:
           DB_TYPE: postgres
           HOST: forgejo-postgres-rw:5432
