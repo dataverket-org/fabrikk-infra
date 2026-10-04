@@ -76,13 +76,21 @@ spec:
                 # once: with the chart's default RollingUpdate the new pod
                 # waited for a volume the old pod held on another node, and
                 # the rollout of 2026-09-18 never finished (HelmRelease
-                # stalled, two pods for two weeks). Recreate stops the old pod
-                # first. The runner is down while the volume moves, about the
-                # six minutes a Cinder detach takes (docs/storage.md). The
-                # chart has no strategy value, so it is set here (decision 021:
-                # nothing done by hand that git does not describe).
+                # stalled, two pods for two weeks). With no surge and one
+                # unavailable, the one replica stops before its replacement
+                # starts, which is what Recreate does; Recreate itself is
+                # refused on this live Deployment, since helm-controller applies
+                # server-side and the defaulted rollingUpdate block it would
+                # forbid stays on the object (seen 2026-10-04). The runner is
+                # down while the volume moves, about the six minutes a Cinder
+                # detach takes (docs/storage.md). The chart has no strategy
+                # value, so it is set here (decision 021: nothing done by hand
+                # that git does not describe).
                 strategy:
-                  type: Recreate
+                  type: RollingUpdate
+                  rollingUpdate:
+                    maxSurge: 0
+                    maxUnavailable: 1
                 template:
                   spec:
                     runtimeClassName: kata
