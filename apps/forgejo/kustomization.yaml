@@ -9,3 +9,4 @@ resources:
   - backup.yaml
   - forgejo-security.enc.yaml
   - release.yaml
+  - actions-mirror.yaml

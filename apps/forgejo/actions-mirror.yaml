@@ -1,0 +1,266 @@
+# The forge's own actions org, made at install time and kept filled from the Forgejo project's vetted set
+# (decision 022). Two pieces: a Job that runs once per cluster and makes the bot user, the org and the bot's
+# token, written straight into a Secret and nowhere else (the pattern of bootstrap/sops-age-keygen.yaml); and a
+# CronJob that, every hour, creates a pull mirror here for every repository of code.forgejo.org/actions that is
+# missing here. Nothing deletes anything. The forge is addressed by its service name (decision 009).
+#
+# The image is curl's own, pinned by digest, and runs as its unprivileged user; jq and kubectl are release
+# binaries fetched by pinned version and verified by sha256, so neither pod needs root or a package manager.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: actions-mirror-bootstrap
+  namespace: forgejo
+---
+# create cannot be limited by name; get is limited to the one Secret the Job writes, so this account can read no
+# other Secret in forgejo.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: actions-mirror-bootstrap
+  namespace: forgejo
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [actions-mirror-token]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: actions-mirror-bootstrap
+  namespace: forgejo
+subjects:
+  - kind: ServiceAccount
+    name: actions-mirror-bootstrap
+    namespace: forgejo
+roleRef:
+  kind: Role
+  name: actions-mirror-bootstrap
+  apiGroup: rbac.authorization.k8s.io
+---
+# Ensures the bot user actions-mirror, the actions org with the bot as owner, and the bot's token in Secret
+# actions-mirror-token, with the chart's own admin credential (forgejo-admin). A rerun while the Secret exists is a
+# no-op, so Flux may recreate the Job freely (the force annotation lets it replace an immutable Job on change).
+# The token is minted with write:repository and read:organization, which is what creating a mirror in the org and
+# listing it take, and nothing else.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: actions-mirror-bootstrap
+  namespace: forgejo
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: Enabled
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      serviceAccountName: actions-mirror-bootstrap
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: bootstrap
+          image: docker.io/curlimages/curl:8.17.0@sha256:43ebaa53d3806db6b1ce4353b6b26ae638ec1c167ee351524b05690f988bb20d
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: FORGEJO_URL
+              value: http://forgejo-http.forgejo.svc.cluster.local:3000
+            - name: BOT
+              value: actions-mirror
+            - name: BOT_EMAIL
+              value: actions-mirror@noreply.git.dataverket.org
+            - name: ORG
+              value: actions
+            - name: ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: forgejo-admin
+                  key: username
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: forgejo-admin
+                  key: password
+            - name: JQ_VERSION
+              value: jq-1.7.1
+            - name: JQ_SHA256
+              value: 5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5
+            - name: KUBECTL_VERSION
+              value: v1.36.4
+            - name: KUBECTL_SHA256
+              value: 8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
+          command:
+            - sh
+            - -euc
+            - |
+              cd /work
+              curl -sSfL "https://github.com/jqlang/jq/releases/download/$JQ_VERSION/jq-linux-amd64" -o jq
+              curl -sSfL "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl" -o kubectl
+              printf '%s  jq\n%s  kubectl\n' "$JQ_SHA256" "$KUBECTL_SHA256" | sha256sum -c -
+              chmod +x jq kubectl
+              export PATH="/work:$PATH"
+              if kubectl -n forgejo get secret actions-mirror-token >/dev/null 2>&1; then
+                echo "forgejo/actions-mirror-token exists; nothing to do"
+                exit 0
+              fi
+              # Applied together with the release, so the forge may still be starting.
+              for i in $(seq 1 60); do
+                curl -sf -o /dev/null "$FORGEJO_URL/api/healthz" && break
+                [ "$i" -lt 60 ] || { echo "the forge did not answer within ten minutes"; exit 1; }
+                sleep 10
+              done
+              # Prints the HTTP status; the body lands in /work/resp. The admin credential goes in a header
+              # file, so it is in no argument list.
+              printf 'Authorization: Basic %s\n' "$(printf '%s:%s' "$ADMIN_USERNAME" "$ADMIN_PASSWORD" | base64 | tr -d '\n')" > /work/auth
+              api() {
+                curl -sS -o /work/resp -w '%{http_code}' -H @/work/auth -H 'Content-Type: application/json' \
+                  -X "$1" "$FORGEJO_URL/api/v1$2" --data "$3"
+              }
+              # The bot: a private user with a password nobody keeps; the token is its only credential.
+              password="$(head -c 24 /dev/urandom | base64 | tr -d '/+=\n')"
+              body="$(jq -n --arg u "$BOT" --arg e "$BOT_EMAIL" --arg p "$password" \
+                '{username: $u, email: $e, password: $p, must_change_password: false, send_notify: false, visibility: "private"}')"
+              case "$(api POST /admin/users "$body")" in
+                201) echo "user $BOT created" ;;
+                422) echo "user $BOT exists" ;;
+                *) echo "creating user $BOT failed:"; cat /work/resp; exit 1 ;;
+              esac
+              body="$(jq -n --arg o "$ORG" '{username: $o, full_name: "Actions", visibility: "public",
+                repo_admin_change_team_access: false,
+                description: "Mirrors of the Actions the Forgejo project vets (code.forgejo.org/actions), kept by the forge itself; pin them by commit. Decision 022 in dataverket/fabrikk-infra."}')"
+              case "$(api POST "/admin/users/$BOT/orgs" "$body")" in
+                201) echo "org $ORG created, owned by $BOT" ;;
+                422) echo "org $ORG exists; make sure $BOT is one of its owners, or the mirror job cannot create repositories" ;;
+                *) echo "creating org $ORG failed:"; cat /work/resp; exit 1 ;;
+              esac
+              case "$(api POST "/users/$BOT/tokens" '{"name": "actions-mirror", "scopes": ["write:repository", "read:organization"]}')" in
+                201) ;;
+                422) echo "a token named actions-mirror exists on $BOT but the Secret does not; delete the token on the forge and rerun"; exit 1 ;;
+                *) echo "creating the token failed:"; cat /work/resp; exit 1 ;;
+              esac
+              jq -r '.sha1' /work/resp > /work/token
+              rm -f /work/resp /work/auth
+              kubectl -n forgejo create secret generic actions-mirror-token --from-file=token=/work/token
+              rm -f /work/token
+              echo "forgejo/actions-mirror-token created"
+          volumeMounts:
+            - name: work
+              mountPath: /work
+      volumes:
+        - name: work
+          emptyDir:
+            medium: Memory
+---
+# Every hour: every repository of the source org that this forge's actions org lacks becomes a pull mirror of it,
+# with the forge's default interval, labelled upstream-mirror and actions. A repository already here is left as it
+# is, whatever its source; nothing is deleted. Fails when a mirror cannot be created, so the failed Job is the
+# signal. Hourly because the first fill should not wait for a nightly run, and a run that finds nothing costs
+# fifteen requests.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: actions-mirror
+  namespace: forgejo
+spec:
+  schedule: "17 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 1800
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: mirror
+              image: docker.io/curlimages/curl:8.17.0@sha256:43ebaa53d3806db6b1ce4353b6b26ae638ec1c167ee351524b05690f988bb20d
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              env:
+                - name: FORGEJO_URL
+                  value: http://forgejo-http.forgejo.svc.cluster.local:3000
+                - name: ORG
+                  value: actions
+                - name: SOURCE_URL
+                  value: https://code.forgejo.org
+                - name: SOURCE_ORG
+                  value: actions
+                - name: TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: actions-mirror-token
+                      key: token
+                - name: JQ_VERSION
+                  value: jq-1.7.1
+                - name: JQ_SHA256
+                  value: 5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5
+              command:
+                - sh
+                - -euc
+                - |
+                  cd /work
+                  curl -sSfL "https://github.com/jqlang/jq/releases/download/$JQ_VERSION/jq-linux-amd64" -o jq
+                  printf '%s  jq\n' "$JQ_SHA256" | sha256sum -c -
+                  chmod +x jq
+                  printf 'Authorization: token %s\n' "$TOKEN" > /work/auth
+                  here() { curl -sS -o /work/resp -w '%{http_code}' -H @/work/auth -H 'Content-Type: application/json' "$@"; }
+                  page=1 present=0 created=0 failed=0
+                  while :; do
+                    curl -sSf -o /work/src "$SOURCE_URL/api/v1/orgs/$SOURCE_ORG/repos?limit=50&page=$page"
+                    [ "$(./jq length /work/src)" -gt 0 ] || break
+                    for name in $(./jq -r '.[].name' /work/src); do
+                      case "$(here "$FORGEJO_URL/api/v1/repos/$ORG/$name")" in
+                        200) present=$((present + 1)) ;;
+                        404)
+                          body="$(./jq -n --arg a "$SOURCE_URL/$SOURCE_ORG/$name.git" --arg o "$ORG" --arg n "$name" \
+                            --arg d "Mirror of $SOURCE_URL/$SOURCE_ORG/$name; pin by commit" \
+                            '{clone_addr: $a, repo_owner: $o, repo_name: $n, mirror: true, service: "git", description: $d}')"
+                          case "$(here -X POST --data "$body" "$FORGEJO_URL/api/v1/repos/migrate")" in
+                            201) echo "created $ORG/$name"; created=$((created + 1)) ;;
+                            *) echo "creating $ORG/$name failed:"; cat /work/resp; echo; failed=$((failed + 1)); continue ;;
+                          esac
+                          ;;
+                        *) echo "reading $ORG/$name failed:"; cat /work/resp; echo; failed=$((failed + 1)); continue ;;
+                      esac
+                      for topic in upstream-mirror actions; do
+                        case "$(here -X PUT "$FORGEJO_URL/api/v1/repos/$ORG/$name/topics/$topic")" in
+                          204) ;;
+                          *) echo "topic $topic on $ORG/$name: HTTP $(cat /work/resp | head -c 200)" ;;
+                        esac
+                      done
+                    done
+                    page=$((page + 1))
+                  done
+                  rm -f /work/auth
+                  echo "$present present, $created created, $failed failed"
+                  [ "$failed" -eq 0 ]
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+          volumes:
+            - name: work
+              emptyDir:
+                medium: Memory

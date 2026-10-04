@@ -31,6 +31,7 @@ what it supersedes.
 | [007](007-published-extensions-stay-general.md) | Published extensions stay general; our policy stays here | A published extension states the trade-off and ranks neither option; our rules stay in this repository. | 2026-09-29 |
 | [010](010-omni-is-not-the-long-term-control-plane.md) | Omni is not the long-term control plane | Omni is a single point of failure and not part of future designs, so the replacement starts now. | 2026-09-29 |
 | [021](021-git-describes-the-cluster.md) | Git describes the cluster; a rebuild restores its databases | Every change ends with the cluster matching git, and each database's recovery source is in git, so Flux rebuilds the cluster with its data. | 2026-10-01 |
+| [022](022-the-forge-mirrors-the-actions-its-workflows-use.md) | The forge mirrors the Actions its workflows use | An actions org on the forge holds pull mirrors of the Forgejo project's actions org, made and kept by the forge's own install; workflows pin a mirrored action by commit. | 2026-10-04 |
 
 ## How the repository is run
 
