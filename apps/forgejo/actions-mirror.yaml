@@ -1,8 +1,9 @@
 # The forge's own actions org, made at install time and kept filled from the Forgejo project's vetted set
-# (decision 022). Two pieces: a Job that runs once per cluster and makes the bot user, the org and the bot's
+# (decisions 022 and 023). Two pieces: a Job that runs once per cluster and makes the bot user, the org and the bot's
 # token, written straight into a Secret and nowhere else (the pattern of bootstrap/sops-age-keygen.yaml); and a
-# CronJob that, every hour, creates a pull mirror here for every repository of code.forgejo.org/actions that is
-# missing here, and the org's name, description and avatar follow the source org. Nothing deletes anything. The forge is addressed by its service name (decision 009).
+# CronJob that, daily, keeps the actions org a frozen copy of code.forgejo.org/actions, promoted after a quarantine:
+# a repository is created or synced here only once the source's newest change is seven days old. The org's
+# name, description and avatar follow the source org. Nothing deletes anything. The forge is addressed by its service name (decision 009).
 #
 # The image is curl's own, pinned by digest, and runs as its unprivileged user; jq and kubectl are release
 # binaries fetched by pinned version and verified by sha256, so neither pod needs root or a package manager.
@@ -157,21 +158,22 @@ spec:
           emptyDir:
             medium: Memory
 ---
-# Every hour: every repository of the source org that this forge's actions org lacks becomes a pull mirror of it,
-# with the forge's default interval, labelled upstream-mirror and actions. A repository already here is left as it
-# is, whatever its source; nothing is deleted. Fails when a mirror cannot be created, so the failed Job is the
-# signal. Hourly because the first fill should not wait for a nightly run, and a run that finds nothing costs
-# fifteen requests.
+# Daily: the actions org as a frozen copy of the source org, promoted after a quarantine (decision 023). Every
+# mirror has no sync interval of its own; a repository is created here, or synced, only when the source's newest
+# change is QUARANTINE_DAYS old, read from the source repository's updated_at, which moves on a push or a tag and
+# not on the source's own mirror syncs. A sync takes every ref of that repository at once. Nothing is deleted. The
+# log names what was promoted, with the date of the change it carries, and what is still waiting; a failed
+# Job is the signal. A person promotes early by running the Job with QUARANTINE_DAYS=0.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: actions-mirror
   namespace: forgejo
 spec:
-  schedule: "17 * * * *"
+  schedule: "17 3 * * *"
   concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 1800
-  successfulJobsHistoryLimit: 1
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
@@ -202,6 +204,8 @@ spec:
                   value: https://code.forgejo.org
                 - name: SOURCE_ORG
                   value: actions
+                - name: QUARANTINE_DAYS
+                  value: "7"
                 - name: TOKEN
                   valueFrom:
                     secretKeyRef:
@@ -237,19 +241,49 @@ spec:
                     204) ;;
                     *) echo "setting the avatar of $ORG failed:"; cat /work/resp; echo; exit 1 ;;
                   esac
-                  page=1 present=0 created=0 failed=0
+                  # Seconds since a timestamp of the forge's form; the forge's "never" (year 1) counts as long ago.
+                  age_days() { ./jq -rn --arg t "$1" 'try (((now - ($t | fromdateiso8601)) / 86400) | floor) catch 100000'; }
+                  page=1 current=0 waiting=0 created=0 promoted=0 failed=0
                   while :; do
                     curl -sSf -o /work/src "$SOURCE_URL/api/v1/orgs/$SOURCE_ORG/repos?limit=50&page=$page"
                     [ "$(./jq length /work/src)" -gt 0 ] || break
                     for name in $(./jq -r '.[].name' /work/src); do
+                      updated="$(./jq -r --arg n "$name" '.[] | select(.name == $n) | .updated_at' /work/src)"
+                      age="$(age_days "$updated")"
                       case "$(here "$FORGEJO_URL/api/v1/repos/$ORG/$name")" in
-                        200) present=$((present + 1)) ;;
+                        200)
+                          # Frozen: the mirror syncs only when this Job says so.
+                          if [ "$(./jq -r '.mirror_interval' /work/resp)" != "0s" ]; then
+                            case "$(here -X PATCH --data '{"mirror_interval": "0s"}' "$FORGEJO_URL/api/v1/repos/$ORG/$name")" in
+                              200) echo "froze $ORG/$name" ;;
+                              *) echo "freezing $ORG/$name failed:"; cat /work/resp; echo; failed=$((failed + 1)) ;;
+                            esac
+                            here "$FORGEJO_URL/api/v1/repos/$ORG/$name" >/dev/null
+                          fi
+                          synced_age="$(age_days "$(./jq -r '.mirror_updated' /work/resp)")"
+                          if [ "$age" -ge "$synced_age" ]; then
+                            current=$((current + 1))
+                          elif [ "$age" -lt "$QUARANTINE_DAYS" ]; then
+                            echo "$ORG/$name: the source changed $updated, $age days ago; waiting"
+                            waiting=$((waiting + 1))
+                          else
+                            case "$(here -X POST "$FORGEJO_URL/api/v1/repos/$ORG/$name/mirror-sync")" in
+                              200) echo "promoted $ORG/$name: the source changed $updated, $age days ago"; promoted=$((promoted + 1)) ;;
+                              *) echo "syncing $ORG/$name failed:"; cat /work/resp; echo; failed=$((failed + 1)); continue ;;
+                            esac
+                          fi
+                          ;;
                         404)
+                          if [ "$age" -lt "$QUARANTINE_DAYS" ]; then
+                            echo "$ORG/$name: new in the source, changed $updated, $age days ago; waiting"
+                            waiting=$((waiting + 1))
+                            continue
+                          fi
                           body="$(./jq -n --arg a "$SOURCE_URL/$SOURCE_ORG/$name.git" --arg o "$ORG" --arg n "$name" \
-                            --arg d "Mirror of $SOURCE_URL/$SOURCE_ORG/$name; pin by commit" \
-                            '{clone_addr: $a, repo_owner: $o, repo_name: $n, mirror: true, service: "git", description: $d}')"
+                            --arg d "Frozen copy of $SOURCE_URL/$SOURCE_ORG/$name, promoted after a quarantine (decision 023 in dataverket/fabrikk-infra)" \
+                            '{clone_addr: $a, repo_owner: $o, repo_name: $n, mirror: true, mirror_interval: "0s", service: "git", description: $d}')"
                           case "$(here -X POST --data "$body" "$FORGEJO_URL/api/v1/repos/migrate")" in
-                            201) echo "created $ORG/$name"; created=$((created + 1)) ;;
+                            201) echo "created $ORG/$name at the source's state of $updated, $age days old"; created=$((created + 1)) ;;
                             *) echo "creating $ORG/$name failed:"; cat /work/resp; echo; failed=$((failed + 1)); continue ;;
                           esac
                           ;;
@@ -265,7 +299,7 @@ spec:
                     page=$((page + 1))
                   done
                   rm -f /work/auth
-                  echo "$present present, $created created, $failed failed"
+                  echo "$current current, $waiting waiting, $created created, $promoted promoted, $failed failed"
                   [ "$failed" -eq 0 ]
               volumeMounts:
                 - name: work

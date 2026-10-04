@@ -16,12 +16,14 @@ related:
   - 003-cluster-sops-key-never-leaves-the-cluster.md
   - 009-services-are-named-not-addressed.md
   - 021-git-describes-the-cluster.md
+  - 023-the-actions-mirror-is-a-frozen-copy-promoted-after-a-quarantine.md
 ---
 # 022: The forge mirrors the Actions its workflows use
 
 ## Status
 
-Accepted.
+Accepted. Its rule that a workflow pins a mirrored action by commit is replaced by 023 on 2026-10-04: the mirror is
+a frozen copy promoted after a quarantine, and workflows use tags.
 
 ## Context
 

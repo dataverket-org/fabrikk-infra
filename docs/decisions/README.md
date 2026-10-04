@@ -21,6 +21,7 @@ what it supersedes.
 | [004](004-human-only-material-stays-outside-swamp.md) | Human-only material stays outside swamp's reach | Break-glass material is plain sops outside vaults/, so nothing swamp runs can name it. | 2026-09-29 |
 | [015](015-kubernetes-authenticates-against-zitadel.md) | Kubernetes authenticates against Zitadel, not Omni | An OIDC token from Zitadel that lives minutes, and RBAC bound to Zitadel groups, not an Omni flag. | 2026-09-29 |
 | [016](016-operator-values-live-in-vaults-operator.md) | Values only a person reads live in vaults/operator/ | Every sops store is a folder under vaults/; who reads a folder is set by its recipients, and vaults/operator/ is the operators' alone. | 2026-09-30 |
+| [023](023-the-actions-mirror-is-a-frozen-copy-promoted-after-a-quarantine.md) | The actions mirror is a frozen copy, promoted after a quarantine | The actions org syncs from its source only when the source's newest change is seven days old; workflows use tags, and the mirror, not a pinned commit, is where what they get is controlled. | 2026-10-04 |
 
 ## Boundaries and direction
 

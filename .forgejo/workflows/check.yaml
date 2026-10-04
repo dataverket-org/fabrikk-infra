@@ -17,9 +17,9 @@ jobs:
   recipients:
     runs-on: ubuntu-latest
     steps:
-      # Resolved on this forge's own actions org (decision 022), by commit: a tag
-      # on a mirror moves when its origin moves it. v4.4.0.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      # Resolved on this forge's own actions org, a frozen copy of the Forgejo
+      # project's set, promoted after a quarantine (decisions 022 and 023).
+      - uses: actions/checkout@v4
       - name: Install yq
         run: |
           curl -sfL -o /usr/local/bin/yq \
