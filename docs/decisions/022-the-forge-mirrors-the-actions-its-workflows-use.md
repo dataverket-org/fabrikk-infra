@@ -34,9 +34,12 @@ and a few of its own.
 ## Decision
 
 The forge has an `actions` org of its own, and it is part of Forgejo's install, not something a person makes. A Job
-in `apps/forgejo/actions-mirror.yaml`, applied by Flux with the release, ensures a bot user `actions-mirror`, the org
-with the bot as its owner, and a token for the bot with `write:repository` and `read:organization`, written straight
-into Secret `forgejo/actions-mirror-token` and nowhere else, the way 003 makes the cluster's age key. A CronJob then
+in `apps/forgejo/actions-mirror.yaml`, applied by Flux with the release, ensures a bot user `actions-mirror`, a token
+for the bot written straight into Secret `forgejo/actions-mirror-token` and nowhere else, the way 003 makes the
+cluster's age key, and the org with the bot as its owner. The user and the token are made by the forgejo CLI inside
+the forgejo pod, since the forge refuses basic authentication and no password is wanted anywhere; the org is made
+by the bot itself over the API, since Forgejo has no CLI for orgs, so the token carries `write:organization` along
+with `write:repository` and `read:organization`. A CronJob then
 keeps the org equal to or larger than `code.forgejo.org/actions`: every repository there that is missing here is
 created as a pull mirror of it, labelled `upstream-mirror` and `actions`. Nothing is ever deleted.
 
@@ -55,9 +58,9 @@ switch to `self` is its own change, since it changes resolution for every org on
   made by hand.
 - On a rebuild (021) the Job runs again on the fresh cluster and the CronJob refills the org from the source. The
   mirrors themselves are not data worth keeping.
-- The admin credential the Job uses is the chart's `forgejo-admin` Secret, which the install already needs. The
-  CronJob holds only the bot's token, which can create repositories in the `actions` org and read orgs, and
-  nothing else.
+- No admin credential is involved. The Job's own right is to run a command in the forgejo pod and to write one
+  Secret. The CronJob holds only the bot's token, which can create repositories and orgs and read orgs; it owns
+  the `actions` org and nothing else on the forge.
 
 ## Decision Outcome
 

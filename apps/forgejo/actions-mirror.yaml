@@ -12,8 +12,8 @@ metadata:
   name: actions-mirror-bootstrap
   namespace: forgejo
 ---
-# create cannot be limited by name; get is limited to the one Secret the Job writes, so this account can read no
-# other Secret in forgejo.
+# The Job writes one Secret and runs the forgejo CLI in the forgejo pod through exec; exec cannot be limited to a
+# pod by name, so it is allowed on the namespace's pods, which are Forgejo's own and its database's.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -26,6 +26,16 @@ rules:
   - apiGroups: [""]
     resources: [secrets]
     resourceNames: [actions-mirror-token]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [create]
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [forgejo]
     verbs: [get]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -42,11 +52,13 @@ roleRef:
   name: actions-mirror-bootstrap
   apiGroup: rbac.authorization.k8s.io
 ---
-# Ensures the bot user actions-mirror, the actions org with the bot as owner, and the bot's token in Secret
-# actions-mirror-token, with the chart's own admin credential (forgejo-admin). A rerun while the Secret exists is a
-# no-op, so Flux may recreate the Job freely (the force annotation lets it replace an immutable Job on change).
-# The token is minted with write:repository and read:organization, which is what creating a mirror in the org and
-# listing it take, and nothing else.
+# Ensures the bot user actions-mirror, its token in Secret actions-mirror-token, and the actions org with the bot
+# as owner. The forge refuses basic authentication (release.yaml, service), so the admin credential is of no use
+# over the API; instead the forgejo CLI runs inside the forgejo pod, where a user and a token are made without any
+# password. Forgejo has no CLI for orgs, so the bot makes its own org over the API with that token, which is why
+# the token carries write:organization as well as write:repository and read:organization. A rerun while the Secret
+# exists is a no-op, so Flux may recreate the Job freely (the force annotation lets it replace an immutable Job on
+# change).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -83,16 +95,6 @@ spec:
               value: actions-mirror@noreply.git.dataverket.org
             - name: ORG
               value: actions
-            - name: ADMIN_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: forgejo-admin
-                  key: username
-            - name: ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: forgejo-admin
-                  key: password
             - name: JQ_VERSION
               value: jq-1.7.1
             - name: JQ_SHA256
@@ -121,36 +123,29 @@ spec:
                 [ "$i" -lt 60 ] || { echo "the forge did not answer within ten minutes"; exit 1; }
                 sleep 10
               done
-              # Prints the HTTP status; the body lands in /work/resp. The admin credential goes in a header
-              # file, so it is in no argument list.
-              printf 'Authorization: Basic %s\n' "$(printf '%s:%s' "$ADMIN_USERNAME" "$ADMIN_PASSWORD" | base64 | tr -d '\n')" > /work/auth
-              api() {
-                curl -sS -o /work/resp -w '%{http_code}' -H @/work/auth -H 'Content-Type: application/json' \
-                  -X "$1" "$FORGEJO_URL/api/v1$2" --data "$3"
-              }
-              # The bot: a private user with a password nobody keeps; the token is its only credential.
-              password="$(head -c 24 /dev/urandom | base64 | tr -d '/+=\n')"
-              body="$(jq -n --arg u "$BOT" --arg e "$BOT_EMAIL" --arg p "$password" \
-                '{username: $u, email: $e, password: $p, must_change_password: false, send_notify: false, visibility: "private"}')"
-              case "$(api POST /admin/users "$body")" in
-                201) echo "user $BOT created" ;;
-                422) echo "user $BOT exists" ;;
-                *) echo "creating user $BOT failed:"; cat /work/resp; exit 1 ;;
-              esac
+              fj() { kubectl -n forgejo exec deploy/forgejo -c forgejo -- forgejo "$@"; }
+              # The bot: a user whose random password nobody keeps; the token is its only credential.
+              if fj admin user list | awk 'NR > 1 { print $2 }' | grep -qx "$BOT"; then
+                echo "user $BOT exists"
+              else
+                fj admin user create --username "$BOT" --email "$BOT_EMAIL" --random-password \
+                  --must-change-password=false >/dev/null
+                echo "user $BOT created"
+              fi
+              # A second token of the same name is refused, so a lost Secret with a live token is a state a
+              # person resolves: delete the token on the forge (the bot's settings), then let the Job rerun.
+              fj admin user generate-access-token --username "$BOT" --token-name actions-mirror --raw \
+                --scopes write:repository,read:organization,write:organization > /work/token
+              printf 'Authorization: token %s\n' "$(cat /work/token)" > /work/auth
               body="$(jq -n --arg o "$ORG" '{username: $o, full_name: "Actions", visibility: "public",
                 repo_admin_change_team_access: false,
                 description: "Mirrors of the Actions the Forgejo project vets (code.forgejo.org/actions), kept by the forge itself; pin them by commit. Decision 022 in dataverket/fabrikk-infra."}')"
-              case "$(api POST "/admin/users/$BOT/orgs" "$body")" in
+              case "$(curl -sS -o /work/resp -w '%{http_code}' -H @/work/auth -H 'Content-Type: application/json' \
+                  -X POST --data "$body" "$FORGEJO_URL/api/v1/orgs")" in
                 201) echo "org $ORG created, owned by $BOT" ;;
                 422) echo "org $ORG exists; make sure $BOT is one of its owners, or the mirror job cannot create repositories" ;;
                 *) echo "creating org $ORG failed:"; cat /work/resp; exit 1 ;;
               esac
-              case "$(api POST "/users/$BOT/tokens" '{"name": "actions-mirror", "scopes": ["write:repository", "read:organization"]}')" in
-                201) ;;
-                422) echo "a token named actions-mirror exists on $BOT but the Secret does not; delete the token on the forge and rerun"; exit 1 ;;
-                *) echo "creating the token failed:"; cat /work/resp; exit 1 ;;
-              esac
-              jq -r '.sha1' /work/resp > /work/token
               rm -f /work/resp /work/auth
               kubectl -n forgejo create secret generic actions-mirror-token --from-file=token=/work/token
               rm -f /work/token
