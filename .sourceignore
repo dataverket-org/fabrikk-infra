@@ -1,5 +1,0 @@
-# What Flux's source-controller leaves out of the artifact it builds from this repository, on top of its
-# defaults, which drop every image file among other things. The actions org's avatar is an image the cluster
-# needs (apps/forgejo/kustomization.yaml makes a ConfigMap of it), so it is let back in here; a later pattern
-# wins over an earlier one, as in .gitignore.
-!apps/forgejo/actions-org-avatar.png

@@ -2,7 +2,7 @@
 # (decision 022). Two pieces: a Job that runs once per cluster and makes the bot user, the org and the bot's
 # token, written straight into a Secret and nowhere else (the pattern of bootstrap/sops-age-keygen.yaml); and a
 # CronJob that, every hour, creates a pull mirror here for every repository of code.forgejo.org/actions that is
-# missing here. Nothing deletes anything. The forge is addressed by its service name (decision 009).
+# missing here, and the org's name, description and avatar follow the source org. Nothing deletes anything. The forge is addressed by its service name (decision 009).
 #
 # The image is curl's own, pinned by digest, and runs as its unprivileged user; jq and kubectl are release
 # binaries fetched by pinned version and verified by sha256, so neither pod needs root or a package manager.
@@ -95,10 +95,6 @@ spec:
               value: actions-mirror@noreply.git.dataverket.org
             - name: ORG
               value: actions
-            - name: ORG_FULL_NAME
-              value: Forgejo Actions
-            - name: ORG_DESCRIPTION
-              value: Actions for the Forgejo Runner
             - name: JQ_VERSION
               value: jq-1.7.1
             - name: JQ_SHA256
@@ -141,8 +137,8 @@ spec:
               fj admin user generate-access-token --username "$BOT" --token-name actions-mirror --raw \
                 --scopes write:repository,read:organization,write:organization > /work/token
               printf 'Authorization: token %s\n' "$(cat /work/token)" > /work/auth
-              body="$(jq -n --arg o "$ORG" --arg f "$ORG_FULL_NAME" --arg d "$ORG_DESCRIPTION" \
-                '{username: $o, full_name: $f, description: $d, visibility: "public", repo_admin_change_team_access: false}')"
+              # Name, description and avatar follow the source org; the mirror job sets them within the hour.
+              body="$(jq -n --arg o "$ORG" '{username: $o, visibility: "public", repo_admin_change_team_access: false}')"
               case "$(curl -sS -o /work/resp -w '%{http_code}' -H @/work/auth -H 'Content-Type: application/json' \
                   -X POST --data "$body" "$FORGEJO_URL/api/v1/orgs")" in
                 201) echo "org $ORG created, owned by $BOT" ;;
@@ -202,10 +198,6 @@ spec:
                   value: http://forgejo-http.forgejo.svc.cluster.local:3000
                 - name: ORG
                   value: actions
-                - name: ORG_FULL_NAME
-                  value: Forgejo Actions
-                - name: ORG_DESCRIPTION
-                  value: Actions for the Forgejo Runner
                 - name: SOURCE_URL
                   value: https://code.forgejo.org
                 - name: SOURCE_ORG
@@ -229,15 +221,18 @@ spec:
                   chmod +x jq
                   printf 'Authorization: token %s\n' "$TOKEN" > /work/auth
                   here() { curl -sS -o /work/resp -w '%{http_code}' -H @/work/auth -H 'Content-Type: application/json' "$@"; }
-                  # The org as git describes it: its name, its description and its avatar (the Forgejo logo from
-                  # the ConfigMap), set on every run so a change here reaches the forge within the hour. The
-                  # avatar is sent whole each time; the forge keeps one copy, and the image is nine kilobytes.
-                  body="$(./jq -n --arg f "$ORG_FULL_NAME" --arg d "$ORG_DESCRIPTION" '{full_name: $f, description: $d}')"
+                  # The org presents itself as its source does: name, description and avatar are read from the
+                  # source org's record and set here on every run, and the website field points at the source,
+                  # so the org page says where it all comes from. The avatar is fetched and sent whole each time;
+                  # the forge keeps one copy, and the image is a few kilobytes.
+                  curl -sSf -o /work/source "$SOURCE_URL/api/v1/orgs/$SOURCE_ORG"
+                  body="$(./jq --arg w "$SOURCE_URL/$SOURCE_ORG" '{full_name: .full_name, description: .description, website: $w}' /work/source)"
                   case "$(here -X PATCH --data "$body" "$FORGEJO_URL/api/v1/orgs/$ORG")" in
                     200) ;;
                     *) echo "setting the name of $ORG failed:"; cat /work/resp; echo; exit 1 ;;
                   esac
-                  ./jq -n --arg i "$(base64 /avatar/avatar.png | tr -d '\n')" '{image: $i}' > /work/avatar.json
+                  curl -sSf -o /work/avatar "$(./jq -r '.avatar_url' /work/source)"
+                  ./jq -n --arg i "$(base64 /work/avatar | tr -d '\n')" '{image: $i}' > /work/avatar.json
                   case "$(here -X POST --data @/work/avatar.json "$FORGEJO_URL/api/v1/orgs/$ORG/avatar")" in
                     204) ;;
                     *) echo "setting the avatar of $ORG failed:"; cat /work/resp; echo; exit 1 ;;
@@ -275,13 +270,7 @@ spec:
               volumeMounts:
                 - name: work
                   mountPath: /work
-                - name: avatar
-                  mountPath: /avatar
-                  readOnly: true
           volumes:
             - name: work
               emptyDir:
                 medium: Memory
-            - name: avatar
-              configMap:
-                name: actions-org-avatar
