@@ -1,0 +1,50 @@
+# How Envoy Gateway runs the data plane for the GatewayClass `envoy` (gatewayclass.yaml names this through
+# parametersRef). Without it the controller runs one Envoy pod with the chart's defaults, which is what made every
+# Octavia pool read Degraded: the Service keeps externalTrafficPolicy Local, so only the node with the pod answers the
+# load balancer's health monitor, and one pod means one healthy member per pool and a single point of failure for the
+# edge. Three pods, one per worker, make every worker member healthy and keep Local, so Envoy still sees the client's
+# address. The control planes are tainted and get no pod, and their members stay down, which is correct.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: envoy
+  namespace: envoy-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        replicas: 3
+        # One pod at a time, never below the count the pools are sized for: a surge pod lands on a worker that already
+        # has one, which is harmless, while an unavailable one is a member going down.
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 1
+            maxUnavailable: 0
+        pod:
+          # One pod per worker, hard. With three workers and three replicas a fourth cannot be placed, which is the
+          # point; with a worker gone, the third pod waits Pending until a worker is back rather than doubling up.
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: envoy
+                  app.kubernetes.io/component: proxy
+                  gateway.envoyproxy.io/owning-gateway-name: envoy-gateway
+        container:
+          # Measured 2026-10-04 from the kubelet: the proxy's working set is about 46 MiB at today's traffic, the chart
+          # asks for 512 MiB. 256 MiB reserves five times the measurement and still leaves the workers their room.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+      # A drain never takes the last pod: Omni's upgrades roll one machine at a time with a drain, and the edge must
+      # stay up through it.
+      envoyPDB:
+        minAvailable: 2
+      envoyService:
+        type: LoadBalancer
+        externalTrafficPolicy: Local

@@ -2,5 +2,6 @@ resources:
   - namespace.yaml
   - repo.yaml
   - release.yaml
+  - envoyproxy.yaml
   - gatewayclass.yaml
   - gateway.yaml

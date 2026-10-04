@@ -4,3 +4,9 @@ metadata:
   name: envoy
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  # How the data plane runs: replicas, spread, resources, the Service's traffic policy (envoyproxy.yaml).
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: envoy
+    namespace: envoy-system
