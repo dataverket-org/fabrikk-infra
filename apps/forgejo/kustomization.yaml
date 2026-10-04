@@ -15,5 +15,6 @@ generatorOptions:
   disableNameSuffixHash: true
 configMapGenerator:
   - name: actions-org-avatar
+    namespace: forgejo
     files:
       - avatar.png=actions-org-avatar.png
