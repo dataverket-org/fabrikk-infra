@@ -16,7 +16,9 @@ swamp's key in its rule.
    then unreadable by any process until someone names it. Today's files keep the same recipients. The operators
    approve this diff; it decides who can read what.
 2. **Check recipients on every commit.** Run `bin/check-recipients` from a git pre-commit hook and in CI. It
-   already compares each file's recipients with its rule; this makes it a guard instead of a tool.
+   already compares each file's recipients with its rule; this makes it a guard instead of a tool. CI since
+   2026-10-04: `.forgejo/workflows/check.yaml` runs it on every push, on the org runner, with no secret, since
+   the check reads public keys only. The pre-commit hook is not started.
 3. **No vault config under vaults/operator/.** Extend `bin/check-recipients` to fail when any
    `vaults/@dataverket/sops/*.yaml` has a `secretsDir` inside `vaults/operator/`. `@dataverket/sops` encrypts to
    its own config's recipients, so such a config would write values swamp can read.
@@ -32,7 +34,7 @@ swamp's key in its rule.
 | Step | State |
 |---|---|
 | 1 | not started |
-| 2 | not started |
+| 2 | CI done 2026-10-04; the pre-commit hook not started |
 | 3 | not started |
 | 4 | done |
 | 5 | done |

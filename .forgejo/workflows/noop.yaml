@@ -1,0 +1,17 @@
+# A job that does nothing but run, started by hand from the forge (Actions,
+# "Run workflow"), so the runner can be tested without a push and without
+# touching anything. It prints where it ran and stops; no checkout, no
+# secret, no YubiKey. The runner is dataverket-runner, labels ubuntu-latest
+# and kata (forgejo runner_list, 2026-10-04).
+name: noop
+on:
+  workflow_dispatch:
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say where this ran
+        run: |
+          echo "runner: ${RUNNER_NAME:-unknown}"
+          echo "host: $(hostname) $(uname -m)"
+          echo "user: $(id -un)"

@@ -1,0 +1,29 @@
+# Every encrypted file is encrypted to the recipients its rule in .sops.yaml
+# names, and to nobody else: bin/check-recipients, on every push. The check
+# reads public keys only, so this job decrypts nothing, needs no secret and no
+# YubiKey, and runs on the org runner as it is (decision 001: one key per
+# decrypting process; 016: vaults/operator/ has no process key at all).
+#
+# The runner is dataverket-runner, registered at org level, with the labels
+# ubuntu-latest and kata (forgejo runner_list, 2026-10-04); ubuntu-latest is
+# the one a job names. yq is installed pinned, with its published sha256, so
+# the check runs the same yq whatever the job image carries. jq is in the
+# image. Chosen over a pre-commit hook first because it needs no setup on an
+# operator's machine (docs/plans/2026-09-operator-vault.md, step 2).
+name: check
+on:
+  push:
+jobs:
+  recipients:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install yq
+        run: |
+          curl -sfL -o /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_linux_amd64
+          echo "8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f  /usr/local/bin/yq" \
+            | sha256sum -c -
+          chmod +x /usr/local/bin/yq
+      - name: Check recipients
+        run: bin/check-recipients

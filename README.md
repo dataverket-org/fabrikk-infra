@@ -209,6 +209,7 @@ swamp model method run omni discover                  # the Talos fleet, read-on
 swamp model method run dataverket-prod-kustomizations reconcile --input name=apps --input namespace=flux-system --input withSource=true
 swamp workflow run fleet-volumes                      # every node's disks, partitions and EPHEMERAL usage, read-only
 swamp model method run runner-pods list               # context dataverket-prod-readers
+swamp model method run runner-events getWarnings      # the same namespace's warning events, same context
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
 swamp model method run registry copy --input source=<upstream>@sha256:<digest> --input name=<image> --input tag=<tag>
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record

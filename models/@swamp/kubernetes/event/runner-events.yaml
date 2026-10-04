@@ -1,0 +1,10 @@
+type: '@swamp/kubernetes/event'
+typeVersion: 2026.08.01.1
+id: 12d61f86-ea5c-4b75-ba56-2d0973e1bb3a
+name: runner-events
+version: 1
+tags: {}
+globalArguments:
+  namespace: forgejo-runners
+  context: dataverket-prod-readers
+methods: {}
