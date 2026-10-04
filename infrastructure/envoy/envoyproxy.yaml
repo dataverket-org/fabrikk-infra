@@ -3,7 +3,8 @@
 # Octavia pool read Degraded: the Service keeps externalTrafficPolicy Local, so only the node with the pod answers the
 # load balancer's health monitor, and one pod means one healthy member per pool and a single point of failure for the
 # edge. Three pods, one per worker, make every worker member healthy and keep Local, so Envoy still sees the client's
-# address. The control planes are tainted and get no pod, and their members stay down, which is correct.
+# address. The control planes are tainted and get no pod; they are not pool members either, since Talos labels them
+# exclude-from-external-load-balancers and the cloud controller skips such nodes. Applied 2026-10-04: every pool Online.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
