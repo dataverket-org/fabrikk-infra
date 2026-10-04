@@ -17,10 +17,9 @@ jobs:
   recipients:
     runs-on: ubuntu-latest
     steps:
-      # From the forge's own mirror (actions-mirror workflow), by commit: a tag on
-      # a mirror moves when its origin moves it. The full address works whatever
-      # the instance's DEFAULT_ACTIONS_URL says. v4.4.0.
-      - uses: https://git.dataverket.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      # Resolved on this forge's own actions org (decision 022), by commit: a tag
+      # on a mirror moves when its origin moves it. v4.4.0.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Install yq
         run: |
           curl -sfL -o /usr/local/bin/yq \
