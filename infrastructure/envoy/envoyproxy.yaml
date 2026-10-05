@@ -1,10 +1,11 @@
 # How Envoy Gateway runs the data plane for the GatewayClass `envoy` (gatewayclass.yaml names this through
-# parametersRef). Without it the controller runs one Envoy pod with the chart's defaults, which is what made every
-# Octavia pool read Degraded: the Service keeps externalTrafficPolicy Local, so only the node with the pod answers the
-# load balancer's health monitor, and one pod means one healthy member per pool and a single point of failure for the
-# edge. Three pods, one per worker, make every worker member healthy and keep Local, so Envoy still sees the client's
-# address. The control planes are tainted and get no pod; they are not pool members either, since Talos labels them
-# exclude-from-external-load-balancers and the cloud controller skips such nodes. Applied 2026-10-04: every pool Online.
+# parametersRef). The proxies are a DaemonSet: one Envoy on every worker, whatever their number, so every member of
+# the Octavia pools is healthy with externalTrafficPolicy Local, and nothing here has to follow the worker count
+# (decision 024). Envoy Gateway documents the DaemonSet as the alternative to its Deployment; RKE2 runs its ingress
+# the same way. The control planes are tainted and get no proxy; they are not pool members either, since Talos labels
+# them exclude-from-external-load-balancers and the cloud controller skips such nodes. On a one-node cluster, where
+# the control plane is schedulable, the proxy runs there. A disruption budget and an autoscaler do not apply to a
+# DaemonSet and are not set.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -14,39 +15,19 @@ spec:
   provider:
     type: Kubernetes
     kubernetes:
-      envoyDeployment:
-        replicas: 3
-        # One pod at a time, replaced in place. A surge pod cannot exist: the spread below allows one pod per worker and
-        # there are exactly three workers, so maxSurge 1 left a fourth pod Pending and the rollout stuck on 2026-10-05.
-        # One unavailable means one pool member down for the seconds the new pod takes, with two serving.
+      envoyDaemonSet:
+        # One worker at a time: its member is down for the seconds the new pod takes, the others serve.
         strategy:
           type: RollingUpdate
           rollingUpdate:
-            maxSurge: 0
             maxUnavailable: 1
-        pod:
-          # One pod per worker, hard. With three workers and three replicas a fourth cannot be placed, which is the
-          # point; with a worker gone, the third pod waits Pending until a worker is back rather than doubling up.
-          topologySpreadConstraints:
-            - maxSkew: 1
-              topologyKey: kubernetes.io/hostname
-              whenUnsatisfiable: DoNotSchedule
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: envoy
-                  app.kubernetes.io/component: proxy
-                  gateway.envoyproxy.io/owning-gateway-name: envoy-gateway
         container:
           # Measured 2026-10-04 from the kubelet: the proxy's working set is about 46 MiB at today's traffic, the chart
-          # asks for 512 MiB. 256 MiB reserves five times the measurement and still leaves the workers their room.
+          # asks for 512 MiB. 256 MiB reserves five times the measurement and leaves the workers their room.
           resources:
             requests:
               cpu: 100m
               memory: 256Mi
-      # A drain never takes the last pod: Omni's upgrades roll one machine at a time with a drain, and the edge must
-      # stay up through it.
-      envoyPDB:
-        minAvailable: 2
       envoyService:
         type: LoadBalancer
         externalTrafficPolicy: Local

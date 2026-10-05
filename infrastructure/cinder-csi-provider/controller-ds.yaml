@@ -23,6 +23,26 @@ spec:
         app: csi-cinder-controllerplugin
     spec:
       serviceAccount: csi-cinder-controller-sa
+      # On the control planes, beside the cloud controller manager (infrastructure/occm/daemonset.yaml), for the same
+      # reason: it mounts cloud-config, the OpenStack application credential that reaches every volume in the
+      # project. Decision 024: the cloud credential exists only on control plane nodes. The node plugin DaemonSet
+      # stays on every node; it holds no credential.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+      tolerations:
+        - key: "CriticalAddonsOnly"
+          operator: "Equal"
+          value: "true"
+          effect: "NoExecute"
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
       containers:
         - name: csi-attacher
           securityContext:

@@ -33,6 +33,7 @@ what it supersedes.
 | [010](010-omni-is-not-the-long-term-control-plane.md) | Omni is not the long-term control plane | Omni is a single point of failure and not part of future designs, so the replacement starts now. | 2026-09-29 |
 | [021](021-git-describes-the-cluster.md) | Git describes the cluster; a rebuild restores its databases | Every change ends with the cluster matching git, and each database's recovery source is in git, so Flux rebuilds the cluster with its data. | 2026-10-01 |
 | [022](022-the-forge-mirrors-the-actions-its-workflows-use.md) | The forge mirrors the Actions its workflows use | An actions org on the forge holds pull mirrors of the Forgejo project's actions org, made and kept by the forge's own install; workflows pin a mirrored action by commit. | 2026-10-04 |
+| [024](024-two-roles-the-control-plane-carries-kubernetes-and-the-cloud-credential.md) | Two roles: the control plane carries Kubernetes and the cloud credential, workers carry everything else | Control plane and worker, nothing else, from one Talos container to five and fifty; the edge is a DaemonSet on the workers, and the cloud credential exists only on control plane nodes. | 2026-10-05 |
 
 ## How the repository is run
 
