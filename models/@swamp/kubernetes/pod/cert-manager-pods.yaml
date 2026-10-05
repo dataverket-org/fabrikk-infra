@@ -1,0 +1,10 @@
+type: '@swamp/kubernetes/pod'
+typeVersion: 2026.08.01.1
+id: 8b916f04-5df9-454b-8e23-ca009effdbaa
+name: cert-manager-pods
+version: 1
+tags: {}
+globalArguments:
+  namespace: cert-manager
+  context: dataverket-prod-readers
+methods: {}
