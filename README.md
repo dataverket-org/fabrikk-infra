@@ -24,6 +24,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `talos/<cluster>/` | swamp's Omni and Talos models, never Flux | Talos machine config patches, one file each, applied to machines below Kubernetes; `workers-storage.yaml` is the workers' disk layout and kubelet thresholds (decisions 017, 019). |
 | `docs/decisions/`, `docs/plans/`, `docs/storage.md` | Nobody | Why the repository is shaped as it is, what is being changed next, and where the cluster's data lives and how its workers are replaced. `task decisions` lists the records with what is still pending. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
+| `.githooks/` | `git`, after `task hooks` | The pre-commit hook: `bin/check-recipients`, so a commit cannot carry a file encrypted to the wrong readers. |
 
 ## Bootstrap and recovery
 
@@ -167,7 +168,10 @@ is copied by a person with a YubiKey, from the store where it was born to the ot
 so. Which store is the origin follows from who consumes the value: a credential the cluster uses is born as a
 cluster manifest, one only swamp uses is born in the vault and never touches a cluster file, and one both use is
 born wherever it is created. The origin is the source of record and rotation starts there. Decision 002 states the
-rule and `bin/check-recipients` enforces it.
+rule and `bin/check-recipients` enforces it: every encrypted file matches the first rule its path falls under, and
+every swamp vault config keeps its secrets outside `vaults/operator/` and encrypts to exactly its rule's recipients.
+It runs in CI on every push and, after `task hooks` once per clone, before every commit; public keys only, so no
+YubiKey is touched.
 
 **Adding an operator** is a few edits and one re-encryption: their key in all three rules of `.sops.yaml` and in
 the vault's `agePublicKey`, then `sops updatekeys` on every `*.enc.yaml` cluster file and every file under

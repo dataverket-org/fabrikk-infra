@@ -50,10 +50,11 @@ rule in `.sops.yaml`, not by its name or place.
   recipient. The protection is the recipient list, where 004 had it in the location too.
 - `@dataverket/sops` encrypts to its own config's recipients, not to `.sops.yaml`. A definition pointed at
   `vaults/operator/` by mistake would write values swamp can read. `bin/check-recipients` finds that, so it has to
-  run on every commit to be a guard (`docs/plans/2026-09-operator-vault.md`).
+  run on every commit to be a guard (the README's Secrets section (the operator-vault plan, done and removed
+  2026-10-05)).
 - One place to look for any stored value, and one file shape for all of them.
 - Making every other part of `vaults/` follow this (a human-only default for new folders, the older plans'
-  wording) is `docs/plans/2026-09-operator-vault.md`.
+  wording) is the README's Secrets section (the operator-vault plan, done and removed 2026-10-05).
 
 ## Decision Outcome
 
@@ -75,11 +76,12 @@ Follows 001 and 002. Supersedes 004.
 |---------|-------|------------|
 | `break-glass/` moved under `vaults/operator/`, rule moved | `.sops.yaml`, `vaults/operator/` | done |
 | hov1 CA key and root key pair copied, each checked against the original | `vaults/operator/hov1/` | done |
-| `bin/check-recipients` on every commit | `docs/plans/2026-09-operator-vault.md` | pending |
+| `bin/check-recipients` on every commit | the README's Secrets section (the operator-vault plan, done and removed 2026-10-05) | pending |
 
 **Summary:** Break-glass moved, the hov1 values copied by an operator on 2026-09-30.
 
-**Action Required:** Run `bin/check-recipients` on every commit (`docs/plans/2026-09-operator-vault.md`).
+**Action Required:** Run `bin/check-recipients` on every commit (the README's Secrets section (the operator-vault
+plan, done and removed 2026-10-05)).
 
 ### 2026-09-30 (later the same day)
 
@@ -113,3 +115,19 @@ as well as by its rule.
 
 **Action Required:** None. The pre-commit hook and the check on vault configs are the operator-vault plan's steps 2
 and 3.
+
+### 2026-10-05 (later the same day)
+
+**Status:** Implemented
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| A vault config under `vaults/operator/` is refused | `bin/check-recipients`, `check_vault_config` | done; a config's recipients must also equal its secretsDir's rule |
+| `bin/check-recipients` before every commit | `.githooks/pre-commit`, `task hooks` | done; installed per clone with `git config core.hooksPath` |
+
+**Summary:** The operator-vault plan is complete and removed; what it decided is here and in the README's Secrets
+section.
+
+**Action Required:** None.

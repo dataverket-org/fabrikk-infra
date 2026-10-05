@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#
+# Every encrypted file and every vault config matches its rule in .sops.yaml,
+# before a commit can carry one that does not (decision 002). Public keys
+# only, so it runs with no YubiKey. Installed by `task hooks`.
+#
+"${0%/*}/../bin/check-recipients" >/dev/null || {
+	echo "pre-commit: bin/check-recipients failed; nothing committed" >&2
+	exit 1
+}

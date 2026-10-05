@@ -7,9 +7,13 @@
 #
 # It reads the identities and the creation rules from .sops.yaml, matches every
 # *.enc.yaml and *.enc.json to the first rule that matches its path, as sops
-# does, and compares the file's own recipient list with that rule's. Public
-# keys only: nothing here decrypts anything, so it runs anywhere, unattended,
-# with no YubiKey and no cluster.
+# does, and compares the file's own recipient list with that rule's. Then each
+# swamp vault config under vaults/@dataverket/sops/ is checked: its secretsDir
+# may not lie under vaults/operator/, which no process reads (decision 016), and
+# its own recipients must equal the rule its secretsDir falls under, since
+# @dataverket/sops encrypts to its config and ignores .sops.yaml. Public keys
+# only: nothing here decrypts anything, so it runs anywhere, unattended, with no
+# YubiKey and no cluster.
 #
 
 # shellcheck source=share/logging.sh
@@ -132,6 +136,64 @@ function check_file()
 	return 1
 }
 
+#
+# Prints the index of the first rule whose path_regex matches a path, or
+# nothing when no rule does.
+#
+function rule_index_for()
+{
+	local relative="$1"
+	local index pattern
+
+	index=0
+	while read -r pattern; do
+		[[ "$relative" =~ $pattern ]] && { echo "$index"; return; }
+		index=$(( index + 1 ))
+	done <<<"$(rule_patterns)"
+}
+
+#
+# Checks one swamp vault config: not under vaults/operator/, and encrypting to
+# exactly the recipients the rule for its secretsDir names.
+#
+function check_vault_config()
+{
+	local file="$1"
+	local relative dir index expected actual
+
+	relative="${file#"$repo_dir"/}"
+	dir="$(yq -r '.config.secretsDir // ""' "$file")"
+
+	if [[ -z "$dir" ]]; then
+		error "$relative names no secretsDir"
+		return 1
+	fi
+
+	case "${dir%/}/" in
+		vaults/operator/*)
+			error "$relative keeps its secrets under $dir, which no process reads (decision 016)"
+			return 1 ;;
+	esac
+
+	index="$(rule_index_for "${dir%/}/probe.enc.json")"
+	if [[ -z "$index" ]]; then
+		error "$relative: $dir matches no rule in .sops.yaml"
+		return 1
+	fi
+
+	expected="$(rule_recipients "$index" | named_set)"
+	actual="$(yq -r '.config.agePublicKey // ""' "$file" | tr ',' '\n' | named_set)"
+
+	if [[ "$expected" != "$actual" ]]; then
+		error "$relative encrypts $dir to: $actual"
+		error "  the rule for $dir names: $expected"
+		return 1
+	fi
+
+	debug "$relative: $dir -> $actual"
+	return 0
+}
+
 require_yq_and_jq()
 {
 	command -v yq >/dev/null || fail "yq is not on PATH"
@@ -150,8 +212,13 @@ done <<<"$(find "$repo_dir" \
 	\( -name '*.enc.yaml' -o -name '*.enc.yml' -o -name '*.enc.json' \) \
 	-print | sort)"
 
+while read -r file; do
+	[[ -n "$file" ]] || continue
+	check_vault_config "$file" || failures=$(( failures + 1 ))
+done <<<"$(find "$repo_dir/vaults/@dataverket/sops" -name '*.yaml' 2>/dev/null | sort)"
+
 if (( failures )); then
-	fail "$failures encrypted file(s) do not match their rule"
+	fail "$failures encrypted file(s) or vault config(s) do not match their rule"
 fi
 
-log "Every encrypted file matches its rule in .sops.yaml"
+log "Every encrypted file matches its rule in .sops.yaml, and every vault config its rule"
