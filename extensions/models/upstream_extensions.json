@@ -208,11 +208,13 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/forgejo": {
-    "version": "2026.10.04.2",
-    "pulledAt": "2026-10-04T14:16:43.203Z",
+    "version": "2026.10.05.1",
+    "pulledAt": "2026-10-05T11:05:53.531Z",
     "files": [
       ".swamp/bundles/86b24583/actions.js",
       ".swamp/bundles/86b24583/checks.js",
+      ".swamp/bundles/86b24583/issues.js",
+      ".swamp/bundles/86b24583/labels.js",
       ".swamp/bundles/86b24583/org_delete.js",
       ".swamp/bundles/86b24583/pr_assign.js",
       ".swamp/bundles/86b24583/pull_mirror.js",
@@ -226,6 +228,8 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/actions.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/api.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/checks.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/issues.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/labels.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/org_delete.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/pr_assign.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/pull_mirror.ts",
@@ -234,8 +238,8 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/topics.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/units.ts"
     ],
-    "checksum": "bece8fe24f8334d36060a67e2dffe38c485dc2490013d82f5092cebbb702da05",
-    "filesChecksum": "da000b61dc67b0404e065fc10d54d98ca8772b6dfb3018c31221c2c0bb0b933f",
+    "checksum": "2e2b2ee7a5b9dd1c18d96107efb6d59e6791083fc8c39a829932c4ece00f674c",
+    "filesChecksum": "0fbbf278bd5563e7dd9f8dcee68b499af34e0494806a0f4351eb3b07c61e4e4c",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/github": {
