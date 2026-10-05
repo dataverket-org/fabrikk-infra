@@ -181,9 +181,10 @@ Every Secret the cluster uses is here since 2026-10-05, when the last hand-made 
 keys, `cloud.conf`, the forge's admin, mailer and OAuth secrets and the runner's registration. A Secret is born into
 this store without a clear copy on disk: its value is piped into `sops --encrypt --filename-override <path>` from the
 repository root, so the cluster-files rule applies, then the file is listed in its directory's `kustomization.yaml`
-and Flux adopts the live object by name with server-side apply, without a restart. A rotation is a `sops` edit of
-the file with a YubiKey, a commit, and a rollout restart of a reader that loads the value once at start. The Zitadel masterkey
-and Forgejo's generated security keys are here since 2026-09-30, pinned, since a restore needs them (`backup/README.md`).
+and Flux adopts the live object by name with server-side apply, without a restart. A rotation is a `sops` edit of the
+file with a YubiKey, a commit, and a rollout restart of a reader that loads the value once at start. The Zitadel
+masterkey and Forgejo's generated security keys are here since 2026-09-30, pinned, since a restore needs them
+(`backup/README.md`).
 
 ## Gitless delivery
 
