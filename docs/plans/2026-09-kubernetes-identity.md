@@ -36,7 +36,10 @@ One route serves both, which is the reason to build it once and use it twice.
 **How long a refresh token lives.** The ID token expiring in minutes is the improvement. The refresh token beside
 it is a standing credential that re-authenticates a person with nobody present, which is exactly what invariant 1
 refuses and exactly the reason `pass-cli` personal access tokens are not used here. Zitadel makes the lifetime a
-setting, so it is a decision and not a default to accept.
+setting, so it is a decision and not a default to accept. What is in force today, read 2026-10-05 with
+`zitadel-settings read instance=true` as `oidc-tokens-instance`: access and ID tokens 12 h, a refresh token 30 days
+idle and 90 days at most, which are Zitadel's defaults. The kubelogin client can also be made without the
+`refresh_token` grant at all, which is the shape that asks nothing of this setting.
 
 **What automation authenticates as.** A Zitadel service user with client credentials and short-lived tokens, named
 per purpose, so Zitadel's log says which one acted. That is the machine identity decision 010 says has to exist

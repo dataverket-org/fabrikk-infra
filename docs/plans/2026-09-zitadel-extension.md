@@ -1,9 +1,9 @@
 # Plan: a swamp extension that administers Zitadel
 
-Written 2026-09-29, updated 2026-10-01. The extension is built, unit tested, and exercised against a throwaway
-Zitadel 4.19.3 in podman. It is published as `@dataverket/zitadel` and pulled here at 2026.10.01.3, and seven
-models name it. Every read method has run against the real instance on 4.15.3. What is left is the write path on
-a throwaway project.
+Written 2026-09-29, updated 2026-10-05. The extension is built, unit tested, and exercised against a throwaway
+Zitadel 4.15.3 and 4.19.3 in podman. It is published as `@dataverket/zitadel` and pulled here at 2026.10.05.1, and
+seven models name it. Every read method has run against the real instance on 4.15.3. What is left is the write
+path on a throwaway project, with the operator key.
 
 ## Why
 
@@ -145,6 +145,32 @@ made the login application and reported `unchanged` on a second run.
 
 One write was tried on the real instance by mistake: `project ensure` with the reader key, to show it is refused.
 It was refused, and a project list afterwards showed nothing new.
+
+## What changed on 2026-10-05
+
+Read against what `docs/plans/2026-09-kubernetes-identity.md` step 2 asks for, the extension could not do it:
+
+- **`ensureOidc` had no argument for the roles claim.** `idTokenRoleAssertion` is what puts the project roles a
+  person holds into the ID token, which is the groups claim the API server reads. It also lacked `loginVersion`:
+  Zitadel sends a client's users to the old login UI unless the client names the new one, and a passkey
+  registered in the new UI is refused there. 2026.10.05.1 takes `idTokenRoleAssertion`, `accessTokenRoleAssertion`,
+  `idTokenUserinfoAssertion`, `loginVersion` (`instance`, `v1`, `v2`) and `loginBaseUri`, all off by default as
+  before, and the `app` record reads them back.
+- **`redirectSet` dropped two fields it promised to keep.** It carried the OIDC configuration over field by field,
+  and `accessTokenRoleAssertion` and `loginVersion` were not in the list, so a redirect change on a client that
+  had them reset both. Fixed, with a unit test and a smoke check.
+- **`settings read` now stores `oidc-tokens-instance`**: the access, ID and refresh token lifetimes, from
+  `/admin/v1/settings/oidc`, as Zitadel's durations and in seconds. A key that may read an organization but not the
+  instance gets a warning and no such record. On the real instance, read with the reader key on 2026-10-05: access
+  and ID tokens 12 h, refresh token 30 days idle and 90 days at most, Zitadel's defaults. That is the number the
+  identity plan's first question is about.
+- **An OIDC update that omits `loginVersion` resets the client to the instance default** on 4.15.3, so `instance`
+  converges rather than leaving an earlier choice alone.
+
+The unit suite is 106 tests. The smoke suite ran on 4.15.3 from the working tree with the new checks: the role
+assertion set, read back, kept by `redirectSet` and turned off again; the login UI version; the token lifetimes
+with an instance read, an organization read and the reader key; `loginBaseUri` without `v2` refused before any
+call. `smoke/workflow-zitadel-selftest.yaml` now sets `idTokenRoleAssertion` on the kubelogin client and asserts it.
 
 ## What is still untested
 
