@@ -208,8 +208,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/forgejo": {
-    "version": "2026.10.05.1",
-    "pulledAt": "2026-10-05T11:05:53.531Z",
+    "version": "2026.10.05.2",
+    "pulledAt": "2026-10-05T11:17:45.282Z",
     "files": [
       ".swamp/bundles/86b24583/actions.js",
       ".swamp/bundles/86b24583/checks.js",
@@ -238,8 +238,8 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/topics.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/units.ts"
     ],
-    "checksum": "2e2b2ee7a5b9dd1c18d96107efb6d59e6791083fc8c39a829932c4ece00f674c",
-    "filesChecksum": "0fbbf278bd5563e7dd9f8dcee68b499af34e0494806a0f4351eb3b07c61e4e4c",
+    "checksum": "b5501efb99a8d2b30960e4ef9ba15576e0a7e30848e9d95ecd4b1c46a37a9942",
+    "filesChecksum": "e56d29327dd1d71e6562b48295888b2ddaf50e9d21ca112295632fa1cae9086d",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/github": {
