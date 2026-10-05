@@ -9,6 +9,7 @@ folder is the one only they can read. Decision 016.
 |---|---|---|
 | `break-glass/` | What tier 1 falls back on when a login mechanism fails | `docs/plans/2026-09-break-glass.md` |
 | `hov1/` | The hov1 gateway's CA key (`ca.key`) and root key pair (`root`) (`backup/versitygw/`) | A person, from `backup/hov1/` on the site host |
+| `osl1/` | The osl1 gateway's root key pair (`root`), for the `osl1-s3` model (`artifacts/versitygw/`) | A person, from `artifacts/versitygw/versitygw-root.enc.yaml`, the source of record |
 
 One secret per file, `<name>.enc.json`. A secret's fields are its values: `root` holds `ROOT_ACCESS_KEY` and
 `ROOT_SECRET_KEY`, `ca.key` holds `value`. Named after the variables a tool reads, the fields go straight into its
