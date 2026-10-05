@@ -7,17 +7,16 @@ for the backup buckets without the disk growing without end.
 ## What was found
 
 - versitygw has no lifecycle rules by design: `PutBucketLifecycleConfiguration` is "recognized but not implemented"
-  and answers `NotImplemented` (issue #1443, 2025). Nothing in its issues, discussions or the web applies a
-  lifecycle for it; nobody has published such a tool. Versioning itself was added on request in 2024 (discussion #602)
-  as a shadow
-  namespace beside the gateway root.
+  and answers `NotImplemented` (issue #1443, 2025). Nothing in its issues, discussions or the web applies a lifecycle
+  for it; nobody has published such a tool. Versioning itself was added on request in 2024 (discussion #602) as a
+  shadow namespace beside the gateway root.
 - On the posix backend a non-current version is a file in `VERSIONS_DIR/<bucket>/<sha256 prefix dirs>/<version id>`,
-  and a delete marker is an xattr on the primary file. The gateway's own `ListObjectVersions` and `DeleteObject`
-  with a version id are the only safe way to remove them: a direct `rm` bypasses the lock checks and the metadata,
-  and issue #2200, open, shows the version list is already sensitive to concurrent writes.
-- Object lock refuses a delete of a version whose retention has not expired, whoever asks, with `AccessDenied`;
-  root may bypass `GOVERNANCE` only with an explicit header. A program that never sends that header can only remove
-  what the lock has released.
+  and a delete marker is an xattr on the primary file. The gateway's own `ListObjectVersions` and `DeleteObject` with
+  a version id are the only safe way to remove them: a direct `rm` bypasses the lock checks and the metadata, and
+  issue #2200, open, shows the version list is already sensitive to concurrent writes.
+- Object lock refuses a delete of a version whose retention has not expired, whoever asks, with `AccessDenied`; root
+  may bypass `GOVERNANCE` only with an explicit header. A program that never sends that header can only remove what
+  the lock has released.
 - radosgw does not need this; its lifecycle rules do it natively.
 
 ## The program
