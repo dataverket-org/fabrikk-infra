@@ -22,7 +22,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `models/`, `workflows/`, `vaults/`, `extensions/` | `swamp` | The swamp repository: the instances a human uses to operate what is deployed here. See Operating models below. |
 | `vaults/operator/` | Nobody, by design | Values only a person reads, behind the two YubiKeys: plain sops with no process key and no swamp vault config (decision 016). `break-glass/` for when a login fails, `hov1/` for the hov1 gateway's CA key and root key pair. |
 | `talos/<cluster>/` | swamp's Omni and Talos models, never Flux | Talos machine config patches, one file each, applied to machines below Kubernetes; `workers-storage.yaml` is the workers' disk layout and kubelet thresholds (decisions 017, 019). |
-| `docs/decisions/`, `docs/plans/`, `docs/storage.md` | Nobody | Why the repository is shaped as it is, what is being changed next, and where the cluster's data lives and how its workers are replaced. `task decisions` lists the records with what is still pending. |
+| `docs/decisions/`, `docs/plans/`, `docs/storage.md`, `docs/node-storage.md` | Nobody | Why the repository is shaped as it is, what is being changed next, where the cluster's data lives and how its workers are replaced, and how a disk on a node becomes a volume. `task decisions` lists the records with what is still pending. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
 | `.githooks/` | `git`, after `task hooks` | The pre-commit hook: `bin/check-recipients`, so a commit cannot carry a file encrypted to the wrong readers. |
 

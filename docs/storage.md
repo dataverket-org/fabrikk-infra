@@ -1,7 +1,8 @@
 # Storage
 
 Where dataverket-prod keeps its data, and how the workers that hold some of it are replaced. The decisions behind it
-are 014 and 017 to 021. What is backed up, to where and how a restore runs is `backup/README.md`.
+are 014 and 017 to 021, and 025. How a disk becomes a volume, and which names are fixed at install, is
+`docs/node-storage.md`. What is backed up, to where and how a restore runs is `backup/README.md`.
 
 ## Where data lives
 
@@ -99,7 +100,8 @@ its node returns. A single-instance database on the rolled machine is down while
 Three swaps with a new patch; a laid-out disk keeps its layout. Zitadel's partition is fixed at 11 GiB, as much as the
 flavor's disk leaves; outgrowing it means recreating the cluster on a Cinder class from the archive, the same
 migration a rebuild runs. At Nexthop every flavor with this CPU and RAM has the same 30 GB disk, so only a larger
-flavor buys disk (`r5.large` has 40 GB). A Cinder volume grows online: edit the claim and wait.
+flavor buys disk (`r5.large` has 40 GB). A Cinder volume grows online: edit the claim and wait. The next swap cycle
+also renames the partition to a slot, `fast-0`, under the class `local-fast` (decision 025).
 
 ## Rebuild from git
 

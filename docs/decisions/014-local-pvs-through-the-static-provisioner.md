@@ -10,7 +10,7 @@ tags:
   - cinder
 status: accepted
 created: 2026-09-19
-updated: 2026-10-01
+updated: 2026-10-05
 author: dataverket
 project: plattform
 ---
@@ -18,7 +18,9 @@ project: plattform
 
 ## Status
 
-Accepted. The EPHEMERAL figure of 16 GiB is superseded by 019 on 2026-10-01: 14 GiB on the workers.
+Accepted. The EPHEMERAL figure of 16 GiB is superseded by 019 on 2026-10-01: 14 GiB on the workers. The naming
+rule, one partition per workload behind `<name>-storage`, is superseded by 025 on 2026-10-05: a slot named by tier,
+under `local-fast`.
 
 ## Context
 
