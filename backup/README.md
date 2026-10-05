@@ -8,10 +8,11 @@ follow-up.
 
 What the gateway holds is read through swamp: the model `hov1-s3` (`@dataverket/versitygw/gateway`, read-only) has
 `health`, `accounts`, `buckets`, `bucketSettings`, `inventory` and `check`; `check` finds a bucket not owned by the
-account of its own name, an account owning nothing, an `admin` role on a writer, versioning on, or a policy granting
-anyone. Every admin call signs with the root key pair, supplied for one run from `vaults/operator/hov1/root.enc.json`
-(`vaults/operator/README.md`); without it `swamp model validate hov1-s3 --label policy` still validates the definition.
-No account secret and no root key is ever recorded.
+account of its own name, an account owning nothing, an `admin` role on a writer, versioning without object lock, lock
+without versioning, a `COMPLIANCE` default retention, or a policy granting anyone. Every admin call signs with the
+root key pair, supplied for one run from `vaults/operator/hov1/root.enc.json` (`vaults/operator/README.md`); without
+it `swamp model validate hov1-s3 --label policy` still validates the definition. No account secret and no root key is
+ever recorded.
 
 Every backup of dataverket-prod lands outside the provider, on the hov1 site, in one bucket per writer. This page is
 the map: what is copied, by what, to where, how far back, and what fires when it stops. How the target runs is in

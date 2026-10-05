@@ -314,8 +314,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/versitygw": {
-    "version": "2026.09.30.3",
-    "pulledAt": "2026-09-30T13:23:36.067Z",
+    "version": "2026.10.05.1",
+    "pulledAt": "2026-10-05T13:45:12.019Z",
     "files": [
       ".swamp/bundles/276fc1c3/gateway.js",
       ".swamp/pulled-extensions/@dataverket/versitygw/files/LICENSE.md",
@@ -326,8 +326,8 @@
       ".swamp/pulled-extensions/@dataverket/versitygw/models/parse.ts",
       ".swamp/pulled-extensions/@dataverket/versitygw/models/transport.ts"
     ],
-    "checksum": "e4df8d6cf7438ee1d82c20d473c44b3bb07ccc735daacb616fe62d12c56c05f2",
-    "filesChecksum": "2a70cbf9ef219a431da91d734c560d9ebb355a9a39315412c20039e20c66226d",
+    "checksum": "c205e8379345e65cd6076b7c103e011d3a5ec91487b94147b2aaac3e9f411b88",
+    "filesChecksum": "f7eaad3e309b0bcd61f483c9c370124cc70866297bc48b2b35c5a458c137d390",
     "serverUrl": "https://swamp-club.com"
   }
 }
