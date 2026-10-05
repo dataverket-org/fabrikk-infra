@@ -8,7 +8,8 @@ for the backup buckets without the disk growing without end.
 
 - versitygw has no lifecycle rules by design: `PutBucketLifecycleConfiguration` is "recognized but not implemented"
   and answers `NotImplemented` (issue #1443, 2025). Nothing in its issues, discussions or the web applies a
-  lifecycle for it; nobody has published such a tool. Versioning itself was added on request in 2024 (discussion #602) as a shadow
+  lifecycle for it; nobody has published such a tool. Versioning itself was added on request in 2024 (discussion #602)
+  as a shadow
   namespace beside the gateway root.
 - On the posix backend a non-current version is a file in `VERSIONS_DIR/<bucket>/<sha256 prefix dirs>/<version id>`,
   and a delete marker is an xattr on the primary file. The gateway's own `ListObjectVersions` and `DeleteObject`
@@ -21,7 +22,8 @@ for the backup buckets without the disk growing without end.
 
 ## The program
 
-`versitygw-lifecycle`, one Go binary on `aws-sdk-go-v2`, its own repository on the forge, image built by the forge's CI like
+`versitygw-lifecycle`, one Go binary on `aws-sdk-go-v2`, its own repository on the forge, image built by the forge's
+CI like
 `nordhost-integrator`.
 
 | | |
