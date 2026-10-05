@@ -1,5 +1,5 @@
 type: '@dataverket/versitygw/gateway'
-typeVersion: 2026.09.30.3
+typeVersion: 2026.10.05.1
 id: a811f904-930b-4be5-b576-ad968c7409c5
 name: osl1-s3
 version: 1
