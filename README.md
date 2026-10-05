@@ -178,7 +178,8 @@ software factory copies it, never the other way around. Inside this repository i
 is the rule above.
 
 Not migrated yet: the Forgejo admin, mailer and OAuth secrets, the runner registration token, and `cloud.conf` are
-still created by hand (see `apps/forgejo/*.example.yaml`). They move here one at a time. The Zitadel masterkey and
+still created by hand (see `apps/forgejo/*.example.yaml`). They move here one at a time
+(`docs/plans/2026-10-hand-made-secrets.md`); `nordhost-config`, the DirectAdmin login keys, moved on 2026-10-05. The Zitadel masterkey and
 Forgejo's generated security keys are here since 2026-09-30, pinned, since a restore needs them (`backup/README.md`).
 
 ## Gitless delivery

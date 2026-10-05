@@ -4,3 +4,4 @@ resources:
   - deployment.yaml
   - apiservice.yaml
   - service.yaml
+  - nordhost-config.enc.yaml

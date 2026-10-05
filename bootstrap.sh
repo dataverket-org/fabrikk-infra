@@ -110,7 +110,6 @@ step "Still created by hand until migrated to *.enc.yaml"
 cat <<'MSG'
   kube-system/cloud-config                                      apply-secret.sh from cloud.conf
   forgejo/forgejo-admin, forgejo-mailer, forgejo-zitadel-oauth-secret   see apps/forgejo/*.example.yaml
-  cert-manager/nordhost-config                                  config.json: DirectAdmin credentials per zone (nordhost-integrator); dataverket.org and dvkt.no, one DirectAdmin user each
   forgejo-runners/org-dataverket-runner-secret                  runner registration token
 MSG
 
