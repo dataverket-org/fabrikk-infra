@@ -11,10 +11,10 @@ swamp's key in its rule.
 
 ## Steps
 
-1. **Operator-only by default.** Replace the general `vaults/` rule with two: `^vaults/infra/` for
-   `swamp-fabrikk-infra` and the operators, then a catch-all `^vaults/` for the operators only. A new folder is
-   then unreadable by any process until someone names it. Today's files keep the same recipients. The operators
-   approve this diff; it decides who can read what.
+1. **Operator-only by default.** Done 2026-10-05: the general `vaults/` rule became two, `vaults/infra/` for
+   `swamp-fabrikk-infra` and the operators, then a catch-all `vaults/` for the operators only. A new folder is
+   unreadable by any process until someone names it; today's files kept their recipients, which
+   `bin/check-recipients` confirmed, and a probe path under a new folder encrypted to the two YubiKeys alone.
 2. **Check recipients on every commit.** Run `bin/check-recipients` from a git pre-commit hook and in CI. It
    already compares each file's recipients with its rule; this makes it a guard instead of a tool. CI since
    2026-10-04: `.forgejo/workflows/check.yaml` runs it on every push, on the org runner, with no secret, since
@@ -33,7 +33,7 @@ swamp's key in its rule.
 
 | Step | State |
 |---|---|
-| 1 | not started |
+| 1 | done 2026-10-05: `vaults/infra/` rule, then operators-only catch-all |
 | 2 | CI done 2026-10-04; the pre-commit hook not started |
 | 3 | not started |
 | 4 | done |

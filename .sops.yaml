@@ -1,7 +1,8 @@
 # Recipients for encrypted files in this repository. Public keys only; safe to commit.
 #
 # One key per decrypting process; neither store's key on the other store's files; a human copies between stores
-# (decisions 001, 002, 016). bin/check-recipients enforces it.
+# (decisions 001, 002, 016). A folder under vaults/ is operator-only unless a rule names its process.
+# bin/check-recipients enforces it.
 #
 # - cluster-dataverket-prod  age1g3x9w...      Secret flux-system/sops-age, generated in-cluster 2026-09-17 by
 #                                              bootstrap/sops-age-keygen.yaml; never leaves the cluster. Decrypts
@@ -38,9 +39,16 @@ creation_rules:
           - *cluster_dataverket_prod
           - *beddari
           - *linus
-  - path_regex: vaults/.*\.enc\.json(\.plain\.tmp)?$
+  # vaults/infra/: the swamp vault, read unattended by the swamp host's key.
+  - path_regex: vaults/infra/.*\.enc\.json(\.plain\.tmp)?$
     key_groups:
       - age:
           - *swamp_fabrikk_infra
+          - *beddari
+          - *linus
+  # Every other folder under vaults/: the operators alone, until a rule above names a process (decision 016).
+  - path_regex: vaults/.*\.enc\.(ya?ml|json)(\.plain\.tmp)?$
+    key_groups:
+      - age:
           - *beddari
           - *linus

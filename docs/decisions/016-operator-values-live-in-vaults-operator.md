@@ -95,3 +95,21 @@ Follows 001 and 002. Supersedes 004.
 one touch. Who reads what is unchanged.
 
 **Action Required:** None.
+
+### 2026-10-05
+
+**Status:** Implemented
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| `bin/check-recipients` on every push | `.forgejo/workflows/check.yaml` | done since 2026-10-04, on the org runner, public keys only |
+| Operator-only is the default under `vaults/` | `.sops.yaml`, the last two rules | done 2026-10-05: `vaults/infra/` names the swamp key; any other folder encrypts to the operators alone |
+| A new folder probed before commit | `vaults/probe/x.enc.json`, never written | two recipients, both YubiKeys |
+
+**Summary:** The 2026-09-30 action is closed by CI, and a folder under `vaults/` is now operator-only by its place
+as well as by its rule.
+
+**Action Required:** None. The pre-commit hook and the check on vault configs are the operator-vault plan's steps 2
+and 3.
