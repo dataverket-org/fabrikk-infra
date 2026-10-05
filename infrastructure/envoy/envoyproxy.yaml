@@ -16,13 +16,14 @@ spec:
     kubernetes:
       envoyDeployment:
         replicas: 3
-        # One pod at a time, never below the count the pools are sized for: a surge pod lands on a worker that already
-        # has one, which is harmless, while an unavailable one is a member going down.
+        # One pod at a time, replaced in place. A surge pod cannot exist: the spread below allows one pod per worker and
+        # there are exactly three workers, so maxSurge 1 left a fourth pod Pending and the rollout stuck on 2026-10-05.
+        # One unavailable means one pool member down for the seconds the new pod takes, with two serving.
         strategy:
           type: RollingUpdate
           rollingUpdate:
-            maxSurge: 1
-            maxUnavailable: 0
+            maxSurge: 0
+            maxUnavailable: 1
         pod:
           # One pod per worker, hard. With three workers and three replicas a fourth cannot be placed, which is the
           # point; with a worker gone, the third pod waits Pending until a worker is back rather than doubling up.
