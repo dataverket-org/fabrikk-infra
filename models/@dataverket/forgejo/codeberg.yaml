@@ -1,0 +1,10 @@
+type: '@dataverket/forgejo'
+typeVersion: 2026.10.05.3
+id: 5675fd28-88df-4dd1-bea3-63b7ef220919
+name: codeberg
+version: 1
+tags: {}
+globalArguments:
+  apiUrl: 'https://codeberg.org'
+  token: "${{ vault.get('infra', 'codeberg/api_token') }}"
+methods: {}

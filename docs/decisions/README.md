@@ -34,6 +34,7 @@ what it supersedes.
 | [021](021-git-describes-the-cluster.md) | Git describes the cluster; a rebuild restores its databases | Every change ends with the cluster matching git, and each database's recovery source is in git, so Flux rebuilds the cluster with its data. | 2026-10-01 |
 | [022](022-the-forge-mirrors-the-actions-its-workflows-use.md) | The forge mirrors the Actions its workflows use | An actions org on the forge holds pull mirrors of the Forgejo project's actions org, made and kept by the forge's own install; workflows pin a mirrored action by commit. | 2026-10-04 |
 | [024](024-two-roles-the-control-plane-carries-kubernetes-and-the-cloud-credential.md) | Two roles: the control plane carries Kubernetes and the cloud credential, workers carry everything else | Control plane and worker, nothing else, from one Talos container to five and fifty; the edge is a DaemonSet on the workers, and the cloud credential exists only on control plane nodes. | 2026-10-05 |
+| [026](026-upstream-extensions-are-forked-not-depended-on.md) | Upstream extensions are forked, credited and learned from, never depended on | Every extension this repository pulls is published by the dataverket collective or by the swamp team itself; a community extension that fits is forked under its own license with its author credited, merged with what we already had, and maintained by us. | 2026-10-05 |
 
 ## How the repository is run
 
@@ -54,6 +55,7 @@ what it supersedes.
 | [018](018-one-redundancy-layer-per-kind-of-data.md) | One redundancy layer per kind of data | Zitadel's database replicates itself on worker disks as the rehearsal for bare metal; every other database is one instance on Cinder. | 2026-10-01 |
 | [019](019-ephemeral-is-a-fixed-14-gib-on-the-workers.md) | EPHEMERAL is a fixed 14 GiB on the workers | Volume sizes on a shared system disk are stated with minSize equal to maxSize; 14 GiB EPHEMERAL on m5.large workers, 32 GiB at most anywhere. | 2026-10-01 |
 | [020](020-backups-go-to-the-hov1-site.md) | Backups go to the hov1 site, by address, over the public internet | The copy that matters is off the provider: a versitygw at the hov1 site, reached by IP with its own private CA. | 2026-10-01 |
+| [025](025-storage-is-named-by-binding-and-tier.md) | Storage is named by binding and tier, on every kind of node | Four classes, fast, large, local-fast and local-large, mean the same on cloud, Incus and bare metal; Talos names a slot by tier and number, never by workload; volumeMode on the claim picks filesystem or block; a disk Talos does not name stays raw for Ceph. | 2026-10-05 |
 
 ## Renumbered 2026-09-29
 
