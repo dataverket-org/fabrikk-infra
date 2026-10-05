@@ -2,7 +2,7 @@
 
 `git.dataverket.org`: Forgejo from the upstream chart (`release.yaml`, `repo.yaml`), its database (`postgres.yaml`,
 `backup.yaml`, `docs/storage.md`, `backup/README.md`), the Dataverket theme, and the actions org the forge keeps as a
-mirror (decisions 022 and 023). What is still created by hand is listed in `bootstrap.sh`.
+mirror (decisions 022 and 023). Its admin, mailer and OAuth Secrets are `*.enc.yaml` here since 2026-10-05.
 
 ## Settings in the release
 

@@ -1,3 +1,4 @@
 resources:
   - release.yaml
   - docker-store-pvc.yaml
+  - runner-secret.enc.yaml

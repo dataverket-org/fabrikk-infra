@@ -8,5 +8,8 @@ resources:
   - s3-cnpg-forgejo.enc.yaml
   - backup.yaml
   - forgejo-security.enc.yaml
+  - forgejo-admin.enc.yaml
+  - forgejo-mailer.enc.yaml
+  - forgejo-zitadel-oauth-secret.enc.yaml
   - release.yaml
   - actions-mirror.yaml

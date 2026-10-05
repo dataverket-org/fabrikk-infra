@@ -106,13 +106,6 @@ if k -n flux-system get kustomization zot-bootstrap >/dev/null 2>&1; then
   echo "removed the git path; zot serves its own config (no prune, zot stays)"
 fi
 
-step "Still created by hand until migrated to *.enc.yaml"
-cat <<'MSG'
-  kube-system/cloud-config                                      apply-secret.sh from cloud.conf
-  forgejo/forgejo-admin, forgejo-mailer, forgejo-zitadel-oauth-secret   see apps/forgejo/*.example.yaml
-  forgejo-runners/org-dataverket-runner-secret                  runner registration token
-MSG
-
 # A restored cluster's ScheduledBackup may fire during recovery and fail, and the -first Backups in git were taken
 # for the old clusters (021), so every CNPG cluster git names gets a base backup here unless it has a completed one
 # since it was created. The list comes from git, since on a fresh cluster Flux may not have made the Clusters yet.
