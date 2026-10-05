@@ -1,4 +1,4 @@
-# The S3 API, for the in-cluster writers (Forgejo, later Zulip) and for the route from the public name.
+# The S3 API.
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,8 +12,7 @@ spec:
       port: 7070
       targetPort: s3
 ---
-# The admin API (accounts, bucket ownership), plain HTTP signed by the root key pair. Its own Service, never a route:
-# an operator reaches it with `kubectl port-forward svc/versitygw-admin 7071 -n versitygw` for the osl1-s3 model.
+# The admin API, never routed; reached by port-forward (README.md).
 apiVersion: v1
 kind: Service
 metadata:

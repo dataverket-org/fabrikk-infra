@@ -1,7 +1,5 @@
-# Restore test for forgejo-postgres: a one-instance scratch cluster in the same namespace, recovered from the hov1 archive to the
-# end of WAL. It reads the same ObjectStore and Secrets as production and writes nothing back: no plugins stanza, so
-# no WAL archiving and no base backups from it. Apply, wait for readiness, check the application tables, record the
-# time, delete. Same image as the source: recovery needs the same Postgres major.
+# Restore test for forgejo-postgres: a scratch cluster recovered from the hov1 archive, writing nothing back
+# (backup/cnpg-backups.md, "Restore").
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:

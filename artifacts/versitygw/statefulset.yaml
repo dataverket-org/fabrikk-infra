@@ -1,13 +1,5 @@
-# One versitygw with the posix backend on one Cinder volume (docs/plans/2026-10-s3-osl1.md): buckets are directories,
-# objects are files, S3 metadata in xattrs. The volume holds the three directories the gateway needs as subPaths of
-# one claim: /data, the gateway root; /versioning, the shadow namespace for non-current versions, outside the root as
-# versitygw requires; /iam, the internal IAM store (plaintext users.json, protected by the volume and the namespace).
-# Standard tier, since uploads and LFS are throughput and not IOPS; Retain, since the data is not rebuildable. A
-# StatefulSet rather than a Deployment: the volume is ReadWriteOnce, and a StatefulSet never runs two pods for the
-# same ordinal, so no rollout can wedge on the volume.
-# The image is pinned by digest and pulled from ghcr.io. The root key pair comes from Secret versitygw-root, encrypted
-# in this directory; versitygw reads ROOT_ACCESS_KEY and ROOT_SECRET_KEY. With a versioning directory set, a bucket
-# created with object lock gets versioning enabled at once, which is how S3 clients expect lock to behave.
+# The S3 service at the osl1 site: one versitygw, posix backend, one Cinder volume (README.md,
+# docs/plans/2026-10-s3-osl1.md, decision 018). /data, /versioning and /iam are subPaths of the one claim.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -35,9 +27,7 @@ spec:
       containers:
         - name: versitygw
           image: ghcr.io/versity/versitygw:v1.8.0@sha256:30292fc2eeacc67a36993b01f7a7a5e3361a19cced0e80c1d71cfa2a4b0a2499
-          # Global options before the backend, backend options after it. The health path has a segment no bucket
-          # name can have, so it never shadows a bucket. The admin API is a second plain-HTTP listener, signed by the
-          # root key pair, published only on the versitygw-admin Service.
+          # Global options before the backend, backend options after it (README.md).
           args:
             - --port=:7070
             - --admin-port=:7071

@@ -14,8 +14,7 @@ spec:
     - backendRefs:
         - name: zot
           port: 5000
-      # A blob upload is one long request; the gateway's default request timeout would cut large pushes short.
-      # Zero disables it (Gateway API: "Setting a timeout to the zero duration disables the timeout").
+      # Zero disables the request timeout; blob uploads are long requests.
       timeouts:
         request: 0s
 ---

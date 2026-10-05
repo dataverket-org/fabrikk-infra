@@ -8,8 +8,7 @@ spec:
     - name: envoy-gateway
       namespace: envoy-system
       sectionName: https
-  # The wildcard certificate on the gateway's https listener already covers this name, and external-dns creates the
-  # record from this route (its gateway-httproute source). Add the website's names here when it arrives.
+  # Covered by the wildcard certificate; external-dns makes the record from this route.
   hostnames:
     - "signal.dataverket.org"
   rules:

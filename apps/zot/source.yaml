@@ -1,11 +1,4 @@
-# zot is delivered gitless: git holds only this pointer, the manifests travel as an OCI artifact (artifacts/zot,
-# pushed by artifacts/zot/push.sh) that zot hosts itself. Before zot exists, and if a bad artifact ever breaks it,
-# bootstrap/zot-from-git.yaml applies the same directory from git; nothing outside this cluster and this repository
-# is needed to bring the registry back.
-#
-# The cluster fetches through the Service, not registry.dataverket.org: its own registry's config must not depend on
-# external DNS, the LoadBalancer, or the certificate. Pushes use the public name; the content is the same. Plain HTTP
-# inside the cluster network until zot gets an internal certificate.
+# zot is delivered gitless (README "Gitless delivery", decisions 011 and 013). Fetched through the Service, plain HTTP.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:

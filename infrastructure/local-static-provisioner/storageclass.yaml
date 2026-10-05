@@ -1,6 +1,5 @@
-# Decision 014: a Talos user volume, mounted at /var/mnt/<name>, is published as a local PV behind <name>-storage.
-# This file owns the class; the chart's own StorageClass is off. Retain, since a released PV still holds a
-# database's files, and the partition is reset by hand before it is published again.
+# A Talos user volume at /var/mnt/<name>, published as a local PV behind <name>-storage (decision 014). Retain: a
+# released PV still holds a database's files (docs/storage.md).
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:

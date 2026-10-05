@@ -1,21 +1,4 @@
-# The theme's landing-page copy (options/locale/) can't be tracked in git like
-# the rest of it: it's forgejo-theme's make-theme.py patching the en-US locale
-# extracted from the *exact* Forgejo binary version running here, and that
-# binary lives in this image, not in the forgejo-theme repo. So instead of a
-# Flux-sourced ConfigMap, a CronJob regenerates it in place on a schedule.
-#
-# It re-fetches make-theme.py fresh from git.dataverket.org every run, so a
-# copy change ships on the next tick with nothing to rebuild here. kubectl
-# picks up the pod's own service account automatically (in-cluster config),
-# so the ConfigMap apply needs no credentials handled in this script. apk
-# needs root to install python3/kubectl on this rootless image, hence
-# runAsUser: 0, scoped to this one throwaway Job.
-#
-# release.yaml mounts the resulting ConfigMap at /data/gitea/options/locale.
-# Forgejo loads locale strings at startup, unlike the CSS/logo/font
-# ConfigMaps it serves straight off disk, so a copy change only reaches
-# visitors after the pod's next restart - deliberately not automated here,
-# since that would mean this CronJob restarting the live git host on a timer.
+# The landing page's copy, regenerated in place by a CronJob from the running Forgejo binary (README.md).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -28,8 +11,7 @@ metadata:
   name: forgejo-theme-locale
   namespace: forgejo
 rules:
-  # create can't be scoped by resourceNames - the object doesn't exist yet -
-  # so this technically covers any ConfigMap name in the namespace.
+  # create cannot be limited by name.
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["create"]
@@ -71,11 +53,7 @@ spec:
             runAsUser: 0
           containers:
             - name: extract-and-patch
-              # Must match the Forgejo APP version actually running, which is
-              # the chart's appVersion default, not the chart version pinned
-              # in repo.yaml. Check with:
-              #   kubectl -n forgejo get deploy forgejo \
-              #     -o jsonpath='{.spec.template.spec.containers[0].image}'
+              # Must equal Forgejo's running app version (README.md).
               image: code.forgejo.org/forgejo/forgejo:15.0.7-rootless
               command: ["/bin/sh", "-c"]
               args:

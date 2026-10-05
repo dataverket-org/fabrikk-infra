@@ -66,7 +66,8 @@ toleration in any chart, so a forgotten one lands right.
 ## Consequences
 
 - `infrastructure/envoy/envoyproxy.yaml` runs the proxies as `envoyDaemonSet`; a disruption budget and an
-  autoscaler do not apply and are not set. A rolling update takes one worker at a time.
+  autoscaler do not apply and are not set. A rolling update takes one worker at a time. The proxy requests 256 MiB
+  against a working set of 46 MiB measured from the kubelet on 2026-10-04, where the chart's default asks 512 MiB.
 - `infrastructure/cinder-csi-provider/controller-ds.yaml` carries the cloud controller's node affinity and
   tolerations. A control plane drain restarts it; an attach in flight retries.
 - An offering's node pools are counts of these two roles. A worker pool reserved for the edge or for runners is

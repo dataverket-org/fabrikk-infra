@@ -31,10 +31,8 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # The S3 service at the osl1 site: one wildcard, one label, so every org's gateway fits under it
-    # (docs/plans/2026-10-s3-osl1.md, "One gateway per org"). cert-manager issues the certificate from the annotation
-    # above, through DNS-01 on dvkt.no, which the nordhost-config Secret must know about. The bare s3.osl1.dvkt.no is
-    # not matched by the wildcard and is reserved.
+    # The S3 service at the osl1 site; the org is the leftmost label under the wildcard (docs/plans/2026-10-s3-osl1.md).
+    # The certificate comes from the annotation above, through DNS-01 on dvkt.no.
     - name: https-s3-osl1
       protocol: HTTPS
       port: 443

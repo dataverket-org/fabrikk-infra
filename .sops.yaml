@@ -1,9 +1,7 @@
 # Recipients for encrypted files in this repository. Public keys only; safe to commit.
 #
-# One key per decrypting process, named after the process (decision 001). The rule that follows, and that
-# bin/check-recipients enforces: the cluster key is never a recipient of a vault file, and a repository's
-# key is never a recipient of a cluster file. A value that has to exist in both stores is copied by a human with a
-# YubiKey, from the store where it was born, and the commit says so.
+# One key per decrypting process; neither store's key on the other store's files; a human copies between stores
+# (decisions 001, 002, 016). bin/check-recipients enforces it.
 #
 # - cluster-dataverket-prod  age1g3x9w...      Secret flux-system/sops-age, generated in-cluster 2026-09-17 by
 #                                              bootstrap/sops-age-keygen.yaml; never leaves the cluster. Decrypts
@@ -16,17 +14,10 @@
 #
 # The two operators are recipients of both stores, for recovery, re-keying and writes from a terminal.
 #
-# vaults/operator/ is a third store and theirs alone (decision 016). No process key is a recipient, so only a touch
-# reads it, and it has no swamp vault config. It holds permanent material only a person reads: break-glass/ for
-# when a login mechanism fails, and a site's CA key and root key pair (hov1/). A write needs only public keys, so a
-# workflow can still put a value there.
+# vaults/operator/: the two operators alone (decision 016).
 #
-# Only data/stringData are encrypted in the Flux files, so kind, name and namespace stay readable and diffs stay
-# meaningful. The swamp vault (vaults/infra/<key>.enc.json, one file per secret, @dataverket/sops) carries its
-# recipients in its own config and ignores this file; the second rule makes `sops vaults/infra/...` from a
-# terminal encrypt to the same set.
-# Each identity is written once, above, and every rule names it by alias, so a recipient list is read as names
-# rather than compared character by character. sops ignores the `identities` key and reads only `creation_rules`.
+# Only data/stringData are encrypted in the Flux files. The swamp vault carries its recipients in its own config and
+# ignores this file; the second rule keeps `sops` from a terminal on the same set. sops ignores `identities`.
 identities:
   cluster-dataverket-prod: &cluster_dataverket_prod age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
   swamp-fabrikk-infra: &swamp_fabrikk_infra age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
@@ -34,10 +25,7 @@ identities:
   linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
 
 creation_rules:
-  # vaults/operator/: the two operators and nothing else. Read it with
-  # `sops -d`, and only with a YubiKey. This rule is first, because sops takes
-  # the first match and the vaults/ rule below would otherwise add
-  # swamp-fabrikk-infra to an operator-only file.
+  # vaults/operator/ first: sops takes the first match.
   - path_regex: ^vaults/operator/.*\.enc\.(ya?ml|json)$
     key_groups:
       - age:

@@ -23,8 +23,7 @@ spec:
       name: webhook
       webhook:
         image:
-          # Temporary public image pushed for early testing - swap this once
-          # there's a permanent home for it.
+          # Temporary image for early testing; to move to a permanent home.
           repository: docker.io/eskpil/nordhost-externaldns-webhook
           tag: latest
         env:
@@ -34,8 +33,7 @@ spec:
           - name: nordhost-config
             mountPath: /etc/nordhost
             readOnly: true
-    # Reuses the DirectAdmin credentials Secret already created for
-    # nordhost-webhook in this namespace.
+    # The DirectAdmin credentials Secret shared with nordhost-webhook.
     extraVolumes:
       - name: nordhost-config
         secret:

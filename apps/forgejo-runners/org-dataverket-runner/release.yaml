@@ -21,9 +21,7 @@ spec:
           cpu: "1"
           memory: 2Gi
         limits:
-          # Kata sizes the guest from limits: default_vcpus (1) + cpu limits,
-          # default_memory (2Gi) + memory limits. Without a cpu limit the VM
-          # had one vCPU.
+          # Kata sizes the guest from the limits (README.md).
           cpu: "1"
           memory: 4Gi
     resources:
@@ -34,12 +32,7 @@ spec:
       config:
         instance: https://git.dataverket.org
         existingSecret: org-dataverket-runner-secret
-    # The docker store is a Cinder volume, so it survives a pod restart; dind's
-    # default /var/lib/docker is on the guest's ephemeral rootfs and every
-    # restart would pull the multi-GB job image again. The claim is a raw disk
-    # (docker-store-pvc.yaml says why), so it is handed to dind as a device in
-    # the patch below, not mounted here; the chart's volumeMounts value has no
-    # place for a device.
+    # The docker store, a raw Block disk handed to dind as a device in the patch below (README.md).
     volumes:
       - name: docker-store
         persistentVolumeClaim:
@@ -56,19 +49,7 @@ spec:
               metadata:
                 name: org-dataverket-runner-forgejo-runner
               spec:
-                # The docker store is one ReadWriteOnce disk, attached to one
-                # worker at a time. A rollout therefore must stop the old pod
-                # before it starts the new one: maxSurge 0 says never run more
-                # than the one replica, maxUnavailable 1 says the one may be
-                # taken down first. With the default (surge 1) the new pod was
-                # started while the old one still held the disk on another
-                # worker, and waited for it forever (2026-09-18 to 2026-10-04).
-                # Recreate would say the same thing, but server-side apply
-                # refuses to switch a live Deployment to it, since the defaulted
-                # rollingUpdate block stays on the object. The runner is down
-                # for the minutes a Cinder detach and attach take, on every
-                # rollout. The chart has no strategy value (decision 021:
-                # nothing done by hand that git does not describe).
+                # One ReadWriteOnce disk: the old pod stops before the new one starts (README.md).
                 strategy:
                   type: RollingUpdate
                   rollingUpdate:
@@ -79,17 +60,7 @@ spec:
                     runtimeClassName: kata
                     containers:
                       - name: dind
-                        # The store arrives as a raw virtio-blk disk, so the
-                        # guest's own ext4 runs on it and overlay2 works, with
-                        # layers shared copy-on-write. On a Filesystem claim the
-                        # store was a virtiofs share, overlay2 failed with
-                        # EINVAL, and vfs copied the whole image for every job,
-                        # three minutes per docker create (tested 2026-10-04).
-                        # The disk is formatted once, when blkid finds no
-                        # filesystem on it; a formatted disk is only mounted.
-                        # Formatting unconditionally would wipe the store on
-                        # every restart. blkid, mkfs.ext4 and mount are in the
-                        # dind image, so no init container is needed.
+                        # Format once, when blank; mount afterwards (README.md).
                         command: ["sh", "-ec"]
                         args:
                           - |

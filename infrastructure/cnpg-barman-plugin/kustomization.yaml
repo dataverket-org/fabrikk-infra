@@ -1,5 +1,3 @@
-# The Barman Cloud plugin for CloudNativePG (CNPG-I): backups and WAL archiving to an object store through an
-# ObjectStore resource. The in-tree barmanObjectStore is deprecated. Same namespace as the operator (cnpg-system),
-# needs cert-manager for its own server and client certificates. Pinned to a release manifest like cnpg-operator.
+# The Barman Cloud plugin for CloudNativePG, pinned to a release manifest like cnpg-operator (backup/README.md).
 resources:
   - https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.15.0/manifest.yaml

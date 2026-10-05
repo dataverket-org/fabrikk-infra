@@ -4,8 +4,7 @@ metadata:
   name: forgejo-postgres
   namespace: forgejo
 spec:
-  # One instance on one Cinder volume (decision 018). No PodDisruptionBudget, so a drain moves it instead of
-  # blocking on it.
+  # One instance on one Cinder volume (decision 018). No PodDisruptionBudget, so a drain moves it.
   instances: 1
   enablePDB: false
   # Recovery needs the archive's Postgres major; the same image the cluster ran before.
@@ -16,17 +15,15 @@ spec:
   postgresql:
     parameters:
       max_wal_size: 1GB
-  # WAL archiving and base backups to the hov1 site through the Barman Cloud plugin (backup.yaml). Each cluster
-  # restored from an archive writes its own: forgejo-postgres-2 is this cluster's, created 2026-09-30.
+  # Archiving to the hov1 site (backup.yaml, backup/README.md); serverName is this cluster's own folder.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
         barmanObjectName: hov1
         serverName: forgejo-postgres-2
-  # Created from the hov1 archive on 2026-09-30, and a rebuild from git is too. CNPG reads bootstrap and
-  # externalClusters only when it creates the cluster. The source is the archive this cluster writes, so a rebuild
-  # restores the latest state; it moves serverName above to the next number first (decision 021; docs/storage.md).
+  # Bootstrap from the hov1 archive, read by CNPG only at creation; a rebuild moves serverName first
+  # (decision 021, docs/storage.md).
   bootstrap:
     recovery:
       source: hov1-archive

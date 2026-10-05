@@ -25,8 +25,7 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          # SIGNAL_GROUP_LINK, substituted into the config template at start. envFrom is read once per container
-          # start, so rotating the invite needs a rollout: kubectl -n www rollout restart deploy/www.
+          # Read once per container start; rotating the invite needs a rollout (README.md).
           envFrom:
             - secretRef:
                 name: www-secrets
@@ -53,8 +52,7 @@ spec:
             - name: templates
               mountPath: /etc/nginx/templates
               readOnly: true
-            # The entrypoint renders the template into conf.d, and nginx wants a scratch cache and a place for its
-            # pid file. All three are writable because the root filesystem is not.
+            # Writable paths on a read-only root filesystem.
             - name: conf
               mountPath: /etc/nginx/conf.d
             - name: cache

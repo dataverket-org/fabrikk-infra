@@ -1,11 +1,4 @@
-# How Envoy Gateway runs the data plane for the GatewayClass `envoy` (gatewayclass.yaml names this through
-# parametersRef). The proxies are a DaemonSet: one Envoy on every worker, whatever their number, so every member of
-# the Octavia pools is healthy with externalTrafficPolicy Local, and nothing here has to follow the worker count
-# (decision 024). Envoy Gateway documents the DaemonSet as the alternative to its Deployment; RKE2 runs its ingress
-# the same way. The control planes are tainted and get no proxy; they are not pool members either, since Talos labels
-# them exclude-from-external-load-balancers and the cloud controller skips such nodes. On a one-node cluster, where
-# the control plane is schedulable, the proxy runs there. A disruption budget and an autoscaler do not apply to a
-# DaemonSet and are not set.
+# The data plane for GatewayClass envoy: one proxy per worker, as a DaemonSet (decision 024).
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -16,14 +9,13 @@ spec:
     type: Kubernetes
     kubernetes:
       envoyDaemonSet:
-        # One worker at a time: its member is down for the seconds the new pod takes, the others serve.
+        # One worker at a time.
         strategy:
           type: RollingUpdate
           rollingUpdate:
             maxUnavailable: 1
         container:
-          # Measured 2026-10-04 from the kubelet: the proxy's working set is about 46 MiB at today's traffic, the chart
-          # asks for 512 MiB. 256 MiB reserves five times the measurement and leaves the workers their room.
+          # Five times the measured working set (decision 024).
           resources:
             requests:
               cpu: 100m

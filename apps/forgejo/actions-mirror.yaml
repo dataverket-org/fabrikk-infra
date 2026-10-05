@@ -1,20 +1,12 @@
-# The forge's own actions org, made at install time and kept filled from the Forgejo project's vetted set
-# (decisions 022 and 023). Two pieces: a Job that runs once per cluster and makes the bot user, the org and the bot's
-# token, written straight into a Secret and nowhere else (the pattern of bootstrap/sops-age-keygen.yaml); and a
-# CronJob that, daily, keeps the actions org a frozen copy of code.forgejo.org/actions, promoted after a quarantine:
-# a repository is created or synced here only once the source's newest change is seven days old. The org's
-# name, description and avatar follow the source org. Nothing deletes anything. The forge is addressed by its service name (decision 009).
-#
-# The image is curl's own, pinned by digest, and runs as its unprivileged user; jq and kubectl are release
-# binaries fetched by pinned version and verified by sha256, so neither pod needs root or a package manager.
+# The forge's own actions org, a frozen copy of the Forgejo project's set, promoted after a quarantine
+# (decisions 022 and 023). How the Job and the CronJob work, and how a person intervenes: README.md.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: actions-mirror-bootstrap
   namespace: forgejo
 ---
-# The Job writes one Secret and runs the forgejo CLI in the forgejo pod through exec; exec cannot be limited to a
-# pod by name, so it is allowed on the namespace's pods, which are Forgejo's own and its database's.
+# exec cannot be limited to one pod by name (README.md).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -53,13 +45,7 @@ roleRef:
   name: actions-mirror-bootstrap
   apiGroup: rbac.authorization.k8s.io
 ---
-# Ensures the bot user actions-mirror, its token in Secret actions-mirror-token, and the actions org with the bot
-# as owner. The forge refuses basic authentication (release.yaml, service), so the admin credential is of no use
-# over the API; instead the forgejo CLI runs inside the forgejo pod, where a user and a token are made without any
-# password. Forgejo has no CLI for orgs, so the bot makes its own org over the API with that token, which is why
-# the token carries write:organization as well as write:repository and read:organization. A rerun while the Secret
-# exists is a no-op, so Flux may recreate the Job freely (the force annotation lets it replace an immutable Job on
-# change).
+# Once per cluster: the bot, its token into Secret actions-mirror-token, the org. A rerun is a no-op (README.md).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -133,8 +119,7 @@ spec:
                   --must-change-password=false >/dev/null
                 echo "user $BOT created"
               fi
-              # A second token of the same name is refused, so a lost Secret with a live token is a state a
-              # person resolves: delete the token on the forge (the bot's settings), then let the Job rerun.
+              # A second token of the same name is refused; recovery is in README.md.
               fj admin user generate-access-token --username "$BOT" --token-name actions-mirror --raw \
                 --scopes write:repository,read:organization,write:organization > /work/token
               printf 'Authorization: token %s\n' "$(cat /work/token)" > /work/auth
@@ -158,12 +143,7 @@ spec:
           emptyDir:
             medium: Memory
 ---
-# Daily: the actions org as a frozen copy of the source org, promoted after a quarantine (decision 023). Every
-# mirror has no sync interval of its own; a repository is created here, or synced, only when the source's newest
-# change is QUARANTINE_DAYS old, read from the source repository's updated_at, which moves on a push or a tag and
-# not on the source's own mirror syncs. A sync takes every ref of that repository at once. Nothing is deleted. The
-# log names what was promoted, with the date of the change it carries, and what is still waiting; a failed
-# Job is the signal. A person promotes early by running the Job with QUARANTINE_DAYS=0.
+# Daily: promote what is QUARANTINE_DAYS old, sync nothing else, delete nothing (decision 023, README.md).
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -225,10 +205,7 @@ spec:
                   chmod +x jq
                   printf 'Authorization: token %s\n' "$TOKEN" > /work/auth
                   here() { curl -sS -o /work/resp -w '%{http_code}' -H @/work/auth -H 'Content-Type: application/json' "$@"; }
-                  # The org presents itself as its source does: name, description and avatar are read from the
-                  # source org's record and set here on every run, and the website field points at the source,
-                  # so the org page says where it all comes from. The avatar is fetched and sent whole each time;
-                  # the forge keeps one copy, and the image is a few kilobytes.
+                  # Name, description, avatar and website follow the source org (README.md).
                   curl -sSf -o /work/source "$SOURCE_URL/api/v1/orgs/$SOURCE_ORG"
                   body="$(./jq --arg w "$SOURCE_URL/$SOURCE_ORG" '{full_name: .full_name, description: .description, website: $w}' /work/source)"
                   case "$(here -X PATCH --data "$body" "$FORGEJO_URL/api/v1/orgs/$ORG")" in

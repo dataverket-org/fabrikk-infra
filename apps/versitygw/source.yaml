@@ -1,9 +1,4 @@
-# versitygw is delivered gitless, the way zot is (README, "Gitless delivery"): git holds only this pointer, the
-# manifests travel as an OCI artifact (artifacts/versitygw, pushed by artifacts/versitygw/push.sh) that zot hosts.
-# After a rebuild zot is empty, so the artifact is pushed again from the checkout before Flux can apply it; the
-# gateway's data is on a retained volume and comes back with it.
-#
-# Fetched through the Service, not registry.dataverket.org, for the same reason as zot's own config (decision 013).
+# versitygw is delivered gitless, as zot is (README "Gitless delivery", decision 013; artifacts/versitygw/README.md).
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:

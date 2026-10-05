@@ -1,12 +1,4 @@
-# The runner's docker store, as a raw disk rather than a mounted filesystem.
-# A Filesystem claim reaches a Kata guest as a virtiofs share, on which
-# overlay2 cannot work (tested 2026-10-04: EINVAL, upper fs missing required
-# features), which is what forced dind onto vfs and made every job copy the
-# whole image. A Block claim is plugged into the guest as a virtio-blk disk,
-# the guest's own ext4 runs on it, and overlay2 works. dind formats it once,
-# when blank, and mounts it on every start (release.yaml). volumeMode cannot
-# change on an existing claim, so this is a new claim and the store starts
-# empty once: the first job pulls the image again.
+# The runner's docker store, a raw Block disk (README.md).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

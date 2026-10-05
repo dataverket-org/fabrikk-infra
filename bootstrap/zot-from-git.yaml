@@ -1,8 +1,4 @@
-# zot from git, for bootstrap and recovery only. Applied and later removed by bootstrap.sh.
-#
-# In steady state zot's config comes from zot itself (apps/zot/source.yaml). Before zot exists, and whenever a bad
-# artifact leaves it unable to serve, this Kustomization applies the same directory straight from git. It has no
-# prune, so deleting it leaves zot running. See docs/decisions/011-zot-hosts-its-own-config.md.
+# zot from git, for bootstrap and recovery only; applied and removed by bootstrap.sh (decision 011). No prune.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

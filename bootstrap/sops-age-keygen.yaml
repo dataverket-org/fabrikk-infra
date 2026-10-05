@@ -1,15 +1,11 @@
-# The cluster's SOPS age key, generated inside the cluster, once. Applied by bootstrap.sh; Flux never reads this
-# directory. The private key is written straight into Secret flux-system/sops-age and exists nowhere else; the
-# recipient (public key) is published in ConfigMap flux-system/sops-age-recipient for .sops.yaml. A rerun while the
-# Secret exists is a no-op. See docs/decisions/003-cluster-sops-key-never-leaves-the-cluster.md.
+# The cluster's SOPS age key, generated in the cluster once by bootstrap.sh (decision 003). A rerun is a no-op.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: sops-age-keygen
   namespace: flux-system
 ---
-# create cannot be limited by name; get is limited to the two objects the Job writes, so this account can read no
-# other Secret in flux-system.
+# get limited to the two objects the Job writes; create cannot be limited by name.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -54,8 +50,7 @@ spec:
     spec:
       serviceAccountName: sops-age-keygen
       restartPolicy: Never
-      # flux-system warns at the restricted Pod Security level; this pod meets it. age and kubectl are release
-      # binaries fetched by pinned version and verified by sha256, so nothing here needs root or a package manager.
+      # Meets the restricted Pod Security level; age and kubectl are release binaries verified by sha256.
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

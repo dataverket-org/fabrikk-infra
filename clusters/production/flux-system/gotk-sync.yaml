@@ -9,10 +9,7 @@ spec:
   interval: 1m0s
   ref:
     branch: main
-  # git.dataverket.org is the source of record; github.com/dataverket-org/fabrikk-infra is a push mirror of it (021).
-  # The repository is public and Flux only reads, so no secretRef: the flux-system secret holds Codeberg
-  # credentials, which the forge would reject. Add a forge token to that secret and restore secretRef if the
-  # repository ever becomes private.
+  # git.dataverket.org is the source of record (decision 021). Public, and Flux only reads, so no secretRef.
   url: https://git.dataverket.org/dataverket/fabrikk-infra.git
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1

@@ -1,12 +1,6 @@
-# The workers' disk layout and kubelet budget (decisions 014, 017 and 019; the state in docs/storage.md). Applied
-# through Omni as a ConfigPatch by `omni-cluster applyPatch`, with this file as its data: to each new worker before
-# it joins (worker-join), scoped to that machine, and on the machine set dataverket-prod-workers as 500-workers-storage.
-# Never to a running worker: Talos sizes volumes only when it first provisions a machine. Outside clusters/, so Flux
-# never reads it. Talos 1.14.
-#
-# Both volumes share the system disk, and Talos does not promise which it lays out first, so each states its size
-# with minSize equal to maxSize (decision 019). Of the 30 GiB disk, 26,615 MiB is free for volumes; 14 GiB and
-# 11 GiB fit in either order, about 1 GiB left. A node with a data disk of its own gives pg-zitadel that disk instead.
+# The workers' disk layout and kubelet budget: docs/storage.md, "The workers"; decisions 014, 017 and 019. Applied by
+# omni-cluster applyPatch to a machine before it joins, and on the machine set as 500-workers-storage. Outside
+# clusters/, so Flux never reads it. Talos 1.14.
 apiVersion: v1alpha1
 kind: VolumeConfig
 name: EPHEMERAL
@@ -29,9 +23,7 @@ provisioning:
 filesystem:
   type: xfs
 ---
-# Image collection from 80 percent of EPHEMERAL, images unused for a week collected anyway, logs capped per
-# container. evictionHard is written out in full, the kubelet's defaults included, since a partial map may replace
-# them rather than merge.
+# The kubelet budget (docs/storage.md).
 machine:
   kubelet:
     extraConfig:

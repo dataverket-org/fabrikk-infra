@@ -75,6 +75,10 @@ Every item shares the one lifetime, and `admin:renew` renews them all when any h
 `admin:status` reads each item's expiry from its own file or record. The two process keys of tier 3 never rotate on a
 schedule: `swamp-fabrikk-infra` lasts until the swamp host is rebuilt, `cluster-dataverket-prod` the cluster's life.
 
+The readers context's group, `fabrikk-readers`, has Kubernetes' `view` role cluster-wide (`infrastructure/readers/`):
+every workload, log, ConfigMap, event, Flux and cert-manager object, with Gateway API aggregated in, and never a
+Secret (decision 003). The factory's service-account kubeconfig carries the same group.
+
 The `decisions:` group is the records in `docs/decisions/`. `task decisions` lists them with their audit status, so
 what is decided and what is still pending read at a glance; `decisions:new` starts one from the template and opens
 it in `$EDITOR`; `decisions:index` rewrites the generated index.
