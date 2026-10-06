@@ -43,30 +43,36 @@ is off for that reason, and the certificate check it did is what `kubectl get ce
 
 ## Handing over from helm-controller
 
-Both charts ran as HelmReleases in `infrastructure/`. The objects are the same; what changes is which controller
-owns them. Done in this order, each step reconciled and read before the next, nothing is deleted on the way.
+Both charts ran as HelmReleases in `infrastructure/`; on 2026-10-06 they were handed to the artifact. The objects
+are the same; what changes is which controller owns them. What was done, and what it taught, in order.
 
-1. **Prepare the releases.** The two HelmReleases carry `uninstall.deletionPropagation: orphan` (this branch), so
-   when they are removed helm-controller runs an uninstall that leaves every object in place. Confirm Flux has
-   applied that before anything else: `swamp model method run dataverket-prod-kustomizations list`, then the
-   HelmRelease specs through the readers context.
-2. **Ship the artifact next to the releases.** Push with `push.sh`; `infrastructure/cert-manager/source.yaml`
-   (this branch) makes Flux apply it. Both paths now apply the same objects; helm-controller's drift detection is
-   off, so it does not fight. Server-side apply moves the objects' Flux labels to the `cert-manager` Kustomization.
-   Read the pods: the webhook at three replicas on the control planes, the rest on control planes, the ClusterIssuer
-   `Ready`. On a fresh cluster this step is `bootstrap/cert-manager-from-git.yaml` instead, until zot serves.
-3. **Remove the Helm path.** One commit: drop `cert-manager`, `nordhost-webhook`, `clusterissuer` and
-   `external-dns` from `infrastructure/kustomization.yaml` except for a `cert-manager/` holding only `source.yaml`;
-   delete the two `release.yaml` and `repo.yaml`, the CRD URL, `namespace.yaml`, and the moved directories. The
-   `infrastructure` Kustomization prunes what it owned: the HelmReleases, which orphan their objects, and nothing of
-   what the `cert-manager` Kustomization relabelled in step 2; the CRDs are additionally marked `prune: disabled`.
-   Read again: every Certificate still `Ready`, no pod restarted except by the placement change itself.
+1. **Ship the artifact beside the releases.** `push.sh`, with `infrastructure/cert-manager/source.yaml` already in
+   git. Both paths apply the same objects, and helm-controller's drift detection is off, so they do not fight.
+   Server-side apply moves the objects' Flux labels to the `cert-manager` Kustomization. Read: every object and
+   CRD labelled `kustomize.toolkit.fluxcd.io/name=cert-manager`, `prune: disabled` on the live CRDs, every
+   Certificate and the ClusterIssuer `Ready`, no pod restarted. On a fresh cluster this step is
+   `bootstrap/cert-manager-from-git.yaml` instead, until zot serves.
+2. **Make Helm forget its objects before the HelmRelease goes.** This is the step 2026-10-06 got wrong.
+   `uninstall.deletionPropagation: orphan` was set, in the belief that an orphaned uninstall leaves the objects.
+   It does not: Helm's `orphan` is the Kubernetes deletion propagation, so Helm still deletes every object of the
+   release and only spares their dependents. The Deployments, Services, ServiceAccounts, RBAC and the ConfigMap
+   were deleted and recreated by the `cert-manager` Kustomization within seconds; the pods, orphaned, kept
+   running, but their tokens belonged to the deleted ServiceAccounts, and the controller and cainjector crashed
+   with `Unauthorized` until every pod was replaced. Certificates and the ClusterIssuer were never Helm's and were
+   untouched; the CRDs came from git and were untouched. The right way, for the next chart: one last upgrade of
+   the HelmRelease with a `postRenderers` kustomize patch that puts `helm.sh/resource-policy: keep` on every
+   object, read back on the live objects, and only then step 3. Helm then skips every kept object at uninstall.
+3. **Remove the Helm path.** One commit: drop the component directories and the HelmRelease, HelmRepository, CRD
+   download and namespace files from `infrastructure/`, leaving a `cert-manager/` with `source.yaml` alone. The
+   `infrastructure` Kustomization prunes the HelmRelease and HelmRepository objects and nothing of what the
+   `cert-manager` Kustomization relabelled in step 1; the CRDs are additionally `prune: disabled`. Read again:
+   every Certificate `Ready`, every pod `Ready` and, with step 2 done right, none restarted.
 4. **Afterwards.** helm-controller stays for the charts still on it (envoy, zitadel, forgejo, CNPG, the static
    provisioner) until each has had this treatment; the hooks of envoy and zitadel are the known obstacle
    (`docs/research/2026-10-rendered-manifests-over-oci.md`). Record the outcome in decision 028's audit.
 
 What can go wrong, and the way back: if Flux deletes a CRD the Certificates go with it, so step 3 is done only after
-step 2 is read as healthy and the `prune: disabled` annotation is seen on the live CRDs. The way back from a bad
+step 1 is read as healthy and the `prune: disabled` annotation is seen on the live CRDs. The way back from a bad
 artifact is the same as for zot: apply `rendered/` from a checkout with `kubectl apply --server-side`.
 
 ## Bootstrap

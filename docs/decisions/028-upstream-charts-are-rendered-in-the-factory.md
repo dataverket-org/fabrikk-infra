@@ -61,8 +61,11 @@ that ran it is removed once the artifact is applied and read as healthy.
   `bootstrap/` covers a fresh cluster, until zot serves.
 - **The CRDs can never be pruned.** They carry `kustomize.toolkit.fluxcd.io/prune: disabled`, because a CRD
   deleted deletes every object of its kind.
-- **The handover keeps every object.** The HelmRelease is given `uninstall.deletionPropagation: orphan`, the
-  artifact is applied beside it, and only then is the HelmRelease removed. Nothing is deleted on the way.
+- **The handover makes Helm forget before the HelmRelease goes.** The artifact is applied beside the release, then
+  a last upgrade of the HelmRelease puts `helm.sh/resource-policy: keep` on every object through a post-renderer,
+  and only then is the HelmRelease removed. `uninstall.deletionPropagation: orphan` is not that: it is the
+  Kubernetes propagation policy, Helm still deletes the release's objects and spares only their dependents, which
+  the first handover learned on 2026-10-06 (`artifacts/cert-manager/README.md`, step 2).
 
 ## Consequences
 
@@ -107,7 +110,7 @@ zot hosts its own config (011) and is plain manifests (012); the cluster fetches
 | From-git fallback | `bootstrap/cert-manager-from-git.yaml` | in git on the branch |
 | Orphan on the HelmReleases | `infrastructure/{cert-manager,external-dns}/release.yaml` | in git on the branch |
 | Artifact pushed and applied | zot, the cluster, 2026-10-06 20:41 UTC | done: `current@sha256:5c2889c5…`, unsigned; the 70 objects and the seven CRDs relabelled to the `cert-manager` Kustomization, `prune: disabled` on every CRD, six Certificates and the ClusterIssuer Ready, no pod restarted by the apply |
-| HelmReleases removed | `infrastructure/` | done the same evening, step 3 of the handover, after the read above |
+| HelmReleases removed | `infrastructure/` | done the same evening, step 3 of the handover, after the read above. The orphan uninstall deleted and the Kustomization recreated the Deployments, Services, ServiceAccounts, RBAC and ConfigMap within seconds; the pods survived with tokens of the deleted ServiceAccounts and had to be replaced; Certificates, the ClusterIssuer and the CRDs were untouched throughout |
 
 **Summary:** Built, applied and handed over on 2026-10-06, with the forge outage of the same evening in between.
 helm-controller still runs envoy, zitadel, forgejo, CNPG and the static provisioner.
