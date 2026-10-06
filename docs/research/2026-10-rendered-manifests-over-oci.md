@@ -198,23 +198,10 @@ while it refuses and does not repair.
 
 ## Outcomes for Dataverket's plans
 
-**The Talos control plane without Omni.** `2026-10-talosctl-over-omni.md` renders machine configs from patch
-files. Flux and its one pointer can be an inline manifest in that config, so a new cluster starts delivering by
-itself: no `flux bootstrap`, no forge token, no generated Flux YAML in git.
-
-**Sentral and Identitet.** Both are upstream software with Dataverket code around it, so the processor is how
-their L1 is made. The Zitadel in `apps/` here is in practice Identitet's first deployment and the first recipe.
-The cluster that runs Identitet also stops needing the forge, which logs in through Identitet.
-
-**Maskin.** A machine that boots Talos by iPXE needs a registry within reach, not a forge. `flux mirror` lets each
-operator in the samvirke copy Dataverket's signed artifacts into its own registry, check them, and promote on its
-own schedule: shared code, each operator's own trust boundary.
-
-**Plattform.** Customer clusters would run the baseline this cluster runs, so `dataverket-prod` is the first
-user, and the processor becomes something customers can use for their own charts. The open problem is scale:
-"never join in the cluster" means one render per cluster. Either the baseline holds no per-cluster facts, or
-rendering per cluster becomes a service Plattform runs and signs with. The second is a product feature and a
-signing authority, and should be chosen deliberately.
+What the pattern means for the Talos control plane without Omni, for Sentral and Identitet, for Maskin and for
+Plattform is a question about the products, not about this cluster, and lives in the `org` repository as
+`docs/forskning/2026-10-rendered-artifacts-for-the-products.md`. One item from it returns here as step 6 below:
+per-cluster rendering has to be settled before Plattform designs on top of it.
 
 ## A possible order
 
