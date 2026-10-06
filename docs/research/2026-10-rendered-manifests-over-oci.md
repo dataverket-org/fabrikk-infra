@@ -200,7 +200,7 @@ while it refuses and does not repair.
 
 What the pattern means for the Talos control plane without Omni, for Sentral and Identitet, for Maskin and for
 Plattform is a question about the products, not about this cluster, and lives in the `org` repository as
-`docs/forskning/2026-10-rendered-artifacts-for-the-products.md`. One item from it returns here as step 6 below:
+`docs/notater/2026-10-rendered-artifacts-for-the-products.md`. One item from it returns here as step 6 below:
 per-cluster rendering has to be settled before Plattform designs on top of it.
 
 ## A possible order
