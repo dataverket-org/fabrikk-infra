@@ -1,5 +1,5 @@
 type: '@dataverket/versitygw/gateway'
-typeVersion: 2026.09.30.3
+typeVersion: 2026.10.05.1
 id: 2a9f458f-885a-4f63-a71c-2a272954907f
 name: hov1-s3
 version: 1

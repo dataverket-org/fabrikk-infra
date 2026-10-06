@@ -103,6 +103,39 @@ migration a rebuild runs. At Nexthop every flavor with this CPU and RAM has the 
 flavor buys disk (`r5.large` has 40 GB). A Cinder volume grows online: edit the claim and wait. The next swap cycle
 also renames the partition to a slot, `fast-0`, under the class `local-fast` (decision 025).
 
+## Growing a database volume that has filled
+
+Done once, on 2026-10-06, for `forgejo-postgres-1`. The order matters, because CNPG behaves differently once a volume
+is full, and because the forge may be down when the database under it is.
+
+What it looks like: the Cluster's phase is `Not enough disk space`, the `postgres` container exits with code 4 and
+the instance manager logs `no free disk space for WALs`, the operator logs `PostgreSQL cannot proceed until the PVC
+group is enlarged`, and the kubelet's volume statistics for the pod (`/api/v1/nodes/<node>/proxy/stats/summary`)
+show the claim within a few MB of its capacity. The cause so far has always been WAL kept because archiving to the
+hov1 site failed: the `ContinuousArchiving` condition is `False` and the gateway's health is the first thing to
+check (`swamp model method run hov1-s3 health`, no key needed).
+
+1. **Fix the archive target first**, or the grown volume fills again. On 2026-10-04 the hov1 host rebooted and the
+   gateway did not come back (`backup/versitygw/README.md`, the troubleshooting row).
+2. **Suspend Flux's `apps` Kustomization**, so the manifest's old size cannot be reconciled against the live
+   object while git lags: `flux suspend kustomization apps`.
+3. **Grow the claim by hand.** In this phase the operator never reaches its own resize step: every reconcile stops
+   at the disk-space guard. Setting `spec.storage.size` on the Cluster is still needed, so git and the operator
+   agree afterwards, but it changes nothing on its own. The claim must be patched directly:
+   `kubectl patch pvc -n <ns> <cluster>-<n> -p '{"spec":{"resources":{"requests":{"storage":"20Gi"}}}}'`. The
+   Cinder classes allow online expansion and the pod is present with the volume mounted, so the kubelet grows the
+   filesystem in place; the container's next back-off retry finds room and Postgres starts. The whole wait was
+   under five minutes.
+4. **Commit the same size** in the Cluster manifest, push, and resume `apps`. The kubelet's volume statistics lag
+   a few minutes behind the resize; the claim's `status.capacity` is the truth.
+
+What not to do: delete WAL files on the volume by hand. Postgres and the archiver own them, and a segment removed
+before it was archived breaks the recovery chain at the hov1 site.
+
+Headroom: a 10 GiB volume with Forgejo's write rate lasted two days without archiving, which is the alert table's
+estimate below. The local Zitadel slots cannot grow at all (decision 025), so for them the archive target is the
+only lever, and the alert on archiving is the one that matters.
+
 ## Rebuild from git
 
 The old cluster is gone, and with it Forgejo, Flux's source (decision 021). The source for the rebuild is the GitHub
@@ -127,7 +160,9 @@ Flux. No rebuild has been run yet (decision 021's audit).
 
 ## Alerts
 
-Written down, not deployed:
+Written down, not deployed. On 2026-10-04 the first row happened as written: the hov1 gateway stayed down after a
+host reboot, archiving failed for two days, and on 2026-10-06 Forgejo's volume filled and took the forge down.
+Deploying this table is the follow-up the incident leaves.
 
 | Alert | Threshold | Meaning |
 |---|---|---|
