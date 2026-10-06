@@ -12,6 +12,8 @@ brew "kubernetes-cli"
 brew "kubectl-cnpg"             # kubectl cnpg: promote, status and backup for CloudNativePG clusters
 brew "openstackclient"
 brew "fluxcd/tap/flux"
+brew "cosign"                   # signs an artifact at push.sh time with the site key in vaults/operator/<site>/
+brew "helm"                     # inflates a chart when an artifact recipe is rendered; never run against a cluster
 brew "sops"
 brew "age"
 brew "age-plugin-yubikey"

@@ -23,7 +23,9 @@ related:
 
 ## Status
 
-Accepted.
+Accepted. The placement of cert-manager, external-dns and the DNS provider webhook on the workers is superseded by
+027 on 2026-10-06: they run on the control planes, with the credentials that reach the zones and the certificate
+authority. The rest stands, including the reasons Flux stays on the workers.
 
 ## Context
 

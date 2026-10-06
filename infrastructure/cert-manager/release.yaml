@@ -13,9 +13,54 @@ spec:
         name: jetstack
         namespace: flux-system
   interval: 1h
+  # The release is being handed to the rendered artifact (infrastructure/cert-manager/source.yaml). When this
+  # HelmRelease is removed, helm-controller uninstalls with orphan: the objects stay and Flux keeps applying them.
+  uninstall:
+    deletionPropagation: orphan
+    keepHistory: false
   releaseName: cert-manager
   targetNamespace: cert-manager
   values:
     config:
       enableGatewayAPI: true
+    # Placement, decision 027: the controller, the webhook and cainjector run on
+    # the control planes, where the credentials that reach outside the cluster
+    # live. The webhook is three replicas spread softly over the control planes
+    # so a drain leaves the admission path up; the rest are one replica, and a
+    # reschedule is their failover. startupapicheck is a one-shot Job and lands
+    # where it likes.
+    global:
+      priorityClassName: system-cluster-critical
+    nodeSelector:
+      kubernetes.io/os: linux
+      node-role.kubernetes.io/control-plane: ""
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+    webhook:
+      replicaCount: 3
+      nodeSelector:
+        kubernetes.io/os: linux
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: cert-manager
+              app.kubernetes.io/component: webhook
+      podDisruptionBudget:
+        enabled: true
+        minAvailable: 1
+    cainjector:
+      nodeSelector:
+        kubernetes.io/os: linux
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
 

@@ -3,4 +3,5 @@ resources:
   - repo.yaml
   - namespace.yaml
   - release.yaml
+  - source.yaml
 

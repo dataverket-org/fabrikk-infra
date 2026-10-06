@@ -1,0 +1,7 @@
+# What Flux applies: the rendered objects and the one Secret, which travels encrypted and is decrypted in the cluster.
+# recipe/, render.sh, push.sh and README.md are not part of the artifact (push.sh ignores them).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - rendered
+  - nordhost-config.enc.yaml

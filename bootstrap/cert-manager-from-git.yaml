@@ -1,0 +1,23 @@
+# cert-manager from git, for bootstrap and recovery only, as zot-from-git.yaml is for zot (decision 011). A fresh
+# cluster has no artifact in zot and no certificate on the registry's public name to push one through; this applies
+# the same directory straight from the repository, without prune, until zot serves it. Applied and removed by hand.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cert-manager-bootstrap
+  namespace: flux-system
+spec:
+  interval: 10m
+  dependsOn:
+    - name: infrastructure
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./artifacts/cert-manager
+  prune: false
+  wait: true
+  timeout: 10m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

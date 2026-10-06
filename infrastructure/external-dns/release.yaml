@@ -13,9 +13,22 @@ spec:
         name: external-dns
         namespace: flux-system
   interval: 1h
+  # The release is being handed to the rendered artifact (infrastructure/cert-manager/source.yaml). When this
+  # HelmRelease is removed, helm-controller uninstalls with orphan: the objects stay and Flux keeps applying them.
+  uninstall:
+    deletionPropagation: orphan
+    keepHistory: false
   releaseName: external-dns
   targetNamespace: cert-manager
   values:
+    # Placement, decision 027: on the control planes with the DNS credential,
+    # one replica; external-dns has no leader election, so never more.
+    priorityClassName: system-cluster-critical
+    nodeSelector:
+      node-role.kubernetes.io/control-plane: ""
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
     sources:
       - service
       - gateway-httproute

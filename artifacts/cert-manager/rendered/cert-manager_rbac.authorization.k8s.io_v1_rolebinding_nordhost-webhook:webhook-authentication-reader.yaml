@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nordhost-webhook:webhook-authentication-reader
+  namespace: cert-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+- apiGroup: ""
+  kind: ServiceAccount
+  name: nordhost-webhook
+  namespace: cert-manager

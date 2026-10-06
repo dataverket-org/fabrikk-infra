@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nordhost-webhook-webhook-tls
+  namespace: cert-manager
+spec:
+  dnsNames:
+  - nordhost-webhook
+  - nordhost-webhook.cert-manager
+  - nordhost-webhook.cert-manager.svc
+  duration: 8760h
+  issuerRef:
+    name: nordhost-webhook-ca
+  secretName: nordhost-webhook-webhook-tls

@@ -10,7 +10,12 @@ spec:
   insecure: true
   ref:
     tag: current
-  # TODO verify.provider: cosign with the platform signing key once it exists; until then only fabrikk-ci can push.
+  # Verification, switched on after this artifact has been pushed signed once with the site key
+  # (vaults/operator/README.md, "Signing keys"; clusters/production/cosign-osl1.yaml holds the public half):
+  # verify:
+  #   provider: cosign
+  #   secretRef:
+  #     name: cosign-osl1
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

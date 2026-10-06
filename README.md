@@ -196,7 +196,10 @@ masterkey and Forgejo's generated security keys are here since 2026-09-30, pinne
 the artifact holds, decrypting with the cluster key. `artifacts/zot/` is the artifact's source, plain manifests with
 the image pinned by digest; `push.sh` pushes the directory as it is, tagged with the commit and `current`.
 `artifacts/versitygw/` and `apps/versitygw/source.yaml` are the second use of the pattern, the S3 service at the
-osl1 site (`docs/plans/2026-10-s3-osl1.md`).
+osl1 site (`docs/plans/2026-10-s3-osl1.md`). `artifacts/cert-manager/` is the third and the first rendered one:
+two upstream charts, cert-manager and external-dns, inflated by kustomize from `recipe/` into a committed
+`rendered/` tree that `push.sh` ships and `infrastructure/cert-manager/source.yaml` applies (decision 028). The
+diff of `rendered/` is the review of a chart upgrade, and the cluster reads no chart repository for them.
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
 directory straight from the repository, without prune, until zot serves its first artifact, and again whenever a bad

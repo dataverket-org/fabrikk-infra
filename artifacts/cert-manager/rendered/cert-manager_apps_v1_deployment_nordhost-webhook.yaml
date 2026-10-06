@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nordhost-webhook
+    chart: nordhost-webhook-0.1.0
+    heritage: Helm
+    release: nordhost-webhook
+  name: nordhost-webhook
+  namespace: cert-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nordhost-webhook
+      release: nordhost-webhook
+  template:
+    metadata:
+      labels:
+        app: nordhost-webhook
+        release: nordhost-webhook
+    spec:
+      containers:
+      - args:
+        - --tls-cert-file=/tls/tls.crt
+        - --tls-private-key-file=/tls/tls.key
+        env:
+        - name: GROUP_NAME
+          value: nordhost-integrator
+        - name: CONFIG
+          value: /etc/nordhost/config.json
+        image: docker.io/eskpil/nordhost-webhook:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+        name: nordhost-webhook
+        ports:
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+        resources: {}
+        volumeMounts:
+        - mountPath: /tls
+          name: certs
+          readOnly: true
+        - mountPath: /etc/nordhost
+          name: config
+          readOnly: true
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      priorityClassName: system-cluster-critical
+      serviceAccountName: nordhost-webhook
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+      volumes:
+      - name: certs
+        secret:
+          secretName: nordhost-webhook-webhook-tls
+      - name: config
+        secret:
+          secretName: nordhost-config

@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nordhost-webhook:domain-solver
+rules:
+- apiGroups:
+  - nordhost-integrator
+  resources:
+  - '*'
+  verbs:
+  - create
