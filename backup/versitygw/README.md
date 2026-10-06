@@ -198,7 +198,7 @@ Every client signs with `REGION`; the gateway rejects any other region on the da
 | `bin/user` says the account exists | A previous run, or a rotation intended | `--rotate`, then commit the new Secret at once |
 | `sops: no matching creation rules` | Pipeline not run from the repository root | Run from the root; the override path must start with `apps/` |
 | Disk under `DATA_DIR` filling | A writer's retention not deleting, or versioning turned on by mistake | Check `retentionPolicy` and `forget`; `aws s3api get-bucket-versioning` must show nothing enabled |
-| Gateway not running after the host rebooted | Rootless: linger or `podman-restart.service` off | The Podman section above |
+| Gateway not running after the host rebooted | Rootless: linger or `podman-restart.service` off, or the container's restart policy is not `always`, the only policy that service honours (hov1, 2026-10-04: two days down, every database's WAL archiving failing, Forgejo's volume full) | The Podman section above; `podman inspect <site>-versitygw --format '{{.HostConfig.RestartPolicy.Name}}'` must say `always` |
 
 ## Configuration reference
 

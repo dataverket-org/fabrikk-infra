@@ -5,7 +5,9 @@ services:
   versitygw:
     image: versity/versitygw:v1.8.0
     container_name: ${SITE:?set in .env}-versitygw
-    restart: unless-stopped
+    # always, not unless-stopped: rootless Podman's podman-restart.service starts only containers marked always
+    # after a reboot, and a stopped gateway is a backup target that silently fills every database's WAL.
+    restart: always
     # An init reaps the healthcheck's children.
     init: true
     command:

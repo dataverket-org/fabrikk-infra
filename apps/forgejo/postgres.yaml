@@ -11,7 +11,9 @@ spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
   storage:
     storageClass: csi-cinder-sc-delete
-    size: 10Gi
+    # 20Gi since 2026-10-06: the volume filled with WAL while the hov1 gateway was down for two days after a host
+    # reboot, and Postgres refuses to start without room for WAL. Grown live first, the forge being down with it.
+    size: 20Gi
   postgresql:
     parameters:
       max_wal_size: 1GB
