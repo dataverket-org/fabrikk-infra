@@ -1,7 +1,4 @@
+# cert-manager, external-dns, the nordhost webhook and the ClusterIssuer arrive as the rendered artifact
+# artifacts/cert-manager/ (decision 028); this directory holds only the pointer.
 resources:
-  - https://github.com/cert-manager/cert-manager/releases/download/v1.20.3/cert-manager.crds.yaml
-  - repo.yaml
-  - namespace.yaml
-  - release.yaml
   - source.yaml
-

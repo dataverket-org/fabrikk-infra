@@ -8,8 +8,5 @@ resources:
   - cnpg-barman-plugin
   - envoy
   - cert-manager
-  - nordhost-webhook
-  - clusterissuer
-  - external-dns
   - kata-containers
   - readers

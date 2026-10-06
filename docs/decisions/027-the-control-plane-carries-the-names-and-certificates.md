@@ -107,9 +107,10 @@ why the credential is also made smaller.
 |---------|-------|------------|
 | cert-manager on the control planes, webhook at three with spread and budget | `infrastructure/cert-manager/release.yaml` | in git |
 | external-dns and the provider webhook on the control planes | `infrastructure/external-dns/release.yaml`, `infrastructure/nordhost-webhook/deployment.yaml` | in git |
-| Pods running on control planes | the cluster | to be read after Flux reconciles |
+| Pods running on control planes | the cluster, read 2026-10-06 20:38 UTC | done: controller and cainjector on ctrl-3, external-dns on ctrl-1, the provider webhook on ctrl-3, the cert-manager webhook one replica on each of ctrl-1, ctrl-2 and ctrl-3, all Ready |
 | Per-zone bounded tokens | `docs/plans/2026-10-dns-desec.md` | not done |
 
-**Summary:** Written and applied in git the same day; the cluster is read after the reconcile.
+**Summary:** Written, applied and read the same day. Flux applied it on its first fetch after the forge outage of
+2026-10-06, through the HelmReleases; the rendered artifact of decision 028 carries the same placement.
 
-**Action Required:** Read the pod placement after the reconcile and record it here.
+**Action Required:** None for the placement; the bounded tokens are the deSEC plan's.

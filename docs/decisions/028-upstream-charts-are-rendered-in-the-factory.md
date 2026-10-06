@@ -96,7 +96,7 @@ zot hosts its own config (011) and is plain manifests (012); the cluster fetches
 
 ### 2026-10-06
 
-**Status:** Not implemented
+**Status:** Implemented for the first pair
 
 **Findings:**
 
@@ -106,9 +106,10 @@ zot hosts its own config (011) and is plain manifests (012); the cluster fetches
 | OCI source and Kustomization | `infrastructure/cert-manager/source.yaml` | in git on the branch |
 | From-git fallback | `bootstrap/cert-manager-from-git.yaml` | in git on the branch |
 | Orphan on the HelmReleases | `infrastructure/{cert-manager,external-dns}/release.yaml` | in git on the branch |
-| Artifact pushed and applied | zot, the cluster | not done |
-| HelmReleases removed | `infrastructure/` | not done; step 3 of the handover |
+| Artifact pushed and applied | zot, the cluster, 2026-10-06 20:41 UTC | done: `current@sha256:5c2889c5…`, unsigned; the 70 objects and the seven CRDs relabelled to the `cert-manager` Kustomization, `prune: disabled` on every CRD, six Certificates and the ClusterIssuer Ready, no pod restarted by the apply |
+| HelmReleases removed | `infrastructure/` | done the same evening, step 3 of the handover, after the read above |
 
-**Summary:** Built and rendered on 2026-10-06; applying is the handover in `artifacts/cert-manager/README.md`.
+**Summary:** Built, applied and handed over on 2026-10-06, with the forge outage of the same evening in between.
+helm-controller still runs envoy, zitadel, forgejo, CNPG and the static provisioner.
 
-**Action Required:** Run the handover's four steps, reading the cluster between each.
+**Action Required:** The chart mirror in zot, images by digest, the site signing key, and the next chart.
