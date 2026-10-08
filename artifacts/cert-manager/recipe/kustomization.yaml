@@ -5,7 +5,10 @@
 # over them, the rest one. The start-up check is a Helm hook, a Job that cannot be re-run once rendered, and is off.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: cert-manager
+# No namespace transformer: the charts set metadata.namespace on what they render and the hand-written files carry
+# their own, and one of them, the solver's authentication-reader RoleBinding, must stay in kube-system. A root
+# namespace rewrote it to cert-manager on 2026-10-06 and the real one was pruned; render.sh now refuses a namespaced
+# object without a namespace instead.
 resources:
   - namespace.yaml
   - clusterissuer.yaml
@@ -117,6 +120,17 @@ helmCharts:
           secret:
             secretName: nordhost-config
 patches:
+  # The ClusterIssuer is the one object every certificate renewal depends on; never pruned, whatever its inventory
+  # identity does across renders.
+  - target:
+      kind: ClusterIssuer
+    patch: |-
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: unused
+        annotations:
+          kustomize.toolkit.fluxcd.io/prune: disabled
   # The CRDs carry every Certificate in the cluster. No Kustomization, this one or the one that applied them before,
   # may prune them: deleting a CRD deletes its objects.
   - target:

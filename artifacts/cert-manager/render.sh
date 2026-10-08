@@ -27,6 +27,21 @@ if grep -l '^kind: Job$' "$tmp"/*.yaml; then
   exit 1
 fi
 
+# Every namespaced object must say its namespace: there is no namespace transformer, on purpose, because one object
+# of this recipe lives in kube-system and a transformer would move it (2026-10-06).
+missing=0
+for f in "$tmp"/*.yaml; do
+  kind=$(grep -m1 '^kind:' "$f" | cut -d' ' -f2)
+  case "$kind" in
+    CustomResourceDefinition|ClusterRole|ClusterRoleBinding|ClusterIssuer|Namespace|APIService| \
+    MutatingWebhookConfiguration|ValidatingWebhookConfiguration|PriorityClass|StorageClass) ;;
+    *)
+      grep -q '^  namespace:' "$f" || { echo "no namespace: ${f##*/}" >&2; missing=1; }
+      ;;
+  esac
+done
+[ "$missing" -eq 0 ] || exit 1
+
 {
   echo "# Written by render.sh; do not edit. One file per object, in the order kustomize emitted them."
   echo "apiVersion: kustomize.config.k8s.io/v1beta1"

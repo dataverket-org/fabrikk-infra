@@ -19,7 +19,6 @@ resources:
   - cert-manager_apps_v1_deployment_nordhost-webhook.yaml
   - cert-manager_cert-manager.io_v1_certificate_nordhost-webhook-ca.yaml
   - cert-manager_cert-manager.io_v1_certificate_nordhost-webhook-webhook-tls.yaml
-  - cert-manager_cert-manager.io_v1_clusterissuer_letsencrypt-prod.yaml
   - cert-manager_cert-manager.io_v1_issuer_nordhost-webhook-ca.yaml
   - cert-manager_cert-manager.io_v1_issuer_nordhost-webhook-selfsign.yaml
   - cert-manager_policy_v1_poddisruptionbudget_cert-manager-webhook.yaml
@@ -27,7 +26,6 @@ resources:
   - cert-manager_rbac.authorization.k8s.io_v1_role_cert-manager-webhook:dynamic-serving.yaml
   - cert-manager_rbac.authorization.k8s.io_v1_rolebinding_cert-manager-tokenrequest.yaml
   - cert-manager_rbac.authorization.k8s.io_v1_rolebinding_cert-manager-webhook:dynamic-serving.yaml
-  - cert-manager_rbac.authorization.k8s.io_v1_rolebinding_nordhost-webhook:webhook-authentication-reader.yaml
   - cert-manager_v1_configmap_cert-manager.yaml
   - cert-manager_v1_service_cert-manager-cainjector.yaml
   - cert-manager_v1_service_cert-manager-webhook.yaml
@@ -39,10 +37,12 @@ resources:
   - cert-manager_v1_serviceaccount_cert-manager.yaml
   - cert-manager_v1_serviceaccount_external-dns.yaml
   - cert-manager_v1_serviceaccount_nordhost-webhook.yaml
+  - default_cert-manager.io_v1_clusterissuer_letsencrypt-prod.yaml
   - kube-system_rbac.authorization.k8s.io_v1_role_cert-manager-cainjector:leaderelection.yaml
   - kube-system_rbac.authorization.k8s.io_v1_role_cert-manager:leaderelection.yaml
   - kube-system_rbac.authorization.k8s.io_v1_rolebinding_cert-manager-cainjector:leaderelection.yaml
   - kube-system_rbac.authorization.k8s.io_v1_rolebinding_cert-manager:leaderelection.yaml
+  - kube-system_rbac.authorization.k8s.io_v1_rolebinding_nordhost-webhook:webhook-authentication-reader.yaml
   - rbac.authorization.k8s.io_v1_clusterrole_cert-manager-cainjector.yaml
   - rbac.authorization.k8s.io_v1_clusterrole_cert-manager-cluster-view.yaml
   - rbac.authorization.k8s.io_v1_clusterrole_cert-manager-controller-approve:cert-manager-io.yaml
