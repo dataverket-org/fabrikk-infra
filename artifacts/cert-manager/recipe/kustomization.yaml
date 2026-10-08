@@ -97,6 +97,20 @@ helmCharts:
             - name: nordhost-config
               mountPath: /etc/nordhost
               readOnly: true
+          # The chart gives the webhook container no securityContext, so it fails the restricted PodSecurity
+          # profile (warned at every apply). The same shape as the chart's own external-dns container: a static Go
+          # binary reading one mounted file needs nothing more.
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
       # The DirectAdmin credentials Secret shared with nordhost-webhook, delivered encrypted next to rendered/.
       extraVolumes:
         - name: nordhost-config

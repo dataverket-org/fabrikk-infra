@@ -97,6 +97,18 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 65532
+          runAsNonRoot: true
+          runAsUser: 65532
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - mountPath: /etc/nordhost
           name: nordhost-config
