@@ -59,9 +59,37 @@ are the same; what changes is which controller owns them. What was done, and wha
    were deleted and recreated by the `cert-manager` Kustomization within seconds; the pods, orphaned, kept
    running, but their tokens belonged to the deleted ServiceAccounts, and the controller and cainjector crashed
    with `Unauthorized` until every pod was replaced. Certificates and the ClusterIssuer were never Helm's and were
-   untouched; the CRDs came from git and were untouched. The right way, for the next chart: one last upgrade of
-   the HelmRelease with a `postRenderers` kustomize patch that puts `helm.sh/resource-policy: keep` on every
-   object, read back on the live objects, and only then step 3. Helm then skips every kept object at uninstall.
+   untouched; the CRDs came from git and were untouched. The right way, for the next chart, is one last upgrade of
+   the HelmRelease that marks every object `keep`, so Helm's uninstall skips them all. Add to the HelmRelease:
+
+   ```yaml
+   spec:
+     postRenderers:
+       - kustomize:
+           patches:
+             - target:
+                 kind: ".*"          # every object the chart renders
+               patch: |-
+                 apiVersion: v1
+                 kind: Placeholder     # ignored: with a target, the patch applies to what the target matches
+                 metadata:
+                   name: placeholder
+                   annotations:
+                     helm.sh/resource-policy: keep
+   ```
+
+   The spec change makes helm-controller run an upgrade, which writes the annotation onto every live object.
+   Read it back before going on, on every kind the chart owns, Deployments, Services, ServiceAccounts, Roles,
+   RoleBindings, ConfigMaps, ClusterRoles, ClusterRoleBindings and webhook configurations:
+
+   ```sh
+   kubectl get deploy,svc,sa,cm,role,rolebinding -n <ns> \
+     -o jsonpath='{range .items[*]}{.kind}/{.metadata.name} {.metadata.annotations.helm\.sh/resource-policy}{"\n"}{end}'
+   ```
+
+   Every line must end in `keep`. Then step 3: at uninstall Helm reports the objects as kept and deletes only its
+   release history, and the pods keep ServiceAccounts that still exist. `uninstall.deletionPropagation` is left
+   at its default; it was never the right knob.
 3. **Remove the Helm path.** One commit: drop the component directories and the HelmRelease, HelmRepository, CRD
    download and namespace files from `infrastructure/`, leaving a `cert-manager/` with `source.yaml` alone. The
    `infrastructure` Kustomization prunes the HelmRelease and HelmRepository objects and nothing of what the
