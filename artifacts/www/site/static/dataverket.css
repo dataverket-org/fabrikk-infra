@@ -1,0 +1,84 @@
+/*
+ * dataverket.css - everything Dataverket adds on top of Designsystemet.
+ *
+ * The rule is that this file stays as short as possible. If you need a colour,
+ * a spacing or a radius: use a --ds-* variable from the generated theme. Never
+ * write a hex value here. If you are tempted to add a component, check first
+ * whether Designsystemet already has it:
+ * https://designsystemet.no/en/components
+ *
+ * Loaded AFTER @digdir/designsystemet-css and the generated theme.
+ */
+
+/* Our own layer goes after `ds`, so we win without raising specificity. */
+@layer ds, dataverket;
+
+@layer dataverket {
+  :root {
+    /* Designsystemet has no monospace token. Identifiers (IDs, IPs, CIDRs,
+     * hashes, image tags, durations) are always set in this face. */
+    --dvk-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* Designsystemet's own recommendation from the setup guide: 'cv05' gives
+   * lowercase l a tail, so l and 1 stop looking alike. That matters on a
+   * screen full of identifiers. */
+  body {
+    font-family: var(--ds-font-family), sans-serif;
+    font-feature-settings: "cv05" 1;
+  }
+
+  /* Identifiers. Our own prefix (dvk-, not ds-) so we do not collide if
+   * Designsystemet ever ships one of its own. */
+  .dvk-mono {
+    font-family: var(--dvk-font-mono);
+    font-feature-settings: normal;
+    font-variant-ligatures: none;
+  }
+
+  /* Inline SVGs, not <img>: CSS cannot reach inside one. ds-focus on the <a>.
+   *
+   *   <a class="dvk-brand ds-focus" href="/">
+   *     <svg class="dvk-brand-wide" ...>  logo + name
+   *     <svg class="dvk-brand-mark" ...>    logo alone
+   *   </a>
+   */
+  .dvk-brand {
+    align-items: center;
+    color: var(--ds-color-accent-text-default);
+    display: inline-flex;
+    text-decoration: none;
+  }
+
+  .dvk-brand > svg {
+    height: var(--dvk-brand-size, 32px);
+    width: auto;
+  }
+
+  /* Wide by default, logo alone when narrow. Same height, so nothing shifts. */
+  .dvk-brand > .dvk-brand-mark {
+    display: none;
+  }
+
+  @media (width < 30rem) {
+    .dvk-brand > .dvk-brand-wide {
+      display: none;
+    }
+
+    .dvk-brand > .dvk-brand-mark {
+      display: block;
+    }
+  }
+
+  /* htmx: dim the region being swapped while the request is in flight.
+   * htmx sets .htmx-request on the element carrying hx-* (or hx-indicator),
+   * so no JavaScript of ours is involved. */
+  .dvk-busy {
+    transition: opacity 120ms ease;
+  }
+
+  .dvk-busy.htmx-request {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}

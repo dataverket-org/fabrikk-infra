@@ -1,227 +1,141 @@
 <!DOCTYPE html>
-<html lang="nb">
+<html lang="nb" data-color-scheme="auto" data-size="md">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suveren sky: hva vi vil få til – Dataverket</title>
 <meta name="description" content="Kunnskap, suverenitet og overlevelse ved kriser. Hvorfor Norge trenger en suveren sky, og hva Dataverket bygger.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --papir: #EEF1F3;
-    --blekk: #101820;
-    --blaa: #0B4F8A;
-    --blaa-dyp: #073A66;
-    --blaa-lys: #D6E4F0;
-    --signal: #F2C230;
-    --graa: #5C6670;
-    --linje: #C7D0D8;
-    --maal: 66ch;
-    --display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
-    --tekst: "Source Serif 4", Georgia, "Times New Roman", serif;
-  }
-  * { box-sizing: border-box; }
-  html { background: var(--papir); color: var(--blekk); }
-  body {
-    margin: 0;
-    font-family: var(--tekst);
-    font-size: 1.125rem;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-  a { color: var(--blaa); text-underline-offset: 3px; }
-  a:focus-visible, button:focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; }
-
-  .ramme { width: min(100% - 2.5rem, 62rem); margin-inline: auto; }
-
-  /* Topplinje */
-  header.topp {
-    display: flex; justify-content: space-between; align-items: baseline;
-    padding: 1.25rem 0;
-    border-bottom: 1px solid var(--linje);
-    font-family: var(--display); font-weight: 600; font-size: 1.1rem;
-  }
-  header.topp a { color: var(--blekk); text-decoration: none; }
-  header.topp span { color: var(--graa); font-weight: 500; }
-
-  /* Hero */
-  .hero { padding: 4rem 0 3rem; display: grid; grid-template-columns: 1fr; gap: 2.5rem; }
-  .hero h1 {
-    font-family: var(--display); font-weight: 600;
-    font-size: clamp(2.6rem, 7vw, 5rem); line-height: 0.98; letter-spacing: -0.01em;
-    margin: 0 0 1.25rem;
-  }
-  .hero h1 span { display: block; }
-  .hero h1 .felles { color: var(--blaa); }
-  .hero p.ingress {
-    font-size: 1.3rem; line-height: 1.5; max-width: 34ch; margin: 0;
-  }
-  .hero .signal { width: 4rem; height: 0.5rem; background: var(--signal); margin-bottom: 1.5rem; }
-
-  /* Diagram */
-  figure.modell { margin: 0; }
-  figure.modell svg { width: 100%; height: auto; display: block; }
-  figure.modell figcaption { font-size: 0.9rem; color: var(--graa); margin-top: 0.75rem; max-width: 46ch; }
-
-  /* Brødtekst */
-  .innledning { padding: 2rem 0 1rem; border-top: 1px solid var(--linje); }
-  .innledning p { max-width: var(--maal); }
-
-  section.grunn {
-    display: grid; grid-template-columns: 1fr; gap: 0.5rem 3rem;
-    padding: 2.25rem 0; border-top: 1px solid var(--linje);
-  }
-  section.grunn h2 {
-    font-family: var(--display); font-weight: 600; font-size: 1.9rem; line-height: 1.05;
-    margin: 0; color: var(--blaa);
-  }
-  section.grunn p { margin: 0; max-width: var(--maal); }
-  section.grunn p + p { margin-top: 1rem; }
-
-  /* Dataverket-blokk */
-  .dataverket {
-    background: var(--blaa-dyp); color: #fff; margin-top: 2rem;
-  }
-  .dataverket .ramme { padding: 3rem 0; }
-  .dataverket h2 {
-    font-family: var(--display); font-weight: 600; font-size: 2.2rem; margin: 0 0 1rem; line-height: 1.05;
-  }
-  .dataverket p { max-width: var(--maal); margin: 0 0 1rem; }
-  .dataverket a { color: #fff; }
-  .dataverket p.kall { font-family: var(--display); font-size: 1.5rem; font-weight: 600; margin-top: 1.75rem; }
-  .knapper { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
-  .knapp {
-    font-family: var(--display); font-weight: 600; font-size: 1.05rem;
-    padding: 0.75rem 1.25rem; text-decoration: none; border: 2px solid #fff; border-radius: 3px;
-    display: inline-block;
-  }
-  .knapp.primaer { background: #fff; color: var(--blaa-dyp); }
-  .knapp.sekundaer { background: transparent; color: #fff; }
-  .knapp:hover { background: var(--signal); border-color: var(--signal); color: var(--blekk); }
-
-  footer.bunn {
-    padding: 1.5rem 0 2.5rem; color: var(--graa); font-size: 0.9rem;
-    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
-  }
-
-  @media (min-width: 52rem) {
-    .hero { grid-template-columns: 3fr 2fr; align-items: end; }
-    section.grunn { grid-template-columns: 14rem 1fr; }
-    section.grunn h2 { position: sticky; top: 1.5rem; }
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .knapp { transition: background-color 120ms ease, color 120ms ease; }
-  }
-</style>
+<meta name="text-scale" content="scale">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/fonts/inter.css">
+<link rel="stylesheet" href="/static/designsystemet.css">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/dataverket.css">
+<link rel="stylesheet" href="/site.css">
 </head>
 <body>
 
 <div class="ramme">
   <header class="topp">
-    <a href="https://dataverket.org">Dataverket</a>
-    <span>Kunnskap, åpen kildekode, suverenitet</span>
+    <a class="dvk-brand ds-focus" style="--dvk-brand-size: 32px" href="https://dataverket.org">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="29 120 5188.54 1025" fill="currentColor" class="dvk-brand-wide" role="img">
+  <title>Dataverket</title>
+  <path d="M89 120H249V250H349V120H499V250H599V120H759V280L699 380L710 617H476V517A52 52 0 0 0 372 517V617H138L149 380L89 280Z"/><rect x="29" y="685" width="791" height="196" rx="48"/><rect x="29" y="949" width="791" height="196" rx="48"/>
+  <path data-text="true" d="M1321.66 919.5L1176.42 919.5L1176.42 830.51L1316.65 830.51Q1376.75 830.51 1417 808.36Q1457.26 786.21 1477.68 742.1Q1498.1 697.99 1498.1 631.73Q1498.1 566.24 1477.68 522.32Q1457.26 478.41 1417.77 456.45Q1378.29 434.49 1319.35 434.49L1173.34 434.49L1173.34 345.5L1325.51 345.5Q1411.03 345.5 1472.29 379.79Q1533.54 414.07 1566.48 478.41Q1599.41 542.74 1599.41 631.73Q1599.41 721.49 1566.48 786.02Q1533.54 850.54 1471.32 885.02Q1409.11 919.5 1321.66 919.5ZM1230.36 345.5L1230.36 919.5L1127.5 919.5L1127.5 345.5Z M1812.83 928.36Q1772 928.36 1739.25 913.53Q1706.51 898.7 1687.63 869.8Q1668.76 840.91 1668.76 798.54Q1668.76 761.94 1682.43 738.05Q1696.11 714.17 1719.41 699.92Q1742.72 685.66 1772 678.34Q1801.28 671.02 1832.87 667.94Q1870.23 663.7 1893.73 660.62Q1917.23 657.54 1928.21 650.61Q1939.19 643.67 1939.19 629.03L1939.19 627.11Q1939.19 605.92 1930.71 591.09Q1922.24 576.26 1905.48 568.36Q1888.72 560.46 1864.07 560.46Q1839.03 560.46 1820.73 568.17Q1802.43 575.87 1790.87 588.2Q1779.32 600.53 1773.92 614.78L1681.08 595.9Q1693.8 557.76 1720.38 532.92Q1746.96 508.07 1783.75 495.74Q1820.54 483.41 1863.68 483.41Q1894.12 483.41 1925.13 490.54Q1956.14 497.67 1981.95 514.62Q2007.76 531.57 2023.56 560.08Q2039.35 588.58 2039.35 631.73L2039.35 919.5L1943.43 919.5L1943.43 860.17L1939.58 860.17Q1929.94 878.28 1913.19 893.88Q1896.43 909.48 1871.58 918.92Q1846.73 928.36 1812.83 928.36ZM1838.64 854.01Q1869.85 854.01 1892.38 841.68Q1914.92 829.36 1927.44 809.13Q1939.96 788.91 1939.96 765.02L1939.96 714.17Q1934.95 718.02 1923.2 721.49Q1911.45 724.96 1897.01 727.65Q1882.56 730.35 1868.5 732.28Q1854.44 734.2 1844.81 735.36Q1822.46 738.44 1804.36 745.37Q1786.25 752.31 1776.04 764.83Q1765.83 777.35 1765.83 797.38Q1765.83 815.87 1775.27 828.39Q1784.71 840.91 1801.08 847.46Q1817.46 854.01 1838.64 854.01Z M2344.84 488.81L2344.84 567.4L2100.22 567.4L2100.22 488.81ZM2161.47 386.33L2261.63 386.33L2261.63 798.15Q2261.63 821.65 2271.65 832.63Q2281.66 843.61 2304.39 843.61Q2311.33 843.61 2322.69 841.88Q2334.06 840.14 2340.99 838.6L2356.78 916.03Q2340.22 921.04 2322.88 923.16Q2305.55 925.28 2289.75 925.28Q2227.73 925.28 2194.6 894.46Q2161.47 863.64 2161.47 806.63Z M2548.25 928.36Q2507.41 928.36 2474.67 913.53Q2441.92 898.7 2423.04 869.8Q2404.17 840.91 2404.17 798.54Q2404.17 761.94 2417.84 738.05Q2431.52 714.17 2454.83 699.92Q2478.13 685.66 2507.41 678.34Q2536.69 671.02 2568.28 667.94Q2605.65 663.7 2629.15 660.62Q2652.64 657.54 2663.62 650.61Q2674.6 643.67 2674.6 629.03L2674.6 627.11Q2674.6 605.92 2666.13 591.09Q2657.65 576.26 2640.9 568.36Q2624.14 560.46 2599.48 560.46Q2574.44 560.46 2556.14 568.17Q2537.84 575.87 2526.29 588.2Q2514.73 600.53 2509.34 614.78L2416.5 595.9Q2429.21 557.76 2455.79 532.92Q2482.37 508.07 2519.16 495.74Q2555.95 483.41 2599.1 483.41Q2629.53 483.41 2660.54 490.54Q2691.55 497.67 2717.36 514.62Q2743.18 531.57 2758.97 560.08Q2774.76 588.58 2774.76 631.73L2774.76 919.5L2678.84 919.5L2678.84 860.17L2674.99 860.17Q2665.36 878.28 2648.6 893.88Q2631.84 909.48 2606.99 918.92Q2582.15 928.36 2548.25 928.36ZM2574.06 854.01Q2605.26 854.01 2627.8 841.68Q2650.33 829.36 2662.85 809.13Q2675.37 788.91 2675.37 765.02L2675.37 714.17Q2670.37 718.02 2658.62 721.49Q2646.87 724.96 2632.42 727.65Q2617.97 730.35 2603.91 732.28Q2589.85 734.2 2580.22 735.36Q2557.88 738.44 2539.77 745.37Q2521.67 752.31 2511.46 764.83Q2501.25 777.35 2501.25 797.38Q2501.25 815.87 2510.69 828.39Q2520.12 840.91 2536.5 847.46Q2552.87 854.01 2574.06 854.01Z M2990.11 919.5L2829.85 488.81L2936.95 488.81L3015.54 723.03Q3029.4 764.25 3039.42 805.86Q3049.44 847.46 3059.84 890.22L3034.8 890.22Q3045.58 847.46 3055.41 805.86Q3065.23 764.25 3078.71 723.03L3156.92 488.81L3263.24 488.81L3102.21 919.5Z M3506.71 928.36Q3441.61 928.36 3394.8 901.01Q3347.99 873.66 3322.76 823.96Q3297.53 774.27 3297.53 706.85Q3297.53 640.2 3322.38 590.12Q3347.22 540.04 3392.87 511.73Q3438.52 483.41 3500.16 483.41Q3539.46 483.41 3575.09 496.13Q3610.72 508.84 3638.27 535.42Q3665.81 562 3681.41 603.03Q3697.02 644.06 3697.02 700.69L3697.02 732.28L3344.91 732.28L3344.91 664.09L3647.32 664.09L3600.32 684.12Q3600.32 647.91 3589.15 620.37Q3577.98 592.82 3555.83 577.41Q3533.68 562 3500.55 562Q3467.42 562 3444.3 577.6Q3421.19 593.21 3409.05 619.21Q3396.92 645.21 3396.92 677.19L3396.92 724.19Q3396.92 765.02 3410.79 793.14Q3424.66 821.27 3449.7 835.52Q3474.74 849.77 3507.87 849.77Q3529.82 849.77 3547.74 843.42Q3565.65 837.06 3578.75 824.54Q3591.85 812.02 3598.4 793.91L3690.47 812.79Q3680.07 847.46 3655.03 873.46Q3629.99 899.47 3592.43 913.91Q3554.87 928.36 3506.71 928.36Z M3782.92 919.5L3782.92 488.81L3880 488.81L3880 560.85L3884.63 560.85Q3896.18 523.48 3925.08 503.25Q3953.97 483.03 3990.95 483.03Q3999.43 483.03 4009.83 483.8Q4020.23 484.57 4027.55 485.73L4027.55 577.8Q4021.38 575.87 4007.52 574.33Q3993.65 572.79 3980.16 572.79Q3952.43 572.79 3930.28 584.73Q3908.13 596.67 3895.61 617.67Q3883.09 638.66 3883.09 666.02L3883.09 919.5Z M4200.13 783.9L4200.13 662.55L4215.93 662.55L4371.18 488.81L4488.67 488.81L4298.37 701.07L4277.57 701.07ZM4108.45 919.5L4108.45 345.5L4208.61 345.5L4208.61 919.5ZM4378.5 919.5L4237.5 723.42L4305.3 652.53L4498.69 919.5Z M4730.22 928.36Q4665.11 928.36 4618.31 901.01Q4571.5 873.66 4546.27 823.96Q4521.03 774.27 4521.03 706.85Q4521.03 640.2 4545.88 590.12Q4570.73 540.04 4616.38 511.73Q4662.03 483.41 4723.67 483.41Q4762.96 483.41 4798.6 496.13Q4834.23 508.84 4861.77 535.42Q4889.32 562 4904.92 603.03Q4920.52 644.06 4920.52 700.69L4920.52 732.28L4568.42 732.28L4568.42 664.09L4870.83 664.09L4823.83 684.12Q4823.83 647.91 4812.66 620.37Q4801.49 592.82 4779.33 577.41Q4757.18 562 4724.05 562Q4690.92 562 4667.81 577.6Q4644.69 593.21 4632.56 619.21Q4620.42 645.21 4620.42 677.19L4620.42 724.19Q4620.42 765.02 4634.29 793.14Q4648.16 821.27 4673.2 835.52Q4698.24 849.77 4731.37 849.77Q4753.33 849.77 4771.24 843.42Q4789.16 837.06 4802.26 824.54Q4815.35 812.02 4821.9 793.91L4913.97 812.79Q4903.57 847.46 4878.53 873.46Q4853.49 899.47 4815.93 913.91Q4778.37 928.36 4730.22 928.36Z M5205.6 488.81L5205.6 567.4L4960.97 567.4L4960.97 488.81ZM5022.22 386.33L5122.39 386.33L5122.39 798.15Q5122.39 821.65 5132.4 832.63Q5142.42 843.61 5165.15 843.61Q5172.08 843.61 5183.45 841.88Q5194.81 840.14 5201.74 838.6L5217.54 916.03Q5200.97 921.04 5183.64 923.16Q5166.3 925.28 5150.51 925.28Q5088.49 925.28 5055.36 894.46Q5022.22 863.64 5022.22 806.63Z"/>
+</svg>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 848 1269" fill="currentColor" class="dvk-brand-mark" role="img">
+  <title>Dataverket</title>
+  <path d="M89 120H249V250H349V120H499V250H599V120H759V280L699 380L710 617H476V517A52 52 0 0 0 372 517V617H138L149 380L89 280Z"/><rect x="29" y="685" width="791" height="196" rx="48"/><rect x="29" y="949" width="791" height="196" rx="48"/>
+</svg>
+    </a>
+    <span class="ds-paragraph" data-size="sm">Kunnskap, åpen kildekode, suverenitet</span>
   </header>
+</div>
+
+<main id="main">
+<div class="ramme">
 
   <div class="hero">
     <div>
       <div class="signal" aria-hidden="true"></div>
-      <h1>
+      <h1 class="ds-heading" data-size="2xl">
         <span>Ikke offentlig.</span>
         <span>Ikke privat.</span>
         <span class="felles">Felles.</span>
       </h1>
-      <p class="ingress">Hva vi vil få til med en suveren sky, og hvorfor Norge trenger den nå.</p>
+      <p class="ingress ds-paragraph" data-size="lg">Hva vi vil få til med en suveren sky, og hvorfor Norge trenger den nå.</p>
     </div>
 
     <figure class="modell">
       <svg viewBox="0 0 400 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="modell-tittel">
         <title id="modell-tittel">Tre aktører som hver eier sin infrastruktur, knyttet sammen av et felles tillitsrammeverk</title>
-        <g font-family="Barlow Semi Condensed, Arial Narrow, sans-serif" font-weight="600" font-size="15">
+        <g font-weight="600" font-size="15">
           <!-- Felles rammeverk -->
-          <rect x="20" y="20" width="360" height="54" rx="3" fill="#0B4F8A"/>
-          <text x="200" y="45" text-anchor="middle" fill="#fff">Felles kode, standarder og tillit</text>
-          <text x="200" y="64" text-anchor="middle" fill="#D6E4F0" font-weight="500" font-size="13">eid av samvirket, åpen kildekode</text>
+          <rect class="felt" x="20" y="20" width="360" height="54" rx="8"/>
+          <text x="200" y="45" text-anchor="middle" class="felt-tittel">Felles kode, standarder og tillit</text>
+          <text x="200" y="64" text-anchor="middle" class="felt-under" font-weight="500" font-size="13">eid av samvirket, åpen kildekode</text>
           <!-- Linjer -->
-          <line x1="80" y1="74" x2="80" y2="124" stroke="#0B4F8A" stroke-width="3"/>
-          <line x1="200" y1="74" x2="200" y2="124" stroke="#0B4F8A" stroke-width="3"/>
-          <line x1="320" y1="74" x2="320" y2="124" stroke="#0B4F8A" stroke-width="3"/>
+          <line x1="80" y1="74" x2="80" y2="124" class="bro" stroke-width="3"/>
+          <line x1="200" y1="74" x2="200" y2="124" class="bro" stroke-width="3"/>
+          <line x1="320" y1="74" x2="320" y2="124" class="bro" stroke-width="3"/>
           <!-- Aktører -->
-          <rect x="20" y="124" width="116" height="122" rx="3" fill="#fff" stroke="#C7D0D8" stroke-width="1.5"/>
-          <text x="78" y="152" text-anchor="middle" fill="#101820">Privat</text>
-          <text x="78" y="171" text-anchor="middle" fill="#101820">leverandør</text>
-          <line x1="40" y1="186" x2="116" y2="186" stroke="#D6E4F0" stroke-width="1.5"/>
-          <text x="78" y="209" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">egne rack,</text>
-          <text x="78" y="228" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">egne kunder</text>
+          <rect x="20" y="124" width="116" height="122" rx="8" class="aktor" stroke-width="1.5"/>
+          <text x="78" y="152" text-anchor="middle" class="aktor-navn">Privat</text>
+          <text x="78" y="171" text-anchor="middle" class="aktor-navn">leverandør</text>
+          <line x1="40" y1="186" x2="116" y2="186" class="aktor-skille" stroke-width="1.5"/>
+          <text x="78" y="209" text-anchor="middle" class="aktor-tekst" font-weight="500" font-size="14">egne rack,</text>
+          <text x="78" y="228" text-anchor="middle" class="aktor-tekst" font-weight="500" font-size="14">egne kunder</text>
 
-          <rect x="142" y="124" width="116" height="122" rx="3" fill="#fff" stroke="#C7D0D8" stroke-width="1.5"/>
-          <text x="200" y="152" text-anchor="middle" fill="#101820">Offentlig</text>
-          <text x="200" y="171" text-anchor="middle" fill="#101820">virksomhet</text>
-          <line x1="162" y1="186" x2="238" y2="186" stroke="#D6E4F0" stroke-width="1.5"/>
-          <text x="200" y="209" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">eget</text>
-          <text x="200" y="228" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">datasenter</text>
+          <rect x="142" y="124" width="116" height="122" rx="8" class="aktor" stroke-width="1.5"/>
+          <text x="200" y="152" text-anchor="middle" class="aktor-navn">Offentlig</text>
+          <text x="200" y="171" text-anchor="middle" class="aktor-navn">virksomhet</text>
+          <line x1="162" y1="186" x2="238" y2="186" class="aktor-skille" stroke-width="1.5"/>
+          <text x="200" y="209" text-anchor="middle" class="aktor-tekst" font-weight="500" font-size="14">eget</text>
+          <text x="200" y="228" text-anchor="middle" class="aktor-tekst" font-weight="500" font-size="14">datasenter</text>
 
-          <rect x="264" y="124" width="116" height="122" rx="3" fill="#fff" stroke="#C7D0D8" stroke-width="1.5"/>
-          <text x="322" y="152" text-anchor="middle" fill="#101820">Kunde</text>
-          <text x="322" y="171" text-anchor="middle" fill="#101820">med behov</text>
-          <line x1="284" y1="186" x2="360" y2="186" stroke="#D6E4F0" stroke-width="1.5"/>
-          <text x="322" y="209" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">én identitet,</text>
-          <text x="322" y="228" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">flere leverandører</text>
+          <rect x="264" y="124" width="116" height="122" rx="8" class="aktor" stroke-width="1.5"/>
+          <text x="322" y="152" text-anchor="middle" class="aktor-navn">Kunde</text>
+          <text x="322" y="171" text-anchor="middle" class="aktor-navn">med behov</text>
+          <line x1="284" y1="186" x2="360" y2="186" class="aktor-skille" stroke-width="1.5"/>
+          <text x="322" y="209" text-anchor="middle" class="aktor-tekst" font-weight="500" font-size="14">én identitet,</text>
+          <text x="322" y="228" text-anchor="middle" class="aktor-tekst" font-weight="500" font-size="14">flere leverandører</text>
           <!-- Signal -->
-          <rect x="20" y="266" width="60" height="6" fill="#F2C230"/>
+          <rect class="merke" x="20" y="266" width="60" height="6" rx="3"/>
         </g>
       </svg>
-      <figcaption>Hver aktør eier sin infrastruktur. Det de deler, er det som lar dem jobbe sammen.</figcaption>
+      <figcaption class="ds-paragraph" data-size="sm">Hver aktør eier sin infrastruktur. Det de deler, er det som lar dem jobbe sammen.</figcaption>
     </figure>
   </div>
 
   <div class="innledning">
-    <p>Norge kjøper kritisk digital infrastruktur fra utlandet. Vi gjør det fordi alternativene er dårlige: enten gi suvereniteten bort til en hyperscaler, eller bygge alt selv. Det siste klarer nesten ingen. Slik trenger det ikke å være.</p>
-    <p>En suveren sky er ikke en privat sky, og den er ikke en offentlig sky. Den er noe tredje: en felles plattform som lar offentlige og private aktører samhandle uten at noen mister kontroll. Hver leverandør eier sin infrastruktur og sine kunder. Det de deler, er koden, standardene og tillitsrammeverket som gjør at de kan jobbe sammen. Tenk FEIDE, men for maskiner, nett og lagring.</p>
-    <p>Tre grunner bærer dette.</p>
+    <p class="ds-paragraph" data-variant="long">Norge kjøper kritisk digital infrastruktur fra utlandet. Vi gjør det fordi alternativene er dårlige: enten gi suvereniteten bort til en hyperscaler, eller bygge alt selv. Det siste klarer nesten ingen. Slik trenger det ikke å være.</p>
+    <p class="ds-paragraph" data-variant="long">En suveren sky er ikke en privat sky, og den er ikke en offentlig sky. Den er noe tredje: en felles plattform som lar offentlige og private aktører samhandle uten at noen mister kontroll. Hver leverandør eier sin infrastruktur og sine kunder. Det de deler, er koden, standardene og tillitsrammeverket som gjør at de kan jobbe sammen. Tenk FEIDE, men for maskiner, nett og lagring.</p>
+    <p class="ds-paragraph" data-variant="long">Tre grunner bærer dette.</p>
   </div>
 
   <section class="grunn">
-    <h2>Kunnskap</h2>
+    <h2 class="ds-heading" data-size="sm">Kunnskap</h2>
     <div>
-      <p>Kompetansen til å bygge og drifte datasenter finnes i Norge, men den er spredt og ofte innelåst. Vi har gode åpne plattformer på applikasjonslaget, som NAIS, Aurora, Altinn Studio og Dapla, men alle forutsetter at noen andre leverer laget under. Det laget mangler i norsk åpen kildekode. Evnen til å bygge det må deles og eies i fellesskap, ikke kjøpes inn på nytt hver gang.</p>
+      <p class="ds-paragraph" data-variant="long">Kompetansen til å bygge og drifte datasenter finnes i Norge, men den er spredt og ofte innelåst. Vi har gode åpne plattformer på applikasjonslaget, som NAIS, Aurora, Altinn Studio og Dapla, men alle forutsetter at noen andre leverer laget under. Det laget mangler i norsk åpen kildekode. Evnen til å bygge det må deles og eies i fellesskap, ikke kjøpes inn på nytt hver gang.</p>
     </div>
   </section>
 
   <section class="grunn">
-    <h2>Suverenitet</h2>
+    <h2 class="ds-heading" data-size="sm">Suverenitet</h2>
     <div>
-      <p>Suverenitet er ikke et slagord, men egenskaper som kan etterprøves: data under norsk rett, drift i Norge, kode eid av en norsk stiftelse, prioriteringer styrt av medlemmene. Åpen kildekode er forutsetningen. Bare da kan sikkerhetspåstander sjekkes av andre enn leverandøren, og bare da kan etterlevelse av NSMs grunnprinsipper, CRA og EUs rammeverk for suveren sky faktisk dokumenteres.</p>
-      <p>Suverenitet er ikke autarki. Vi bruker det globale åpne økosystemet, men helheten styres herfra.</p>
+      <p class="ds-paragraph" data-variant="long">Suverenitet er ikke et slagord, men egenskaper som kan etterprøves: data under norsk rett, drift i Norge, kode eid av en norsk stiftelse, prioriteringer styrt av medlemmene. Åpen kildekode er forutsetningen. Bare da kan sikkerhetspåstander sjekkes av andre enn leverandøren, og bare da kan etterlevelse av NSMs grunnprinsipper, CRA og EUs rammeverk for suveren sky faktisk dokumenteres.</p>
+      <p class="ds-paragraph" data-variant="long">Suverenitet er ikke autarki. Vi bruker det globale åpne økosystemet, men helheten styres herfra.</p>
     </div>
   </section>
 
   <section class="grunn">
-    <h2>Overlevelse ved kriser</h2>
+    <h2 class="ds-heading" data-size="sm">Overlevelse ved kriser</h2>
     <div>
-      <p>Ekomloven krever forsvarlig sikkerhet i fred, krise og krig. Nkom kan i en krise pålegge datasentre nasjonal autonomi: drift med folk og teknikk på norsk jord, uten utenlandske ressurser. Det går ikke hvis kontrollplanet, koden og kompetansen ligger et annet sted.</p>
-      <p>En suveren sky er beredskap i praksis: infrastruktur som kan repareres og gjenopprettes av folk her, med kode vi kan lese og endre, den dagen forbindelsen ut er brutt eller ikke lenger til å stole på.</p>
+      <p class="ds-paragraph" data-variant="long">Ekomloven krever forsvarlig sikkerhet i fred, krise og krig. Nkom kan i en krise pålegge datasentre nasjonal autonomi: drift med folk og teknikk på norsk jord, uten utenlandske ressurser. Det går ikke hvis kontrollplanet, koden og kompetansen ligger et annet sted.</p>
+      <p class="ds-paragraph" data-variant="long">En suveren sky er beredskap i praksis: infrastruktur som kan repareres og gjenopprettes av folk her, med kode vi kan lese og endre, den dagen forbindelsen ut er brutt eller ikke lenger til å stole på.</p>
     </div>
   </section>
 </div>
 
 <div class="dataverket">
   <div class="ramme">
-    <h2>Dataverket bygger dette</h2>
-    <p>Et samvirke der leverandører, kunder og enkeltpersoner har lik stemme, og en stiftelse som eier koden åpent. Samvirket eier ikke kapasitet og selger ikke tjenester. Det utvikler plattformen og tillitsrammeverket.</p>
-    <p>Første leveranse er suveren bare metal og KI-cluster for norske datasenterleverandører. Koden ligger åpent på <a href="https://git.dataverket.org">git.dataverket.org</a>. Et åpent diskusjonsforum er planlagt. Fram til det er oppe, ta kontakt på <a href="mailto:hallo@dataverket.org">hallo@dataverket.org</a>.</p>
-    <p class="kall">Bli med å bygge norsk sky med åpen kildekode.</p>
+    <h2 class="ds-heading" data-size="sm">Dataverket bygger dette</h2>
+    <p class="ds-paragraph" data-variant="long">Et samvirke der leverandører, kunder og enkeltpersoner har lik stemme, og en stiftelse som eier koden åpent. Samvirket eier ikke kapasitet og selger ikke tjenester. Det utvikler plattformen og tillitsrammeverket.</p>
+    <p class="ds-paragraph" data-variant="long">Første leveranse er suveren bare metal og KI-cluster for norske datasenterleverandører. Koden ligger åpent på <a class="ds-link" href="https://git.dataverket.org">git.dataverket.org</a>. Et åpent diskusjonsforum er planlagt. Fram til det er oppe, ta kontakt på <a class="ds-link" href="mailto:hallo@dataverket.org">hallo@dataverket.org</a>.</p>
+    <p class="kall ds-paragraph" data-size="lg">Bli med å bygge norsk sky med åpen kildekode.</p>
     <div class="knapper">
-      <a class="knapp primaer" href="mailto:hallo@dataverket.org">Ta kontakt</a>
-      <a class="knapp sekundaer" href="https://git.dataverket.org">Se koden</a>
+      <a class="ds-button" data-variant="primary" href="mailto:hallo@dataverket.org">Ta kontakt</a>
+      <a class="ds-button" data-variant="secondary" href="https://git.dataverket.org">Se koden</a>
     </div>
   </div>
 </div>
 
+</main>
+
 <div class="ramme">
   <footer class="bunn">
-    <span>Jan Ivar Beddari, Dataverket. September 2026.</span>
-    <span>Tekst under CC BY-SA 4.0</span>
+    <span class="ds-paragraph" data-size="sm">Jan Ivar Beddari, Dataverket. September 2026.</span>
+    <span class="ds-paragraph" data-size="sm">Tekst under CC BY-SA 4.0</span>
   </footer>
 </div>
 

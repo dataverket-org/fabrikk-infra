@@ -7,9 +7,3 @@ resources:
   - ./deployment.yaml
   - ./service.yaml
   - ./httproute.yaml
-# The website; the name carries a hash of the content, so a changed page rolls the Deployment (README.md).
-configMapGenerator:
-  - name: www-site
-    namespace: www
-    files:
-      - ./site/index.html

@@ -1,5 +1,6 @@
 #!/bin/sh
-# Pushes this directory, as it is, as the www artifact, into zot. Flux pulls it (apps/www/source.yaml).
+# Pushes the website image (site.sh) and then this directory, as it is, as the www artifact, into zot. Flux pulls
+# the artifact (apps/www/source.yaml); the pods pull the image.
 # After a rebuild zot comes back empty (docs/storage.md, "Rebuild from git"): run this again from the checkout, and
 # Flux applies it; there is no from-git fallback, since nothing here is needed to bring zot back.
 #
@@ -8,7 +9,7 @@
 set -eu
 cd "$(dirname "$0")"
 
-for tool in flux sops git jq; do
+for tool in flux sops git jq crane bsdtar; do
   command -v "$tool" >/dev/null || { echo "$tool not on PATH (fabrikk pins flux under _tools/bin: PATH=\$HOME/kode/fabrikk/_tools/bin:\$PATH)" >&2; exit 1; }
 done
 
@@ -24,13 +25,16 @@ fi
 user=$(sops -d --extract '["stringData"]["username"]' ../zot/zot-ci-credentials.enc.yaml)
 password=$(sops -d --extract '["stringData"]["password"]' ../zot/zot-ci-credentials.enc.yaml)
 
+# The website first: the manifests name its digest, so it must be in zot before they are.
+user=$user password=$password ./site.sh --push
+
 pushed=$(flux push artifact "$repo:$rev" \
   --creds "$user:$password" \
   --path . \
   --source "$source" \
   --revision "main@sha1:$rev" \
   --reproducible \
-  --ignore-paths push.sh,README.md \
+  --ignore-paths push.sh,site.sh,README.md,site/ \
   --output json)
 digest_url=$(printf '%s' "$pushed" | jq -r '.repository + "@" + .digest')
 echo "pushed $digest_url"

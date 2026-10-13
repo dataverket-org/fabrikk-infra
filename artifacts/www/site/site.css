@@ -1,0 +1,183 @@
+/*
+ * site.css - the layout of www.dataverket.org.
+ *
+ * Designsystemet ships components and tokens, not page layout; this is the layout. Tokens only: every colour,
+ * spacing and radius is a --ds-* variable from static/theme.css, so the page follows data-color-scheme into dark
+ * without a second palette. Loaded after static/dataverket.css, in a layer of its own after it.
+ */
+@layer ds, dataverket, site;
+
+@layer site {
+  body {
+    background: var(--ds-color-neutral-background-default);
+    color: var(--ds-color-neutral-text-default);
+    margin: 0;
+  }
+
+  .ramme {
+    margin-inline: auto;
+    width: min(100% - 2 * var(--ds-size-5), 62rem);
+  }
+
+  /* One vertical rhythm, from the owl selector alone: blocks never carry a margin of their own. */
+  .ramme > * + *,
+  .innledning > * + *,
+  .grunn > div > * + *,
+  .dataverket .ramme > * + * {
+    margin-top: var(--ds-size-5);
+  }
+
+  :where(h1, h2, p, figure) {
+    margin: 0;
+  }
+
+  /* Header: the brand link and the line beside it. */
+  header.topp {
+    align-items: center;
+    border-bottom: var(--ds-border-width-default) solid var(--ds-color-neutral-border-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-size-3) var(--ds-size-6);
+    justify-content: space-between;
+    padding-block: var(--ds-size-5);
+  }
+
+  header.topp > span {
+    color: var(--ds-color-neutral-text-subtle);
+  }
+
+  /* Hero: the claim beside the model, stacked when narrow. */
+  .hero {
+    align-items: center;
+    display: grid;
+    gap: var(--ds-size-10);
+    grid-template-columns: 1fr;
+    padding-block: var(--ds-size-12) var(--ds-size-10);
+  }
+
+  @media (width >= 56rem) {
+    .hero {
+      grid-template-columns: 1.1fr 1fr;
+    }
+  }
+
+  /* The red rule: brand1 is identity, and a rule is one of the places it belongs. */
+  .signal {
+    background: var(--ds-color-brand1-base-default);
+    border-radius: var(--ds-border-radius-full);
+    height: var(--ds-size-2);
+    margin-bottom: var(--ds-size-6);
+    width: var(--ds-size-15);
+  }
+
+  .hero h1 > span {
+    display: block;
+  }
+
+  /* base, not text: brand1's text token goes near-white in dark, and the emphasis with it. */
+  .hero h1 > .felles {
+    color: var(--ds-color-brand1-base-default);
+  }
+
+  /* 2xl keeps each line of the claim whole down to a phone; below that, one step down. */
+  @media (width < 30rem) {
+    .hero h1 {
+      font-size: var(--ds-font-size-9);
+    }
+  }
+
+  .hero .ingress {
+    color: var(--ds-color-neutral-text-subtle);
+    margin-top: var(--ds-size-6);
+    max-width: 34ch;
+  }
+
+  /* The model. Its shapes are classed, not painted, so it changes scheme with the page. */
+  .modell {
+    background: var(--ds-color-neutral-background-tinted);
+    border: var(--ds-border-width-default) solid var(--ds-color-neutral-border-subtle);
+    border-radius: var(--ds-border-radius-lg);
+    padding: var(--ds-size-6);
+  }
+
+  .modell svg {
+    display: block;
+    height: auto;
+    width: 100%;
+  }
+
+  .modell svg g {
+    font-family: var(--ds-font-family), sans-serif;
+  }
+
+  .modell .felt { fill: var(--ds-color-accent-base-default); }
+  .modell .felt-tittel { fill: var(--ds-color-accent-base-contrast-default); }
+  .modell .felt-under { fill: var(--ds-color-accent-base-contrast-subtle); }
+  .modell .bro { stroke: var(--ds-color-accent-base-default); }
+  .modell .aktor {
+    fill: var(--ds-color-neutral-surface-default);
+    stroke: var(--ds-color-neutral-border-default);
+  }
+  .modell .aktor-navn { fill: var(--ds-color-neutral-text-default); }
+  .modell .aktor-skille { stroke: var(--ds-color-accent-border-subtle); }
+  /* Inter runs wider than the condensed face the model was drawn for; one step down keeps it in its box. */
+  .modell .aktor-tekst { fill: var(--ds-color-neutral-text-subtle); font-size: 12.5px; }
+  .modell .merke { fill: var(--ds-color-brand1-base-default); }
+
+  .modell figcaption {
+    color: var(--ds-color-neutral-text-subtle);
+    margin-top: var(--ds-size-4);
+  }
+
+  .innledning {
+    border-top: var(--ds-border-width-default) solid var(--ds-color-neutral-border-subtle);
+    max-width: 66ch;
+    padding-block: var(--ds-size-10);
+  }
+
+  /* The three principles: heading in the margin, text in the measure, when there is room. */
+  .grunn {
+    border-top: var(--ds-border-width-default) solid var(--ds-color-neutral-border-subtle);
+    display: grid;
+    gap: var(--ds-size-3) var(--ds-size-10);
+    padding-block: var(--ds-size-10);
+  }
+
+  @media (width >= 48rem) {
+    .grunn {
+      grid-template-columns: 14rem minmax(0, 66ch);
+    }
+  }
+
+  /* Dataverket's own block: a tinted band in the accent, full width. */
+  .dataverket {
+    background: var(--ds-color-accent-surface-tinted);
+    border-block: var(--ds-border-width-default) solid var(--ds-color-accent-border-subtle);
+    margin-top: var(--ds-size-10);
+    padding-block: var(--ds-size-12);
+  }
+
+  .dataverket .ramme > p {
+    max-width: 66ch;
+  }
+
+  .dataverket .kall {
+    color: var(--ds-color-accent-text-default);
+    font-weight: var(--ds-font-weight-semibold);
+  }
+
+  .knapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-size-3);
+  }
+
+  footer.bunn {
+    color: var(--ds-color-neutral-text-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-size-2) var(--ds-size-6);
+    justify-content: space-between;
+    padding-block: var(--ds-size-8);
+  }
+}

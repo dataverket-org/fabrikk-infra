@@ -200,7 +200,8 @@ osl1 site (`docs/plans/2026-10-s3-osl1.md`). `artifacts/cert-manager/` is the th
 two upstream charts, cert-manager and external-dns, inflated by kustomize from `recipe/` into a committed
 `rendered/` tree that `push.sh` ships and `infrastructure/cert-manager/source.yaml` applies (decision 028). The
 diff of `rendered/` is the review of a chart upgrade, and the cluster reads no chart repository for them.
-`artifacts/www/`, the website and the Signal short link, is the fourth, plain manifests again.
+`artifacts/www/`, the website and the Signal short link, is the fourth, plain manifests again, with the website as
+an image of its own that the pods mount as a volume.
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
 directory straight from the repository, without prune, until zot serves its first artifact, and again whenever a bad

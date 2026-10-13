@@ -72,6 +72,8 @@ spec:
           emptyDir: {}
         - name: tmp
           emptyDir: {}
+        # The website, an image of its own (site.sh), mounted read-only; the digest is written by site.sh.
         - name: site
-          configMap:
-            name: www-site
+          image:
+            reference: registry.dataverket.org/platform/www-site@sha256:b54106b63bcaddc9d05b0bc9c1476df0bc16d3dfef6f5147a4c0ed1c9204a346
+            pullPolicy: IfNotPresent

@@ -14,6 +14,7 @@ brew "openstackclient"
 brew "fluxcd/tap/flux"
 brew "cosign"                   # signs an artifact at push.sh time with the site key in vaults/operator/<site>/
 brew "helm"                     # inflates a chart when an artifact recipe is rendered; never run against a cluster
+brew "crane"                    # builds the website image (artifacts/www/site.sh); bsdtar comes with macOS
 brew "sops"
 brew "age"
 brew "age-plugin-yubikey"
