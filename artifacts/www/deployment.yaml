@@ -75,5 +75,5 @@ spec:
         # The website, an image of its own (site.sh), mounted read-only; the digest is written by site.sh.
         - name: site
           image:
-            reference: registry.dataverket.org/platform/www-site@sha256:120f7b10ef88d68e341c4173d2d0bd93e6d53e40150866fcb7bbeb2e0986c859
+            reference: registry.dataverket.org/platform/www-site@sha256:ead6371bdb000f633b3d2af5be30c40476cb1be8b665cb1f94de72bdddb66f48
             pullPolicy: IfNotPresent

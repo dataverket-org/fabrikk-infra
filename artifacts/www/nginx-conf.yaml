@@ -22,6 +22,10 @@ data:
         listen 8080 default_server;
         server_name www.dataverket.org;
 
+        # nginx sees http on 8080 behind the Gateway; an absolute redirect (a directory without its slash) would send
+        # the browser there. A relative Location keeps the scheme and the name it came with.
+        absolute_redirect off;
+
         location = /healthz {
             access_log off;
             return 200 "ok\n";
