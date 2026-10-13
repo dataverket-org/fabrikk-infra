@@ -11,6 +11,7 @@ spec:
   # Covered by the wildcard certificate; external-dns makes the record from this route.
   hostnames:
     - "signal.dataverket.org"
+    - "www.dataverket.org"
   rules:
     - backendRefs:
         - name: www
@@ -28,6 +29,7 @@ spec:
       sectionName: http
   hostnames:
     - "signal.dataverket.org"
+    - "www.dataverket.org"
   rules:
     - filters:
         - type: RequestRedirect

@@ -1,0 +1,40 @@
+# www is delivered gitless, as zot is (README "Gitless delivery", decision 013; artifacts/www/README.md).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: www-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: oci://zot.zot.svc.cluster.local:5000/platform/www-config
+  insecure: true
+  ref:
+    tag: current
+  # Verification, switched on after this artifact has been pushed signed once with the site key
+  # (vaults/operator/README.md, "Signing keys"; clusters/production/cosign-osl1.yaml holds the public half):
+  # verify:
+  #   provider: cosign
+  #   secretRef:
+  #     name: cosign-osl1
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: www
+  namespace: flux-system
+spec:
+  interval: 10m
+  dependsOn:
+    - name: infrastructure
+    - name: zot
+  sourceRef:
+    kind: OCIRepository
+    name: www-config
+  path: ./
+  prune: true
+  wait: true
+  timeout: 5m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

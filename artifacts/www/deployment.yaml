@@ -59,6 +59,9 @@ spec:
               mountPath: /var/cache/nginx
             - name: tmp
               mountPath: /tmp
+            - name: site
+              mountPath: /usr/share/nginx/html
+              readOnly: true
       volumes:
         - name: templates
           configMap:
@@ -69,3 +72,6 @@ spec:
           emptyDir: {}
         - name: tmp
           emptyDir: {}
+        - name: site
+          configMap:
+            name: www-site

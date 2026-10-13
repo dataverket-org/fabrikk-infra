@@ -17,18 +17,20 @@ data:
         }
     }
 
-    # Everything else, probes included (README.md).
+    # www.dataverket.org, and everything else, probes included (README.md).
     server {
         listen 8080 default_server;
-        server_name _;
+        server_name www.dataverket.org;
 
         location = /healthz {
             access_log off;
             return 200 "ok\n";
         }
 
+        # https only: the Gateway terminates TLS and redirects http (README.md).
         location / {
             root /usr/share/nginx/html;
             index index.html;
+            add_header Strict-Transport-Security "max-age=31536000" always;
         }
     }

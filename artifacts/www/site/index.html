@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suveren sky: hva vi vil få til – Dataverket</title>
+<meta name="description" content="Kunnskap, suverenitet og overlevelse ved kriser. Hvorfor Norge trenger en suveren sky, og hva Dataverket bygger.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --papir: #EEF1F3;
+    --blekk: #101820;
+    --blaa: #0B4F8A;
+    --blaa-dyp: #073A66;
+    --blaa-lys: #D6E4F0;
+    --signal: #F2C230;
+    --graa: #5C6670;
+    --linje: #C7D0D8;
+    --maal: 66ch;
+    --display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+    --tekst: "Source Serif 4", Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--papir); color: var(--blekk); }
+  body {
+    margin: 0;
+    font-family: var(--tekst);
+    font-size: 1.125rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--blaa); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; }
+
+  .ramme { width: min(100% - 2.5rem, 62rem); margin-inline: auto; }
+
+  /* Topplinje */
+  header.topp {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--linje);
+    font-family: var(--display); font-weight: 600; font-size: 1.1rem;
+  }
+  header.topp a { color: var(--blekk); text-decoration: none; }
+  header.topp span { color: var(--graa); font-weight: 500; }
+
+  /* Hero */
+  .hero { padding: 4rem 0 3rem; display: grid; grid-template-columns: 1fr; gap: 2.5rem; }
+  .hero h1 {
+    font-family: var(--display); font-weight: 600;
+    font-size: clamp(2.6rem, 7vw, 5rem); line-height: 0.98; letter-spacing: -0.01em;
+    margin: 0 0 1.25rem;
+  }
+  .hero h1 span { display: block; }
+  .hero h1 .felles { color: var(--blaa); }
+  .hero p.ingress {
+    font-size: 1.3rem; line-height: 1.5; max-width: 34ch; margin: 0;
+  }
+  .hero .signal { width: 4rem; height: 0.5rem; background: var(--signal); margin-bottom: 1.5rem; }
+
+  /* Diagram */
+  figure.modell { margin: 0; }
+  figure.modell svg { width: 100%; height: auto; display: block; }
+  figure.modell figcaption { font-size: 0.9rem; color: var(--graa); margin-top: 0.75rem; max-width: 46ch; }
+
+  /* Brødtekst */
+  .innledning { padding: 2rem 0 1rem; border-top: 1px solid var(--linje); }
+  .innledning p { max-width: var(--maal); }
+
+  section.grunn {
+    display: grid; grid-template-columns: 1fr; gap: 0.5rem 3rem;
+    padding: 2.25rem 0; border-top: 1px solid var(--linje);
+  }
+  section.grunn h2 {
+    font-family: var(--display); font-weight: 600; font-size: 1.9rem; line-height: 1.05;
+    margin: 0; color: var(--blaa);
+  }
+  section.grunn p { margin: 0; max-width: var(--maal); }
+  section.grunn p + p { margin-top: 1rem; }
+
+  /* Dataverket-blokk */
+  .dataverket {
+    background: var(--blaa-dyp); color: #fff; margin-top: 2rem;
+  }
+  .dataverket .ramme { padding: 3rem 0; }
+  .dataverket h2 {
+    font-family: var(--display); font-weight: 600; font-size: 2.2rem; margin: 0 0 1rem; line-height: 1.05;
+  }
+  .dataverket p { max-width: var(--maal); margin: 0 0 1rem; }
+  .dataverket a { color: #fff; }
+  .dataverket p.kall { font-family: var(--display); font-size: 1.5rem; font-weight: 600; margin-top: 1.75rem; }
+  .knapper { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+  .knapp {
+    font-family: var(--display); font-weight: 600; font-size: 1.05rem;
+    padding: 0.75rem 1.25rem; text-decoration: none; border: 2px solid #fff; border-radius: 3px;
+    display: inline-block;
+  }
+  .knapp.primaer { background: #fff; color: var(--blaa-dyp); }
+  .knapp.sekundaer { background: transparent; color: #fff; }
+  .knapp:hover { background: var(--signal); border-color: var(--signal); color: var(--blekk); }
+
+  footer.bunn {
+    padding: 1.5rem 0 2.5rem; color: var(--graa); font-size: 0.9rem;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+  }
+
+  @media (min-width: 52rem) {
+    .hero { grid-template-columns: 3fr 2fr; align-items: end; }
+    section.grunn { grid-template-columns: 14rem 1fr; }
+    section.grunn h2 { position: sticky; top: 1.5rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .knapp { transition: background-color 120ms ease, color 120ms ease; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ramme">
+  <header class="topp">
+    <a href="https://dataverket.org">Dataverket</a>
+    <span>Kunnskap, åpen kildekode, suverenitet</span>
+  </header>
+
+  <div class="hero">
+    <div>
+      <div class="signal" aria-hidden="true"></div>
+      <h1>
+        <span>Ikke offentlig.</span>
+        <span>Ikke privat.</span>
+        <span class="felles">Felles.</span>
+      </h1>
+      <p class="ingress">Hva vi vil få til med en suveren sky, og hvorfor Norge trenger den nå.</p>
+    </div>
+
+    <figure class="modell">
+      <svg viewBox="0 0 400 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="modell-tittel">
+        <title id="modell-tittel">Tre aktører som hver eier sin infrastruktur, knyttet sammen av et felles tillitsrammeverk</title>
+        <g font-family="Barlow Semi Condensed, Arial Narrow, sans-serif" font-weight="600" font-size="15">
+          <!-- Felles rammeverk -->
+          <rect x="20" y="20" width="360" height="54" rx="3" fill="#0B4F8A"/>
+          <text x="200" y="45" text-anchor="middle" fill="#fff">Felles kode, standarder og tillit</text>
+          <text x="200" y="64" text-anchor="middle" fill="#D6E4F0" font-weight="500" font-size="13">eid av samvirket, åpen kildekode</text>
+          <!-- Linjer -->
+          <line x1="80" y1="74" x2="80" y2="124" stroke="#0B4F8A" stroke-width="3"/>
+          <line x1="200" y1="74" x2="200" y2="124" stroke="#0B4F8A" stroke-width="3"/>
+          <line x1="320" y1="74" x2="320" y2="124" stroke="#0B4F8A" stroke-width="3"/>
+          <!-- Aktører -->
+          <rect x="20" y="124" width="116" height="122" rx="3" fill="#fff" stroke="#C7D0D8" stroke-width="1.5"/>
+          <text x="78" y="152" text-anchor="middle" fill="#101820">Privat</text>
+          <text x="78" y="171" text-anchor="middle" fill="#101820">leverandør</text>
+          <line x1="40" y1="186" x2="116" y2="186" stroke="#D6E4F0" stroke-width="1.5"/>
+          <text x="78" y="209" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">egne rack,</text>
+          <text x="78" y="228" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">egne kunder</text>
+
+          <rect x="142" y="124" width="116" height="122" rx="3" fill="#fff" stroke="#C7D0D8" stroke-width="1.5"/>
+          <text x="200" y="152" text-anchor="middle" fill="#101820">Offentlig</text>
+          <text x="200" y="171" text-anchor="middle" fill="#101820">virksomhet</text>
+          <line x1="162" y1="186" x2="238" y2="186" stroke="#D6E4F0" stroke-width="1.5"/>
+          <text x="200" y="209" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">eget</text>
+          <text x="200" y="228" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">datasenter</text>
+
+          <rect x="264" y="124" width="116" height="122" rx="3" fill="#fff" stroke="#C7D0D8" stroke-width="1.5"/>
+          <text x="322" y="152" text-anchor="middle" fill="#101820">Kunde</text>
+          <text x="322" y="171" text-anchor="middle" fill="#101820">med behov</text>
+          <line x1="284" y1="186" x2="360" y2="186" stroke="#D6E4F0" stroke-width="1.5"/>
+          <text x="322" y="209" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">én identitet,</text>
+          <text x="322" y="228" text-anchor="middle" fill="#3A444D" font-weight="500" font-size="14">flere leverandører</text>
+          <!-- Signal -->
+          <rect x="20" y="266" width="60" height="6" fill="#F2C230"/>
+        </g>
+      </svg>
+      <figcaption>Hver aktør eier sin infrastruktur. Det de deler, er det som lar dem jobbe sammen.</figcaption>
+    </figure>
+  </div>
+
+  <div class="innledning">
+    <p>Norge kjøper kritisk digital infrastruktur fra utlandet. Vi gjør det fordi alternativene er dårlige: enten gi suvereniteten bort til en hyperscaler, eller bygge alt selv. Det siste klarer nesten ingen. Slik trenger det ikke å være.</p>
+    <p>En suveren sky er ikke en privat sky, og den er ikke en offentlig sky. Den er noe tredje: en felles plattform som lar offentlige og private aktører samhandle uten at noen mister kontroll. Hver leverandør eier sin infrastruktur og sine kunder. Det de deler, er koden, standardene og tillitsrammeverket som gjør at de kan jobbe sammen. Tenk FEIDE, men for maskiner, nett og lagring.</p>
+    <p>Tre grunner bærer dette.</p>
+  </div>
+
+  <section class="grunn">
+    <h2>Kunnskap</h2>
+    <div>
+      <p>Kompetansen til å bygge og drifte datasenter finnes i Norge, men den er spredt og ofte innelåst. Vi har gode åpne plattformer på applikasjonslaget, som NAIS, Aurora, Altinn Studio og Dapla, men alle forutsetter at noen andre leverer laget under. Det laget mangler i norsk åpen kildekode. Evnen til å bygge det må deles og eies i fellesskap, ikke kjøpes inn på nytt hver gang.</p>
+    </div>
+  </section>
+
+  <section class="grunn">
+    <h2>Suverenitet</h2>
+    <div>
+      <p>Suverenitet er ikke et slagord, men egenskaper som kan etterprøves: data under norsk rett, drift i Norge, kode eid av en norsk stiftelse, prioriteringer styrt av medlemmene. Åpen kildekode er forutsetningen. Bare da kan sikkerhetspåstander sjekkes av andre enn leverandøren, og bare da kan etterlevelse av NSMs grunnprinsipper, CRA og EUs rammeverk for suveren sky faktisk dokumenteres.</p>
+      <p>Suverenitet er ikke autarki. Vi bruker det globale åpne økosystemet, men helheten styres herfra.</p>
+    </div>
+  </section>
+
+  <section class="grunn">
+    <h2>Overlevelse ved kriser</h2>
+    <div>
+      <p>Ekomloven krever forsvarlig sikkerhet i fred, krise og krig. Nkom kan i en krise pålegge datasentre nasjonal autonomi: drift med folk og teknikk på norsk jord, uten utenlandske ressurser. Det går ikke hvis kontrollplanet, koden og kompetansen ligger et annet sted.</p>
+      <p>En suveren sky er beredskap i praksis: infrastruktur som kan repareres og gjenopprettes av folk her, med kode vi kan lese og endre, den dagen forbindelsen ut er brutt eller ikke lenger til å stole på.</p>
+    </div>
+  </section>
+</div>
+
+<div class="dataverket">
+  <div class="ramme">
+    <h2>Dataverket bygger dette</h2>
+    <p>Et samvirke der leverandører, kunder og enkeltpersoner har lik stemme, og en stiftelse som eier koden åpent. Samvirket eier ikke kapasitet og selger ikke tjenester. Det utvikler plattformen og tillitsrammeverket.</p>
+    <p>Første leveranse er suveren bare metal og KI-cluster for norske datasenterleverandører. Koden ligger åpent på <a href="https://git.dataverket.org">git.dataverket.org</a>. Et åpent diskusjonsforum er planlagt. Fram til det er oppe, ta kontakt på <a href="mailto:hallo@dataverket.org">hallo@dataverket.org</a>.</p>
+    <p class="kall">Bli med å bygge norsk sky med åpen kildekode.</p>
+    <div class="knapper">
+      <a class="knapp primaer" href="mailto:hallo@dataverket.org">Ta kontakt</a>
+      <a class="knapp sekundaer" href="https://git.dataverket.org">Se koden</a>
+    </div>
+  </div>
+</div>
+
+<div class="ramme">
+  <footer class="bunn">
+    <span>Jan Ivar Beddari, Dataverket. September 2026.</span>
+    <span>Tekst under CC BY-SA 4.0</span>
+  </footer>
+</div>
+
+</body>
+</html>
