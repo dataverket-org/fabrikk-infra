@@ -232,7 +232,8 @@
     ],
     "checksum": "6e2ccfd4313a6469e4ff1370f2b16f64548a601db33d4c07aa56510aee39245c",
     "filesChecksum": "1bc4bdfca57bc09d8111953dd0091792143956117441879baeab05fd0cf4b439",
-    "serverUrl": "https://swamp-club.com"
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   },
   "@dataverket/zitadel": {
     "version": "2026.10.05.1",
