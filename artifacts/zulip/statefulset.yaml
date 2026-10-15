@@ -140,21 +140,21 @@ spec:
                   name: s3-zulip
                   key: SECRET_ACCESS_KEY
 
-            # Zitadel; email and password only until the first owner is in (plan, step 6).
+            # Zitadel, signing up whoever logs in there; email and password until the first owner is in (step 6).
             - name: ZULIP_AUTH_BACKENDS
               value: EmailAuthBackend,GenericOpenIdConnectBackend
             - name: SETTING_SOCIAL_AUTH_OIDC_ENABLED_IDPS
               value: >-
                 {"zitadel": {"oidc_url": "https://zitadel.dataverket.org", "display_name": "Dataverket",
                 "client_id": "395237846727787789", "secret": get_secret("social_auth_oidc_secret"),
-                "auto_signup": False}}
+                "auto_signup": True}}
             - name: SECRETS_social_auth_oidc_secret
               valueFrom:
                 secretKeyRef:
                   name: zulip-zitadel-oidc
                   key: CLIENT_SECRET
 
-            # Nordhost, as Forgejo's mailer; the Secret is a person's to make, and Zulip starts without it.
+            # Nordhost, Forgejo's mailbox: zulip-mailer is a copy of forgejo-mailer, and Zulip starts without it.
             - name: SETTING_EMAIL_HOST
               value: mail.nordhost.no
             - name: SETTING_EMAIL_PORT

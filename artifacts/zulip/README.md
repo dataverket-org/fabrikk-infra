@@ -14,6 +14,7 @@ directory is the artifact, pushed by `push.sh` into zot as `platform/zulip-confi
 | `services.yaml` | RabbitMQ, memcached with SASL, and Valkey as `zulip-redis`, official images by digest, no volumes |
 | `statefulset.yaml` | Zulip itself, its Service, and the routes for `forum.dataverket.org` on the `https` and `http` listeners |
 | `zulip-secrets.enc.yaml` | The secrets a restore needs kept (`secret_key`, `avatar_salt`, `shared_secret`, `camo_key`, `zulip_org_id`, `zulip_org_key`) and the three service passwords, generated straight into sops |
+| `zulip-mailer.enc.yaml` | Forgejo's Nordhost mailbox, `username` and `password`, a copy of `apps/forgejo/forgejo-mailer.enc.yaml` |
 | `hov1-s3.yaml` | The hov1 site's endpoint and CA, from `backup/versitygw/bin/site-secret` |
 | `s3-cnpg-zulip.enc.yaml` | The `cnpg-zulip` account on hov1, sops-encrypted to the cluster key and the two operators |
 | `zulip-zitadel-oidc.enc.yaml` | The OIDC client `forum.dataverket.org` in Zitadel project `zulip`: `CLIENT_ID` and `CLIENT_SECRET`, sealed by a person from swamp's vault (operator rule 3) |
