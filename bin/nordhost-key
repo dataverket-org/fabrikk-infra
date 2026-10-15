@@ -21,7 +21,7 @@
 #	NORDHOST_ALLOW_IPS	Addresses the key works from, space separated;
 #				not needed for a dry run
 #	NORDHOST_SOPS_FILE	The account's operator file (default
-#				vaults/operator/nordhost/<zone, dots as _>.enc.yaml)
+#				vaults/operator/nordhost/<zone, dots as _>.enc.json)
 #	NORDHOST_USER_KEY	sops path to the user in it (default ["user"])
 #	NORDHOST_PASSWORD_KEY	sops path to the password (default ["password"])
 #	NORDHOST_CLUSTER_FILE	The cluster's file (default
@@ -47,7 +47,7 @@ enable_debug="${DEBUG:-0}"
 
 zone="$NORDHOST_ZONE"
 allow_ips="$NORDHOST_ALLOW_IPS"
-sops_file="${NORDHOST_SOPS_FILE:-vaults/operator/nordhost/${zone//./_}.enc.yaml}"
+sops_file="${NORDHOST_SOPS_FILE:-vaults/operator/nordhost/${zone//./_}.enc.json}"
 user_key="${NORDHOST_USER_KEY:-[\"user\"]}"
 password_key="${NORDHOST_PASSWORD_KEY:-[\"password\"]}"
 cluster_file="${NORDHOST_CLUSTER_FILE:-artifacts/cert-manager/nordhost-config.enc.yaml}"
