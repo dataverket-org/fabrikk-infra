@@ -1,0 +1,12 @@
+type: '@dataverket/zitadel/app'
+typeVersion: 2026.10.05.1
+id: 8df2d94a-0f7a-48ce-bb72-e2b08325c668
+name: zitadel-app-operator
+version: 1
+tags: {}
+globalArguments:
+  apiUrl: 'https://zitadel.dataverket.org'
+  keyJsonFile: ~/.config/zitadel/fabrikk-infra-operator.json
+  httpTimeoutMs: 30000
+  tokenScope: 'openid profile urn:zitadel:iam:org:project:id:zitadel:aud'
+methods: {}

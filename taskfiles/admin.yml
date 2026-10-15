@@ -36,7 +36,7 @@ env:
   ZITADEL_CONTEXT: default
   # The projects the Zitadel operator key owns, and so the whole of what it can
   # change. The first holds the application these tasks log in through.
-  ZITADEL_PROJECTS: fabrikk-infra-admin
+  ZITADEL_PROJECTS: fabrikk-infra-admin zulip
   ZITADEL_ORG: Operators
   ZITADEL_NAMESPACE: zitadel
 
