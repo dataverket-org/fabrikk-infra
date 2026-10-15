@@ -1,9 +1,7 @@
 #!/bin/sh
-# Pushes rendered/ as the forgejo-theme artifact into zot. Flux pulls it (apps/forgejo/theme.yaml); the recipe and
-# the scripts stay out of the artifact.
+# Pushes rendered/ as the forgejo-theme artifact into zot, where apps/forgejo/theme.yaml pulls it.
 #
-# After a rebuild zot comes back empty (docs/storage.md, "Rebuild from git"): run this again from the checkout, and
-# Flux applies it. There is no from-git fallback, since the forge starts without its theme (apps/forgejo/README.md).
+# After a rebuild zot is empty: run this again from the checkout (docs/storage.md, "Rebuild from git").
 #
 # Push credentials are the fabrikk-ci user, decrypted from artifacts/zot/zot-ci-credentials.enc.yaml with your YubiKey (one touch).
 # Run from a clean checkout of the commit you want to ship; the artifact's revision annotation names that commit.

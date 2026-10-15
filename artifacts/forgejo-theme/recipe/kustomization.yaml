@@ -1,9 +1,6 @@
-# The recipe: what render.sh turns into ../rendered/. render.sh copies it into a checkout of the theme at the commit
-# source.env names, beside the locale it patches there, so the paths below are the theme repository's. Nothing here
-# reaches the cluster; Flux applies ../rendered/ (README.md).
+# render.sh copies this into a checkout of the theme at THEME_COMMIT, so the paths are the theme repository's.
 #
-# Fixed names: release.yaml mounts the four ConfigMaps by name, and a mounted ConfigMap's content is synced into the
-# running pod in place.
+# Fixed names: release.yaml mounts the four ConfigMaps by name.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: forgejo

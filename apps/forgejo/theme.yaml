@@ -1,5 +1,5 @@
-# The Dataverket theme is delivered gitless, rendered in the factory from artifacts/forgejo-theme/ (decision 028):
-# four ConfigMaps release.yaml mounts (README.md, "The theme"). Fetched through the Service, plain HTTP (decision 013).
+# The theme's four ConfigMaps, rendered from artifacts/forgejo-theme/ (decision 028) and fetched through the zot
+# Service, plain HTTP (decision 013).
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:

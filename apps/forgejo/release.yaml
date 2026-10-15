@@ -25,8 +25,7 @@ spec:
       config:
         # The page title and header; the chart's default is "Forgejo: Beyond coding. We forge."
         APP_NAME: Dataverket
-        # Off: zot is the registry. LFS is off by default; attachments and Actions artifacts keep their defaults on
-        # the volume (docs/plans/2026-10-s3-osl1.md leaves Forgejo out since 2026-10-15).
+        # Off: zot is the registry.
         packages:
           ENABLED: false
         # Actions resolve on this forge's own actions org (decision 022, README.md).
@@ -89,8 +88,8 @@ spec:
             secretKeyRef:
               name: forgejo-security
               key: LFS_JWT_SECRET
-    # The theme's ConfigMaps over Forgejo's custom paths (README.md). Optional, so a forge rebuilt before its theme
-    # artifact is pushed into the empty zot starts on its built-in assets instead of waiting for it.
+    # The theme's ConfigMaps over Forgejo's custom paths (README.md). Optional: after a rebuild zot is empty until
+    # artifacts/forgejo-theme/push.sh runs.
     extraVolumes:
       - name: theme-css
         configMap:

@@ -1,14 +1,12 @@
 #!/bin/sh
-# Renders the theme into rendered/: one file per ConfigMap, plus a kustomization.yaml that lists them. Run it after
-# moving the pin in recipe/source.env or the forgejo chart in apps/forgejo/repo.yaml, and commit the result; the diff
-# of rendered/ is the review. `--check` renders to a temporary directory and compares, which is what push.sh runs
-# first, so what ships is what is in git, and a chart upgrade that would leave the locale behind fails it.
+# Renders the theme into rendered/, one file per ConfigMap and a kustomization.yaml listing them. `--check` renders
+# to a temporary directory and compares; push.sh runs it first.
 #
-# The theme is the repository and commit recipe/source.env names; its public/assets are taken as committed. The
-# locale is the en-US file Forgejo embeds, which is options/locale/locale_en-US.ini in Forgejo's source at the tag of
-# the chart's appVersion, byte for byte (README.md), patched by the theme's own locale_from(). No Forgejo binary runs.
+# Inputs: public/assets of the theme at the commit recipe/source.env names, and options/locale/locale_en-US.ini from
+# Forgejo's source at the tag of the chart's appVersion (apps/forgejo/repo.yaml), patched by the theme's
+# locale_from(). That file is the one Forgejo embeds, byte for byte (README.md).
 #
-# Needs git, curl, helm, yq, python3 and kubectl (kustomize) on PATH; helm only reads the chart's metadata.
+# Needs git, curl, helm, yq, python3 and kubectl on PATH; helm only reads the chart's metadata.
 set -eu
 cd "$(dirname "$0")"
 

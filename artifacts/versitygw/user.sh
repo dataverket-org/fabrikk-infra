@@ -1,15 +1,10 @@
 #!/bin/sh
-# Mint one account and its buckets on the osl1 gateway and print, on stdout, the Kubernetes Secret the writer reads:
-# pipe it through sops, never onto disk in clear. backup/versitygw/bin/user does the same on a compose site.
+# Mints an account and its buckets on the osl1 gateway and prints the writer's Secret on stdout, for sops --encrypt;
+# never onto disk in clear. The hov1 counterpart is backup/versitygw/bin/user.
 #   usage: artifacts/versitygw/user.sh <account> <namespace> <bucket>... [--rotate]
-# The account gets the role "user", which sees only buckets it owns, and each bucket is created owned by it (or handed
-# over when it already exists). --rotate deletes an existing account first and mints a new key pair: the writer fails
-# from that moment until the new Secret is applied, so commit and push at once. Without --rotate an existing account
-# is an error. Not part of the artifact.
-#
-# versitygw's own admin CLI does the work, inside the gateway's pod through `kubectl exec`: the root key pair is read
-# from the environment the gateway was started with and never leaves the pod, the new account's secret arrives on
-# stdin, and nothing secret is ever an argument. Needs kubectl and the admin context.
+# Role "user" sees only the buckets it owns; an existing bucket is handed over. --rotate deletes the account first,
+# and the writer fails until the new Secret is applied. Without --rotate an existing account is an error.
+# Needs kubectl and the admin context. Not part of the artifact.
 set -eu
 context=${KUBE_CONTEXT:-dataverket-prod-admin}
 region=us-east-1
@@ -21,12 +16,16 @@ done
 [ $# -ge 3 ] || { echo "usage: user.sh <account> <namespace> <bucket>... [--rotate]" >&2; exit 2; }
 account=$1; namespace=$2; shift 2
 
+#
+# Runs versitygw's admin CLI in the gateway's pod, signed with the root key pair from the pod's environment.
+#
 admin() {
   kubectl --context "$context" -n versitygw exec versitygw-0 -c versitygw -- sh -c \
     'exec versitygw admin -a "$ROOT_ACCESS_KEY" -s "$ROOT_SECRET_KEY" -r "$0" -er http://localhost:7071 "$@"' \
     "$region" "$@"
 }
 
+# The new secret goes in on stdin, never as an argument on this host.
 secret=$(head -c 30 /dev/urandom | base64 | tr -d '/+=' | head -c 40)
 if [ -n "$rotate" ]; then admin delete-user -a "$account" >&2; fi
 printf '%s\n' "$secret" | kubectl --context "$context" -n versitygw exec -i versitygw-0 -c versitygw -- sh -c \
