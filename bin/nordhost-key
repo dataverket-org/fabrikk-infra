@@ -195,6 +195,54 @@ function print_login_keys()
 }
 
 #
+# Prints each login key from DirectAdmin's JSON listing, which carries the
+# allowed addresses and commands the plain one leaves out, with the same
+# fields left out as print_login_keys. Takes an object of keys or an array of
+# them; prints nothing for anything else, so the caller can fall back.
+#
+function print_login_keys_json()
+{
+	local listing="$1"
+	local line
+
+	jq -r '
+		def clean: with_entries(select(.key |
+			test("key|hash|pass|secret"; "i") | not));
+		def fmt: to_entries | map("\(.key)=\(.value |
+			if type == "array" then map(tostring) | join(" ")
+			elif type == "object" then tojson
+			else tostring end)") | join(", ");
+		if type == "object" then
+			to_entries[] | select(.value | type == "object") |
+			"\(.key): \(.value | clean | fmt)"
+		elif type == "array" then
+			.[] | select(type == "object") |
+			"\(.name // .keyname // "?"): \(clean | fmt)"
+		else empty end' <<<"$listing" 2>/dev/null |
+	while IFS= read -r line; do
+		log "  $line"
+	done
+}
+
+#
+# Prints the account's login keys, from the JSON listing when DirectAdmin
+# gives one, from the plain listing otherwise.
+#
+function show_login_keys()
+{
+	local plain="$1"
+	local json shown
+
+	json="$(directadmin "CMD_API_LOGIN_KEYS?json=yes" "$user:$password")" &&
+		shown="$(print_login_keys_json "$json")"
+	if [[ -n "$shown" ]]; then
+		printf '%s\n' "$shown"
+	else
+		print_login_keys "$plain"
+	fi
+}
+
+#
 # Prints DirectAdmin's error text from a response.
 #
 function error_text()
@@ -299,7 +347,7 @@ listing="$(directadmin CMD_API_LOGIN_KEYS "$user:$password")" ||
 answered "$listing" ||
 	fail "DirectAdmin refused $user at $base_url: $(error_text "$listing")"
 log "The password lists the login keys of $user at $base_url"
-print_login_keys "$listing"
+show_login_keys "$listing"
 
 if (( dry_run )); then
 	body="$(jq -cn --arg zone "$zone" '{domain: $zone, json: "yes"}')"
@@ -346,6 +394,6 @@ listing="$(directadmin CMD_API_LOGIN_KEYS "$user:$password")" ||
 	fail "Key $keyname was accepted but is not listed!"
 
 log "Key $keyname is listed for $user and expires $(epoch_date "$expires")"
-print_login_keys "$listing"
+show_login_keys "$listing"
 log "The previous key stays until you delete it at $base_url"
 printf '%s\n' "$key" >&3
