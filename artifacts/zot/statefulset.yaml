@@ -64,6 +64,9 @@ spec:
             - name: htpasswd
               mountPath: /secret
               readOnly: true
+            - name: oidc
+              mountPath: /oidc
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -73,6 +76,9 @@ spec:
         - name: htpasswd
           secret:
             secretName: zot-htpasswd
+        - name: oidc
+          secret:
+            secretName: zot-oidc
         - name: tmp
           emptyDir: {}
   volumeClaimTemplates:

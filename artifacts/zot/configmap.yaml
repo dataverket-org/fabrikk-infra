@@ -1,5 +1,7 @@
 # zot's configuration. Anonymous pull everywhere; push only for the fabrikk-ci user in /secret/htpasswd
-# (Secret zot-htpasswd, encrypted in this directory). No delete for anyone yet: promotion retags, it never removes.
+# (Secret zot-htpasswd, encrypted in this directory). Browser login goes through Zitadel (Secret zot-oidc); OIDC users are
+# identified by email, so grant them in accessControl by email. They mint API keys in the UI for docker/skopeo.
+# No delete for anyone yet: promotion retags, it never removes.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -23,7 +25,17 @@ data:
         "readTimeout": "5m",
         "writeTimeout": "5m",
         "auth": {
-          "htpasswd": { "path": "/secret/htpasswd" }
+          "htpasswd": { "path": "/secret/htpasswd" },
+          "openid": {
+            "providers": {
+              "oidc": {
+                "name": "Zitadel",
+                "issuer": "https://zitadel.dataverket.org",
+                "credentialsFile": "/oidc/credentials.json",
+                "scopes": ["openid", "profile", "email"]
+              }
+            }
+          }
         },
         "accessControl": {
           "repositories": {
@@ -41,6 +53,7 @@ data:
       "extensions": {
         "search": { "enable": true },
         "scrub": { "enable": true, "interval": "24h" },
-        "ui": { "enable": true }
+        "ui": { "enable": true },
+        "apikey": { "enable": true }
       }
     }

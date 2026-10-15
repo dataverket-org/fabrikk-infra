@@ -1,0 +1,45 @@
+# Zitadel web application credentials for zot's browser login (configmap.yaml, auth.openid). Placeholders: fill in
+# the client id and secret, then `sops -e -i zot-oidc.enc.yaml`. Do not commit or push it before it is encrypted.
+apiVersion: v1
+kind: Secret
+metadata:
+    name: zot-oidc
+    namespace: zot
+type: Opaque
+stringData:
+    credentials.json: ENC[AES256_GCM,data:IbCYROZaPg6mlA9QG/NckQxbYmmU8ajc16ainsczdcTmhAS+EVCf5IIKtVZUl/Ve9liyaLejuWVvHS7eeN9li/zidwv/9gjOYLUR2iLdJKT8k7jFDUmJwniZC2FWYGUqTCHRqVCCxkLMJqZAmk227vqkAWWLzC4=,iv:T4rBXgYUuGfuSZinzNae8iIHgiEYnwBwP4WuWwzumjE=,tag:w3+S/c6fnn9Ts1VtjefMnQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBIek1HM2FTZ1JYbFp3cXBD
+            NXpqNzBpT1JIRDFoaTU3U1JJaXFWakxmSnc0CkJsaXdnemlLTENhTVFnZ2hFM01u
+            NnlQc3o0bzJuSk5oSytteWxTd2xMOGcKLS0tIEFibXNvUnFvNTRaMlorSitwbndV
+            MTlnenFsWG5OY0JleTJKVGhBTzluTTgKEZQcT4WbZG1Ru0AoeberxNXdytzodyN9
+            51oB5StTieruvseZWGiXRV+611eHpfU819fevVT2Im9jyouztsYBvw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHBpdi1wMjU2IDhENXluZyBBc3VJdjZh
+            WHh2U1BqQnVkaUFGTnIxZlhVdmFBdVcrQnRVMVdJQ2ZkWVFjZQpxYVNWNURhMDJ5
+            a1BmVUxheVBDS0pCd0dTSVBlOXdQdVB5MzNrWXZQV2ZZCi0tLSBCaHBxRTJyNlJs
+            RzgwYVE1K3pQV3NpbDh6a280WXpCOU1udldXT3dhblJJChPTT7Jft1PmdfsSKsBX
+            dH47wtaY1RX4h2GW232IYcaUvgvmjDTxdEwd3jMz/aoABQKdZL85kiF8wkWWaFHO
+            Hi0=
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IHBpdi1wMjU2IDNweXF3ZyBBcjFvQnpH
+            ejkzT1dQUHdKU3lTcG9KVDJYaGZpR0x3NXdkM1lDaksvTG1DTQpMNHNyMngyNDhr
+            cFdyOWRBZFcxMHM3YTFkcy9pVlAxQ01iYmxZY0tVZkhJCi0tLSBBampENy9jTWwy
+            Ymw0em0zL1gzNURoU0RIcng0YkMra2dtRHBuNnlXY0N3CtoWQJtvuqZ7SLGYFHCi
+            YKVZbO84E6F16tw4Gy0Dcbif8hyJwf4QRt1DrK1IE3x+L+HhnSnGWmF05xTPcZaS
+            Kz8=
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-15T10:36:39Z"
+    mac: ENC[AES256_GCM,data:1kfzi0EgAXx03Mf2ekB1gmqOxBj/ZIJFoGifY0Cv1CIHXJtJM1W/ki08E0+srFzE+UoxmdHiJTpUsiGq0HTzWu0FD+j4kkUDmZv+0czw6+W4jS9vtzs4zVn5ZXwWqpLrNZN0xdO09w79fCVxHrkHehz1H8kAIc7lTnn8a5QeOkk=,iv:u7ro5DyPOSqDpLZPQ1JLNVbYx5JJz+gx1YQoOhzkUvQ=,tag:bNS1W9XV6sh9P1eLd8aJxA==,type:str]
+    version: 3.13.3
