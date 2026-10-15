@@ -77,6 +77,7 @@ Read from the wiki and the source at v1.8.0 on 2026-10-04 and at v1.9.0 on 2026-
 | Lifecycle configuration answers `NotImplemented` | A versioned bucket keeps every non-current version until a client deletes it by version id |
 | Internal IAM keeps accounts, secrets in clear, in `/iam/users.json`; accounts are made over the admin API, signed by root | `user.sh` makes them in the pod; the admin port is never routed |
 | Startup tests xattr support on `/data` and refuses to start without it | It starts on the Cinder volume's ext4, which is the proof |
+| S3 metadata travels as `x-amz-meta-<name>` headers, and clients use underscores in the names (Zulip: `user_profile_id`); Envoy rejects such headers by default, and the proofs in Go sent none | `infrastructure/envoy/clienttrafficpolicy-s3.yaml` allows them on the S3 listener alone, since 2026-10-15 when Zulip's first organization failed on it |
 | `aws:SourceIp` in a policy is the connection's peer, never `X-Forwarded-For` | Behind Envoy every client is Envoy; no IP conditions in policies |
 | v1.8.0 stored `Content-Encoding: aws-chunked` on objects written with a trailing checksum (#2398), and with a bucket policy it let the owner do only what the policy granted (#2495) | Fixed in v1.9.0, which osl1 runs; hov1 stays on v1.8.0 for now |
 | Presigned get with `ResponseContentDisposition`, ranges, copy onto itself with new headers, multipart, batch delete, list pages with `KeyCount`, and one 2 GiB PUT through Envoy | Proven 2026-10-15 with `artifacts/zulip/s3proof` on tusd's AWS SDK, 13 of 13 |
