@@ -1,0 +1,44 @@
+# Backups to the hov1 site through the Barman Cloud plugin (backup/README.md, backup/cnpg-backups.md).
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hov1
+  namespace: zulip
+spec:
+  retentionPolicy: 14d
+  configuration:
+    destinationPath: s3://cnpg-zulip/
+    endpointURL: https://213.128.185.82:443
+    endpointCA:
+      name: hov1-s3
+      key: ca.crt
+    s3Credentials:
+      accessKeyId:
+        name: s3-cnpg-zulip
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: s3-cnpg-zulip
+        key: SECRET_ACCESS_KEY
+      region:
+        name: hov1-s3
+        key: REGION
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+# Daily base backup; six fields, seconds first; immediate runs the first on apply (backup/cnpg-backups.md).
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: zulip-postgres-daily
+  namespace: zulip
+spec:
+  schedule: "0 15 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: zulip-postgres
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
