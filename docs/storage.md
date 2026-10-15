@@ -20,8 +20,8 @@ are 014 and 017 to 021, and 025. How a disk becomes a volume, and which names ar
 Cinder holds 60 GB of SSD and 10 GB of Standard. Every Cinder class allows expansion. Each database is one redundancy
 layer (decision 018): Zitadel's replicates itself, every other one is a single instance on a volume Cinder keeps three
 copies of. Zulip's database, when it comes, is one more single instance on its own SSD volume, sized at install. An
-in-cluster S3 endpoint, one versitygw on one Cinder volume, is `docs/plans/2026-10-s3-osl1.md`; Forgejo's LFS and
-packages are its first writer, Zulip's uploads the second.
+in-cluster S3 endpoint, one versitygw on one Cinder volume, is `docs/plans/2026-10-s3-osl1.md`; Zulip's uploads and
+avatars are its first writer, Forgejo's LFS and packages the second.
 
 ## The workers
 
