@@ -23,7 +23,10 @@ spec:
       envoyService:
         type: LoadBalancer
         externalTrafficPolicy: Local
+        # Every public name points at this floating IP. A new load balancer reuses it, and deleting one keeps it.
+        loadBalancerIP: 91.242.200.101
         # Octavia sends each connection's client address in a PROXY v2 header, on every listener, so X-Forwarded-For
         # names the visitor (clienttrafficpolicy.yaml); without it the load balancer's own address is all Envoy sees.
         annotations:
           loadbalancer.openstack.org/proxy-protocol: "v2"
+          loadbalancer.openstack.org/keep-floatingip: "true"
