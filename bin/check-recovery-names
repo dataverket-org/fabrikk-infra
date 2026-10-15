@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
 # Before a rebuild, says whether git is ready for one (decision 021). Every
-# CNPG Cluster under apps/ that recovers from an archive must write to a
-# different archive than the one it recovers from, since a restored cluster
-# cannot archive into the archive it came from. When it does not, this prints
-# the commit to make: each archive's serverName moved to the next number.
+# CNPG Cluster under apps/ or artifacts/ that recovers from an archive must
+# write to a different archive than the one it recovers from, since a restored
+# cluster cannot archive into the archive it came from. When it does not, this
+# prints the commit to make: each archive's serverName moved to the next number.
 #
 # With a URL as argument it also checks that Flux's own GitRepository in
 # clusters/ reads that URL, since Flux's first reconcile applies it and would
@@ -137,8 +137,8 @@ function check_source()
 
 command -v yq >/dev/null || fail "yq is not on PATH"
 
-files="$(find "$repo_dir/apps" -name '*.yaml' ! -name '*.enc.yaml' | sort)" ||
-	fail "Could not list $repo_dir/apps!"
+files="$(find "$repo_dir/apps" "$repo_dir/artifacts" -name '*.yaml' ! -name '*.enc.yaml' | sort)" ||
+	fail "Could not list $repo_dir/apps and $repo_dir/artifacts!"
 
 while read -r file; do
 	[[ -n "$file" ]] || continue

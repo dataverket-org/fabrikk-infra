@@ -22,12 +22,18 @@ spec:
       parameters:
         barmanObjectName: hov1
         serverName: zulip-postgres-1
-  # Zulip's scripts/setup/create-db.sql: UTF8, C.UTF-8, owned by zulip. Switched to bootstrap.recovery from the hov1
-  # archive once the first base backup is there (decision 021).
+  # Bootstrap from the hov1 archive, read by CNPG only at creation; a rebuild moves serverName first
+  # (decision 021, docs/storage.md). The database was made 2026-10-15 by initdb as Zulip's create-db.sql makes it:
+  # UTF8, C.UTF-8, owned by zulip.
   bootstrap:
-    initdb:
+    recovery:
+      source: hov1-archive
       database: zulip
       owner: zulip
-      encoding: UTF8
-      localeCollate: C.UTF-8
-      localeCType: C.UTF-8
+  externalClusters:
+    - name: hov1-archive
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: hov1
+          serverName: zulip-postgres-1

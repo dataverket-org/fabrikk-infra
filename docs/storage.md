@@ -157,6 +157,8 @@ mirror, `github.com/dataverket-org/fabrikk-infra`, which carries every repositor
    back at `git.dataverket.org`. The forge starts without its theme until `artifacts/forgejo-theme/push.sh` and
    `artifacts/www/push.sh` have run again into the empty zot; one restart of the forgejo pod then serves the
    landing page's copy (`apps/forgejo/README.md`, "The theme").
+6. Zulip's artifact pushed again into the empty zot, `artifacts/zulip/push.sh`, after the rebuild commit has moved
+   `zulip-postgres`'s `serverName` with the others; its database restores from the hov1 archive as Forgejo's does.
 
 A rebuild on the same machines resets the `u-pg-zitadel` partitions first, because the provisioner publishes whatever
 is on them. The server group, servers and machine set are made by swamp's models from the files in git; they are below
