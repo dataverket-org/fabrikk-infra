@@ -16,6 +16,7 @@ and how it is read is `backup/README.md` once the model `osl1-s3` exists.
 | `httproute.yaml` | `dataverket.s3.osl1.dvkt.no` on the Gateway's `https-s3-osl1` listener, request timeout off; the `http` redirect |
 | `versitygw-root.enc.yaml` | The root key pair, source of record, sops-encrypted to the cluster key and the two operators |
 | `push.sh` | Pushes this directory into zot; not part of the artifact |
+| `user.sh` | Mints an account and its buckets through `kubectl exec`, prints the writer's Secret; not part of the artifact |
 
 ## Ship a change
 
@@ -34,10 +35,19 @@ same claim.
 - **The admin API** is reached with `kubectl port-forward svc/versitygw-admin 7071 -n versitygw` and signed with the
   root key pair, from the operator's terminal; the `osl1-s3` model reads it that way. No account secret and no root
   key is ever in an argument, a data record or a log line.
-- **Accounts and buckets**: one account per writer, role `user`, owner of one bucket, as on the hov1 site
-  (`backup/versitygw/README.md`, "Security model"). A bucket that wants object lock is created with lock, which turns
-  versioning on for it; versitygw has no lifecycle rules, so non-current versions stay until a client deletes them by
-  version id.
+- **Accounts and buckets**: one account per writer, role `user`, owner of its buckets, as on the hov1 site
+  (`backup/versitygw/README.md`, "Security model"). `user.sh` makes them with versitygw's own admin CLI inside the
+  pod, where the root key pair already is, and prints the Secret for `sops --encrypt`:
+
+  ```sh
+  artifacts/versitygw/user.sh <account> <namespace> <bucket>... \
+    | sops --encrypt --filename-override artifacts/<name>/s3-<account>.enc.yaml /dev/stdin \
+    > artifacts/<name>/s3-<account>.enc.yaml
+  ```
+
+  The gateway's IAM store holds the secret in clear; nothing else does. A bucket that wants object lock, which `user.sh`
+  does not set, is created with lock, which turns versioning on for it; versitygw has no lifecycle rules, so non-current
+  versions stay until a client deletes them by version id.
 - **The root key pair** lives here and, by a person's copy, in `vaults/operator/osl1/root.enc.json`. Rotate here first:
   new values in the Secret, push, then the copy.
 
