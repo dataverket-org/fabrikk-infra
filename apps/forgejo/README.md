@@ -19,7 +19,9 @@ mirror (decisions 022 and 023). Its admin, mailer and OAuth Secrets are `*.enc.y
 `theme.yaml` is a `GitRepository` on `git.dataverket.org/dataverket/forgejo-theme`, public, so no `secretRef`, and a
 Kustomization of the repository's own `kustomization.yaml`, which turns `public/assets/*` into three ConfigMaps,
 `forgejo-theme-css`, `-img` and `-fonts`. `release.yaml` mounts them over Forgejo's `public/assets/{css,img,fonts}`.
-A push to the theme's `main` is served within one reconcile, with nothing to rebuild or restart.
+A push to the theme's `main` is served within one reconcile, with nothing to rebuild or restart. The
+`GitRepository` sets `ignore` to `kustomization.yaml` and `public/` alone: Flux's default exclusions drop `*.png`, and
+without the PNGs the kustomize build fails on `favicon.png`.
 
 `theme-locale.yaml` is the landing page's copy. It cannot be a ConfigMap from git: it is the theme's `make-theme.py`
 patching the en-US locale extracted from the exact Forgejo binary that runs here, and that binary is in the image.

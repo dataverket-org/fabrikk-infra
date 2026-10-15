@@ -9,6 +9,12 @@ spec:
   url: https://git.dataverket.org/dataverket/forgejo-theme.git
   ref:
     branch: main
+  # Flux leaves *.png out of an artifact by default, and the PNGs are the favicon, logo and touch icon. A set ignore
+  # replaces that default list, so this ships what the repository's kustomization.yaml reads and nothing else.
+  ignore: |
+    /*
+    !/kustomization.yaml
+    !/public/
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
