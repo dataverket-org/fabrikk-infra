@@ -194,7 +194,8 @@
     ],
     "checksum": "a338bff80b17861851efc05226599ce0a128252995be04d29589c3017237bea4",
     "filesChecksum": "6d1660b9286f2ca56809d14ed1a5dcbffdde46513dbb6bf7943d80dfe084c627",
-    "serverUrl": "https://swamp-club.com"
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   },
   "@dataverket/github": {
     "version": "2026.10.05.1",
@@ -211,7 +212,8 @@
     ],
     "checksum": "8f42201b1f3dc98f223a5c4467191583b3db2ee9477696188bc3dec1c1b9a6d9",
     "filesChecksum": "6f935504ff9697bf534e3fbd65a02a2b042c2b03180d9eb5ce9244fcd5fc70ac",
-    "serverUrl": "https://swamp-club.com"
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   },
   "@dataverket/flux": {
     "version": "2026.10.05.1",
@@ -263,7 +265,8 @@
     ],
     "checksum": "0c8101ebfb112684f100a7e063674a20286e1fa788f803f76f4e1656d90bcc90",
     "filesChecksum": "cc8a18d6bebd8cf1c278adc7ca1920c073a18560e1b2378ffb5cc94d9376de38",
-    "serverUrl": "https://swamp-club.com"
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   },
   "@dataverket/forgejo-github-mirror": {
     "version": "2026.10.05.1",
@@ -276,7 +279,8 @@
     ],
     "checksum": "740806f9589e086cc863ea02bd7b1dfdd9430bf2bfd431639dcd9306eb14cb43",
     "filesChecksum": "885e48befddb717ba2ae71f86532f51be48667d9b393ac528ec729e55e9e7475",
-    "serverUrl": "https://swamp-club.com"
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   },
   "@dataverket/versitygw": {
     "version": "2026.10.05.1",
@@ -293,6 +297,7 @@
     ],
     "checksum": "c205e8379345e65cd6076b7c103e011d3a5ec91487b94147b2aaac3e9f411b88",
     "filesChecksum": "f7eaad3e309b0bcd61f483c9c370124cc70866297bc48b2b35c5a458c137d390",
-    "serverUrl": "https://swamp-club.com"
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   }
 }
