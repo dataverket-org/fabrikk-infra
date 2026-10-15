@@ -93,8 +93,11 @@ zmanage() { kubectl --context dataverket-prod-admin -n zulip exec zulip-0 -c zul
 If creating the organization fails halfway (on 2026-10-15 an S3 header Envoy refused, then a cache that outlived
 the rollback), clean up before trying again:
 
-- Restart memcached: `swamp behavior run dataverket-prod-deployments restart --input namespace=zulip --input
-  deploymentName=zulip-memcached`. A rolled-back attempt leaves cached rows the database no longer has.
+- Restart memcached, then Zulip: `swamp behavior run dataverket-prod-deployments restart --input namespace=zulip
+  --input deploymentName=zulip-memcached`, then `swamp behavior run dataverket-prod-pods delete --input
+  namespace=zulip --input podName=zulip-0`. A rolled-back attempt leaves its `Client` rows cached in memcached and
+  in a dictionary inside every Zulip worker (`get_client_cache`), and the next attempt fails on them with "Client
+  matching query does not exist"; only both restarts clear them.
 - An organization left with no users is deleted, not repaired: `zmanage list_realms` names its numeric id, then
   `zmanage delete_realm -r <id>` run in an interactive shell inside the pod, since the command reads its confirmation
   from a terminal and the pipe through `kubectl exec` gives it none. The confirmation it wants is the organization's
