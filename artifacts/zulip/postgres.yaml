@@ -1,0 +1,33 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: zulip-postgres
+  namespace: zulip
+spec:
+  # One instance on one Cinder volume (decision 018). No PodDisruptionBudget, so a drain moves it.
+  instances: 1
+  enablePDB: false
+  # The CNPG image plus Zulip's search dictionaries; postgres-image.sh builds it and writes this line.
+  imageName: registry.dataverket.org/platform/postgresql-zulip@sha256:7b6783bbd1ccc457ada03ad050953cd31c31f2fa11c1119fde172771ba7eabb4
+  storage:
+    storageClass: csi-cinder-sc-delete
+    size: 10Gi
+  postgresql:
+    parameters:
+      max_wal_size: 1GB
+  # Archiving to the hov1 site (backup.yaml, backup/README.md); serverName is this cluster's own folder.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: hov1
+        serverName: zulip-postgres-1
+  # Zulip's scripts/setup/create-db.sql: UTF8, C.UTF-8, owned by zulip. Switched to bootstrap.recovery from the hov1
+  # archive once the first base backup is there (decision 021).
+  bootstrap:
+    initdb:
+      database: zulip
+      owner: zulip
+      encoding: UTF8
+      localeCollate: C.UTF-8
+      localeCType: C.UTF-8
