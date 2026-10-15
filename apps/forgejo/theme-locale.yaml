@@ -55,6 +55,11 @@ spec:
             - name: extract-and-patch
               # Must equal Forgejo's running app version (README.md).
               image: code.forgejo.org/forgejo/forgejo:15.0.7-rootless
+              env:
+                # Root is for apk alone, but every forgejo subcommand refuses uid 0, `embedded extract` with them.
+                # This throwaway container runs no server, so the refusal protects nothing here.
+                - name: GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT
+                  value: "true"
               command: ["/bin/sh", "-c"]
               args:
                 - |
