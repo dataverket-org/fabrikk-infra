@@ -23,3 +23,7 @@ spec:
       envoyService:
         type: LoadBalancer
         externalTrafficPolicy: Local
+        # Octavia sends each connection's client address in a PROXY v2 header, on every listener, so X-Forwarded-For
+        # names the visitor (clienttrafficpolicy.yaml); without it the load balancer's own address is all Envoy sees.
+        annotations:
+          loadbalancer.openstack.org/proxy-protocol: "v2"
