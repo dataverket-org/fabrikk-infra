@@ -5,6 +5,8 @@ metadata:
   name: forgejo-theme
   namespace: forgejo
 spec:
+  # Suspended while the theme moves to artifacts/forgejo-theme/; removed with it.
+  suspend: true
   interval: 5m
   url: https://git.dataverket.org/dataverket/forgejo-theme.git
   ref:
@@ -27,5 +29,7 @@ spec:
     kind: GitRepository
     name: forgejo-theme
   path: ./
-  prune: true
+  # Off, so removing this Kustomization leaves the ConfigMaps for the artifact's Kustomization to take over.
+  prune: false
+  suspend: true
   targetNamespace: forgejo
