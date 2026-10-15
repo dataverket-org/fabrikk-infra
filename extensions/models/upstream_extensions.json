@@ -1,7 +1,7 @@
 {
   "@swamp/kubernetes": {
-    "version": "2026.09.03.1",
-    "pulledAt": "2026-09-18T09:42:08.851Z",
+    "version": "2026.10.13.1",
+    "pulledAt": "2026-10-15T12:58:25.711Z",
     "files": [
       ".swamp/bundles/7c3e3ab0/configmap.js",
       ".swamp/bundles/7c3e3ab0/deployment.js",
@@ -54,9 +54,10 @@
       ".swamp/pulled-extensions/@swamp/kubernetes/workflows/service-connectivity.yaml",
       ".swamp/pulled-extensions/@swamp/kubernetes/workflows/storage-health.yaml"
     ],
-    "checksum": "74261b52900f510fd8ffeda6a70ded2c75161d159647ea109a8232cbe169b7dc",
-    "filesChecksum": "d22f3e82e6111cd1dcc81bcf517bbfb48f995a9230af6838d56024151ce327c4",
-    "serverUrl": "https://swamp-club.com"
+    "checksum": "6d203aef651605dace85c43911989652235c2297e7588ff07ec476e82a4a5a4c",
+    "filesChecksum": "342a5863093d87d14baf5638ff0fa279d725e13a2eac345c0150667d25ad44c5",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   },
   "@dataverket/openstack": {
     "version": "2026.10.01.1",
