@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -158,17 +159,22 @@ func clean(ctx context.Context, c *s3.Client, report bool) error {
 	return nil
 }
 
-// zeroes is a seekable body of n zero bytes, so a 2 GiB PUT needs no 2 GiB of memory or disk.
-type zeroes struct{ n, off int64 }
+// zeroes is a seekable body of n zero bytes, so a 2 GiB PUT needs no 2 GiB of memory or disk. off is atomic
+// because progress reads it while the SDK reads the body.
+type zeroes struct {
+	n   int64
+	off atomic.Int64
+}
 
 // Read fills p with zeros up to the end of the body.
 func (z *zeroes) Read(p []byte) (int, error) {
-	if z.off >= z.n {
+	off := z.off.Load()
+	if off >= z.n {
 		return 0, io.EOF
 	}
-	k := min(int64(len(p)), z.n-z.off)
+	k := min(int64(len(p)), z.n-off)
 	clear(p[:k])
-	z.off += k
+	z.off.Add(k)
 	return int(k), nil
 }
 
@@ -176,13 +182,29 @@ func (z *zeroes) Read(p []byte) (int, error) {
 func (z *zeroes) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
-		z.off = offset
+		z.off.Store(offset)
 	case io.SeekCurrent:
-		z.off += offset
+		z.off.Add(offset)
 	case io.SeekEnd:
-		z.off = z.n + offset
+		z.off.Store(z.n + offset)
 	}
-	return z.off, nil
+	return z.off.Load(), nil
+}
+
+// progress prints how much of the body has been read every ten seconds, until done is closed.
+func progress(z *zeroes, start time.Time, done <-chan struct{}) {
+	tick := time.NewTicker(10 * time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-done:
+			return
+		case <-tick.C:
+			sent := z.off.Load()
+			elapsed := time.Since(start).Seconds()
+			fmt.Printf("     2 GiB PUT: %d of %d MiB, %.1f MiB/s\n", sent/mib, z.n/mib, float64(sent)/mib/elapsed)
+		}
+	}
 }
 
 // policy puts the world-readable policy on the avatar bucket and prints it back.
@@ -327,10 +349,15 @@ func prove(ctx context.Context, c *s3.Client, big bool) error {
 	if big {
 		const size = 2 << 30
 		start := time.Now()
-		if _, err := c.PutObject(ctx, &s3.PutObjectInput{
+		body := &zeroes{n: size}
+		done := make(chan struct{})
+		go progress(body, start, done)
+		_, err := c.PutObject(ctx, &s3.PutObjectInput{
 			Bucket: aws.String(uploads), Key: aws.String(prefix + "big.bin"),
-			Body: &zeroes{n: size}, ContentLength: aws.Int64(size),
-		}); err != nil {
+			Body: body, ContentLength: aws.Int64(size),
+		})
+		close(done)
+		if err != nil {
 			check("2 GiB in one PUT", false, "%v", err)
 		} else {
 			head, err := c.HeadObject(ctx, &s3.HeadObjectInput{
