@@ -28,7 +28,7 @@ spec:
             - name: SETTING_EXTERNAL_HOST
               value: forum.dataverket.org
             - name: SETTING_ZULIP_ADMINISTRATOR
-              value: postmaster@dataverket.org
+              value: admin@dataverket.org
             # Envoy's pods; Zulip trusts X-Forwarded-For only from these.
             - name: LOADBALANCER_IPS
               value: 10.244.0.0/16
@@ -164,6 +164,9 @@ spec:
               value: "False"
             - name: SETTING_NOREPLY_EMAIL_ADDRESS
               value: noreply@dataverket.org
+            # Plain noreply@dataverket.org; noreply-<token>@forum.dataverket.org has no mail domain behind it.
+            - name: SETTING_ADD_TOKENS_TO_NOREPLY_ADDRESS
+              value: "False"
             - name: SETTING_EMAIL_HOST_USER
               valueFrom:
                 secretKeyRef:

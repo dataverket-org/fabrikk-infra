@@ -87,9 +87,8 @@ zmanage() { kubectl --context dataverket-prod-admin -n zulip exec zulip-0 -c zul
    Dataverket". Should `zulip-0` crash-loop on a new revision, the StatefulSet does not replace it by itself:
    `swamp behavior run dataverket-prod-pods delete --input namespace=zulip --input podName=zulip-0` after the fix is
    pushed.
-8. **The administrator address.** `SETTING_ZULIP_ADMINISTRATOR` in `statefulset.yaml` is `postmaster@dataverket.org`,
-   shown as the contact address and sent error mail; change it there to a mailbox someone reads, in the same push
-   as step 7 or later.
+8. **The administrator address** is `admin@dataverket.org` (`SETTING_ZULIP_ADMINISTRATOR` in `statefulset.yaml`),
+   shown as the contact address and sent error mail; Zulip's mail goes out as plain `noreply@dataverket.org`.
 
 What remains of `docs/plans/2026-10-zulip.md` after this is its restore test and documentation.
 
