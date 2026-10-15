@@ -17,7 +17,7 @@ as an image volume; the manifests name it by digest.
 | `nginx-conf.yaml` | nginx's configuration template, below |
 | `deployment.yaml` | Two nginx-unprivileged replicas, image pinned by digest, the `www-site` image mounted read-only over `/usr/share/nginx/html` |
 | `service.yaml` | `www:80` |
-| `httproute.yaml` | Both names on the `https` listener; on `http`, a 301 to https |
+| `httproute.yaml` | Both names on the `https` listener; on `http`, a 301 to https, the apex included; the apex has its own listener and a 301 to `www` |
 | `www-secrets.enc.yaml` | `SIGNAL_GROUP_LINK`, sops-encrypted to the cluster key and the operators |
 | `push.sh` | Pushes the `www-site` image, then this directory, into zot; not part of the artifact |
 
