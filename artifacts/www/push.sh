@@ -7,6 +7,7 @@
 # Push credentials are the fabrikk-ci user, decrypted from artifacts/zot/zot-ci-credentials.enc.yaml with your YubiKey (one touch).
 # Run from a clean checkout of the commit you want to ship; the artifact's revision annotation names that commit.
 set -eu
+unset CDPATH
 cd "$(dirname "$0")"
 
 for tool in flux sops git jq crane bsdtar; do

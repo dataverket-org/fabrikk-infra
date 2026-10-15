@@ -10,6 +10,8 @@
 # The build runs in crane's in-memory registry on a free local port, so it needs no credential and leaves nothing
 # behind. Needs crane and bsdtar on PATH; macOS ships bsdtar, Linux has it in libarchive-tools.
 set -eu
+# A CDPATH in the caller's shell makes the plain "cd site" below fail, and the build then yields an empty image.
+unset CDPATH
 cd "$(dirname "$0")"
 
 for tool in crane bsdtar; do
