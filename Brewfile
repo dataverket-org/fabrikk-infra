@@ -15,7 +15,7 @@ brew "fluxcd/tap/flux"
 brew "cosign"                   # signs an artifact at push.sh time with the site key in vaults/operator/<site>/
 brew "helm"                     # inflates a chart when an artifact recipe is rendered; never run against a cluster
 brew "crane"                    # builds the website image (artifacts/www/site.sh); bsdtar comes with macOS
-brew "awscli"                   # S3 by hand and artifacts/zulip/s3.sh, against the osl1 gateway
+brew "go"                       # artifacts/zulip/s3proof, run with go run; the SDK versions are in its go.mod
 brew "sops"
 brew "age"
 brew "age-plugin-yubikey"
