@@ -86,7 +86,7 @@ spec:
               name: forgejo-security
               key: LFS_JWT_SECRET
     # The theme's ConfigMaps over Forgejo's custom paths (README.md). Optional, so a forge rebuilt before its theme
-    # starts on its built-in assets instead of waiting for ConfigMaps only a running forge can produce.
+    # artifact is pushed into the empty zot starts on its built-in assets instead of waiting for it.
     extraVolumes:
       - name: theme-css
         configMap:

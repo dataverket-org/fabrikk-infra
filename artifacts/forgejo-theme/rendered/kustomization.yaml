@@ -1,0 +1,8 @@
+# Written by render.sh; do not edit. The theme at c9a2bf0883d4b99b596c41bc408c14ee543e0237, the locale of Forgejo 15.0.7.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - v1_configmap_forgejo-theme-css.yaml
+  - v1_configmap_forgejo-theme-fonts.yaml
+  - v1_configmap_forgejo-theme-img.yaml
+  - v1_configmap_forgejo-theme-locale.yaml

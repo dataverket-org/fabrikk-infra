@@ -16,36 +16,23 @@ mirror (decisions 022 and 023). Its admin, mailer and OAuth Secrets are `*.enc.y
 
 ## The theme
 
-`theme.yaml` is a `GitRepository` on `git.dataverket.org/dataverket/forgejo-theme`, public, so no `secretRef`, and a
-Kustomization of the repository's own `kustomization.yaml`, which turns `public/assets/*` into three ConfigMaps,
-`forgejo-theme-css`, `-img` and `-fonts`. `release.yaml` mounts them over Forgejo's `public/assets/{css,img,fonts}`.
-A push to the theme's `main` is served within one reconcile, with nothing to rebuild or restart. The
-`GitRepository` sets `ignore` to `kustomization.yaml` and `public/` alone: Flux's default exclusions drop `*.png`, and
-without the PNGs the kustomize build fails on `favicon.png`.
+Four ConfigMaps, `forgejo-theme-css`, `-img`, `-fonts` and `-locale`, rendered in the factory from the theme
+repository `git.dataverket.org/dataverket/forgejo-theme` and Forgejo's own en-US locale, and delivered as the
+artifact `platform/forgejo-theme-config` (`artifacts/forgejo-theme/README.md`, decision 028). `theme.yaml` is its
+`OCIRepository` and Kustomization. `release.yaml` mounts the first three over Forgejo's `public/assets/{css,img,fonts}`
+and the locale over `options/locale`. A theme change is a new pin in `artifacts/forgejo-theme/recipe/source.env`,
+rendered and pushed; a Forgejo upgrade is the same render against the new chart, which `render.sh --check` enforces.
 
-`theme-locale.yaml` is the landing page's copy. It cannot be a ConfigMap from git: it is the theme's `make-theme.py`
-patching the en-US locale extracted from the exact Forgejo binary that runs here, and that binary is in the image.
-A CronJob regenerates ConfigMap `forgejo-theme-locale` every fifteen minutes from a fresh `make-theme.py`, as root
-because `apk` installs python3 and kubectl into the rootless image for that one run. Every `forgejo` subcommand
-refuses uid 0, `embedded extract` with them, so the container sets `GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT`; it runs
-no server. `create` cannot be limited by name, so its Role covers ConfigMaps in the namespace. The image tag in the
-CronJob must equal Forgejo's running app version, the chart's `appVersion`, not the chart version in `repo.yaml`:
-
-```sh
-kubectl -n forgejo get deploy forgejo -o jsonpath='{.spec.template.spec.containers[0].image}'
-```
+CSS, images and fonts are served within a reconcile, since a mounted ConfigMap is synced into the running pod.
+Forgejo loads locale strings at startup, so a copy change reaches visitors after the pod's next restart, which a
+person does.
 
 The site name in the page title and header is `APP_NAME` in `release.yaml`, not a locale string; the chart's default
 is "Forgejo: Beyond coding. We forge."
 
-All four theme volumes are `optional`. A rebuilt cluster has none of the ConfigMaps, and all of them come from the
-forge itself: the GitRepository reads it, the CronJob fetches `make-theme.py` from it. So the forge starts on its
-built-in assets and copy, the theme's three ConfigMaps follow within a reconcile of the restored `forgejo-theme`
-repository (mirrored at `github.com/dataverket-org/forgejo-theme`), the CronJob's next run writes the locale, and one
-restart of the forgejo pod then serves the landing page's copy.
-
-Forgejo loads locale strings at startup, so a copy change reaches visitors after the pod's next restart. The CronJob
-does not restart the forge; a person does.
+All four theme volumes are `optional`. A rebuilt cluster starts with an empty zot, so the forge starts on its
+built-in assets and copy, and takes the theme once `artifacts/forgejo-theme/push.sh` has run again, the locale
+after one restart.
 
 ## The actions mirror
 

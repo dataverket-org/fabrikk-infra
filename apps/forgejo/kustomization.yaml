@@ -12,6 +12,5 @@ resources:
   - forgejo-mailer.enc.yaml
   - forgejo-zitadel-oauth-secret.enc.yaml
   - theme.yaml
-  - theme-locale.yaml
   - release.yaml
   - actions-mirror.yaml

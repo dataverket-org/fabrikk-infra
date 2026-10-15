@@ -1,0 +1,41 @@
+# The recipe: what render.sh turns into ../rendered/. render.sh copies it into a checkout of the theme at the commit
+# source.env names, beside the locale it patches there, so the paths below are the theme repository's. Nothing here
+# reaches the cluster; Flux applies ../rendered/ (README.md).
+#
+# Fixed names: release.yaml mounts the four ConfigMaps by name, and a mounted ConfigMap's content is synced into the
+# running pod in place.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: forgejo
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: forgejo-theme-css
+    files:
+      - public/assets/css/theme-dataverket-auto.css
+      - public/assets/css/theme-dataverket-light.css
+      - public/assets/css/theme-dataverket-dark.css
+
+  - name: forgejo-theme-img
+    files:
+      - public/assets/img/logo.svg
+      - public/assets/img/logo-dataverket-light.svg
+      - public/assets/img/logo-dataverket-dark.svg
+      - public/assets/img/favicon.svg
+      - public/assets/img/favicon.png
+      - public/assets/img/logo.png
+      - public/assets/img/apple-touch-icon.png
+
+  - name: forgejo-theme-fonts
+    files:
+      - public/assets/fonts/inter-latin-400-normal.woff2
+      - public/assets/fonts/inter-latin-500-normal.woff2
+      - public/assets/fonts/inter-latin-600-normal.woff2
+      - public/assets/fonts/jetbrains-mono-latin-400-normal.woff2
+      - public/assets/fonts/jetbrains-mono-latin-500-normal.woff2
+
+  - name: forgejo-theme-locale
+    files:
+      - options/locale/locale_en-US.ini

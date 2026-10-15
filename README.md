@@ -201,7 +201,9 @@ two upstream charts, cert-manager and external-dns, inflated by kustomize from `
 `rendered/` tree that `push.sh` ships and `infrastructure/cert-manager/source.yaml` applies (decision 028). The
 diff of `rendered/` is the review of a chart upgrade, and the cluster reads no chart repository for them.
 `artifacts/www/`, the website and the Signal short link, is the fourth, plain manifests again, with the website as
-an image of its own that the pods mount as a volume.
+an image of its own that the pods mount as a volume. `artifacts/forgejo-theme/` is the fifth, rendered: the forge's
+theme as four ConfigMaps, built from a pinned commit of the theme repository and the locale of the Forgejo release
+the chart runs, applied by `apps/forgejo/theme.yaml`.
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
 directory straight from the repository, without prune, until zot serves its first artifact, and again whenever a bad

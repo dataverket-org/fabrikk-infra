@@ -1,35 +1,36 @@
-# The Dataverket theme: a GitRepository and its own kustomization, three ConfigMaps release.yaml mounts (README.md).
+# The Dataverket theme is delivered gitless, rendered in the factory from artifacts/forgejo-theme/ (decision 028):
+# four ConfigMaps release.yaml mounts (README.md, "The theme"). Fetched through the Service, plain HTTP (decision 013).
 apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
+kind: OCIRepository
 metadata:
-  name: forgejo-theme
-  namespace: forgejo
+  name: forgejo-theme-config
+  namespace: flux-system
 spec:
-  # Suspended while the theme moves to artifacts/forgejo-theme/; removed with it.
-  suspend: true
-  interval: 5m
-  url: https://git.dataverket.org/dataverket/forgejo-theme.git
+  interval: 10m
+  url: oci://zot.zot.svc.cluster.local:5000/platform/forgejo-theme-config
+  insecure: true
   ref:
-    branch: main
-  # Flux leaves *.png out of an artifact by default, and the PNGs are the favicon, logo and touch icon. A set ignore
-  # replaces that default list, so this ships what the repository's kustomization.yaml reads and nothing else.
-  ignore: |
-    /*
-    !/kustomization.yaml
-    !/public/
+    tag: current
+  # Verification, switched on after this artifact has been pushed signed once with the site key
+  # (vaults/operator/README.md, "Signing keys"; clusters/production/cosign-osl1.yaml holds the public half):
+  # verify:
+  #   provider: cosign
+  #   secretRef:
+  #     name: cosign-osl1
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: forgejo-theme
-  namespace: forgejo
+  namespace: flux-system
 spec:
-  interval: 5m
+  interval: 10m
+  dependsOn:
+    - name: zot
   sourceRef:
-    kind: GitRepository
-    name: forgejo-theme
+    kind: OCIRepository
+    name: forgejo-theme-config
   path: ./
-  # Off, so removing this Kustomization leaves the ConfigMaps for the artifact's Kustomization to take over.
-  prune: false
-  suspend: true
-  targetNamespace: forgejo
+  prune: true
+  wait: true
+  timeout: 5m
