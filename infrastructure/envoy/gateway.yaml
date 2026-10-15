@@ -31,7 +31,7 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    - name: https
+    - name: https-dataverket-org
       protocol: HTTPS
       port: 443
       hostname: "dataverket.org"
