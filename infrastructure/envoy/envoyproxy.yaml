@@ -21,6 +21,9 @@ spec:
               cpu: 100m
               memory: 256Mi
       envoyService:
+        # The cloud controller names the Octavia load balancer after this Service. A new name gives a new load
+        # balancer: on 2026-10-15 the first one stuck in PENDING_UPDATE, which only an Octavia admin can clear.
+        name: envoy-gateway-lb
         type: LoadBalancer
         externalTrafficPolicy: Local
         # Every public name points at this floating IP. A new load balancer reuses it, and deleting one keeps it.
