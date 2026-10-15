@@ -2,9 +2,10 @@
 #
 # A DirectAdmin login key for one zone at Nordhost, held by the cluster: tier
 # 3, minted from tier 1 with the account password in the operator store
-# (decisions 001, 016). Bounded to NORDHOST_COMMANDS, NORDHOST_ALLOW_IPS and
-# NORDHOST_KEY_DAYS, and named after the day it expires. The key is printed
-# on stdout and nothing else is; the copy into the cluster's file is yours
+# (decisions 001, 016). Bounded to NORDHOST_COMMANDS and NORDHOST_KEY_DAYS,
+# and to NORDHOST_ALLOW_IPS when it is set, and named after the day it
+# expires. The key is printed on stdout and nothing else is; the copy into the
+# cluster's file is yours
 # (decision 002). The previous key is left alone.
 #
 # The panel and the account come from the zone's entry in the cluster's
@@ -22,7 +23,7 @@
 #
 #	NORDHOST_ZONE		The zone, dvkt.no or dataverket.org
 #	NORDHOST_ALLOW_IPS	Addresses the key works from, space separated;
-#				not needed for a dry run
+#				empty or unset, any address
 #	NORDHOST_SOPS_FILE	The account's operator file (default
 #				vaults/operator/nordhost/<zone, dots as _>.enc.json)
 #	NORDHOST_USER_KEY	sops path to the user in it (default ["user"])
@@ -295,7 +296,6 @@ function zone_field()
 }
 
 require_settings NORDHOST_ZONE
-(( dry_run )) || require_settings NORDHOST_ALLOW_IPS
 for tool in sops curl jq; do
 	command -v "$tool" >/dev/null || fail "$tool is not on PATH!"
 done
@@ -382,7 +382,7 @@ for command in $commands; do
 done
 
 log "Creating key $keyname for $user ($zone): $days days, $commands ..."
-log "Allowed from: $allow_ips"
+log "Allowed from: ${allow_ips:-any address}"
 response="$(directadmin CMD_API_LOGIN_KEYS "$user:$password" "${fields[@]}")" ||
 	fail "DirectAdmin did not answer at $base_url!"
 [[ "$response" == *error=0* ]] ||
