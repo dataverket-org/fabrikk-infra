@@ -15,6 +15,7 @@ brew "fluxcd/tap/flux"
 brew "cosign"                   # signs an artifact at push.sh time with the site key in vaults/operator/<site>/
 brew "helm"                     # inflates a chart when an artifact recipe is rendered; never run against a cluster
 brew "crane"                    # builds the website image (artifacts/www/site.sh); bsdtar comes with macOS
+brew "uv"                       # runs artifacts/zulip/s3.py with the boto3 Zulip pins, never installing it
 brew "sops"
 brew "age"
 brew "age-plugin-yubikey"
