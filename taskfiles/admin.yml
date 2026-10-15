@@ -39,6 +39,12 @@ env:
   ZITADEL_PROJECTS: fabrikk-infra-admin zulip
   ZITADEL_ORG: Operators
   ZITADEL_NAMESPACE: zitadel
+  # The zones whose Nordhost login keys the cluster holds, in
+  # artifacts/cert-manager/nordhost-config.enc.yaml, and the name the keys
+  # carry in Nordhost's panel before their expiry date. The cluster reaches
+  # Nordhost from 91.242.200.102, its router's address (infra1-gw, SNAT).
+  NORDHOST_ZONES: dataverket.org dvkt.no
+  NORDHOST_KEY_PREFIX: dataverketprod
 
 tasks:
   default: { cmds: [{ task: status }] }
@@ -118,3 +124,13 @@ tasks:
     desc: "Zitadel operator key, deliberately: it owns the named projects"
     cmds: [bin/zitadel-operator-key]
     env:  { RENEW: '{{.RENEW}}' }
+
+  nordhost-keys:
+    desc: "New Nordhost login keys for every zone the cluster holds, written into its file"
+    cmds:
+      - for: { var: NORDHOST_ZONES, split: ' ' }
+        cmd: NORDHOST_ZONE={{.ITEM}} bin/nordhost-key
+
+  nordhost-key:
+    desc: "One zone's Nordhost key: NORDHOST_ZONE, with NORDHOST_DRY_RUN or NORDHOST_DELETE_KEYS"
+    cmds: [bin/nordhost-key]

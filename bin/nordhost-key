@@ -15,13 +15,13 @@
 # command is the one nordhost-integrator's da package calls.
 #
 # NORDHOST_DRY_RUN=1 mints nothing. It decrypts both files, lists the
-# account's login keys with the password, each with its expiry, allowed
-# addresses and commands, and lists the zone's records with the key the
-# cluster holds now. The cluster reaches Nordhost from its router's address,
-# 91.242.200.102 (OpenStack router infra1-gw, SNAT), which NORDHOST_ALLOW_IPS
-# must include when it is set for a key the cluster holds.
+# account's login keys with the password, and lists the zone's records with
+# the key the cluster holds now.
 #
-# Settings are environment variables (decision 008):
+# NORDHOST_DELETE_KEYS deletes the login keys it names and mints nothing,
+# once the new key is pushed and running. The key in the cluster's file must
+# list the zone's records before and after, which catches deleting the one
+# the cluster uses; it never deletes a key it does not find by name.
 #
 #	NORDHOST_ZONE		The zone, dvkt.no or dataverket.org
 #	NORDHOST_ALLOW_IPS	Addresses the key works from, space separated;
@@ -38,7 +38,9 @@
 #	NORDHOST_KEY_DAYS	Lifetime in days, 1 to 365 (default 90)
 #	NORDHOST_COMMANDS	Commands allowed, space separated
 #				(default CMD_DNS_CONTROL)
-#	NORDHOST_KEY_PREFIX	Key name before the expiry date (default cluster)
+#	NORDHOST_KEY_PREFIX	Key name before the expiry date, letters and digits;
+#				required to mint
+#	NORDHOST_DELETE_KEYS	Login keys to delete, space separated
 #	NORDHOST_DRY_RUN	1 tests decryption, the password and the
 #				current key, and mints nothing
 #	DEBUG			1 prints every external command before it runs
@@ -61,7 +63,8 @@ config_key="${NORDHOST_CONFIG_KEY:-[\"stringData\"][\"config.json\"]}"
 base_url="${NORDHOST_URL%/}"
 days="${NORDHOST_KEY_DAYS:-90}"
 commands="${NORDHOST_COMMANDS:-CMD_DNS_CONTROL}"
-prefix="${NORDHOST_KEY_PREFIX:-cluster}"
+prefix="$NORDHOST_KEY_PREFIX"
+delete_keys="${NORDHOST_DELETE_KEYS:-}"
 
 case "${NORDHOST_DRY_RUN:-0}" in
 	1|true|yes)	dry_run=1 ;;
@@ -246,6 +249,34 @@ function show_login_keys()
 }
 
 #
+# Prints how many records a login key lists in the zone; fails when DirectAdmin
+# refuses it or answers without a record listing.
+#
+function zone_record_count()
+{
+	local key="$1"
+	local body records
+
+	body="$(jq -cn --arg zone "$zone" '{domain: $zone, json: "yes"}')"
+	records="$(directadmin_json CMD_DNS_CONTROL "$user:$key" "$body")" ||
+		return 1
+	jq -er '.records | length' <<<"$records" 2>/dev/null
+}
+
+#
+# Deletes one login key by name, with the account password.
+#
+function delete_login_key()
+{
+	local name="$1"
+	local response
+
+	response="$(directadmin CMD_API_LOGIN_KEYS "$user:$password" \
+	            action=delete "select0=$name")" || return 1
+	[[ "$response" == *error=0* ]]
+}
+
+#
 # Prints DirectAdmin's error text from a response.
 #
 function error_text()
@@ -311,13 +342,17 @@ cd "$repo_dir" || exit $?
 [[ -f "$sops_file" ]] || fail "No operator file for $zone at $sops_file!"
 [[ -f "$cluster_file" ]] || fail "No cluster file at $cluster_file!"
 
-if (( ! dry_run )) && [[ -t 3 ]]; then
-	fail "Pipe the key into sops; it is not printed on a terminal!"
+if (( ! dry_run )) && [[ -z "$delete_keys" ]]; then
+	require_settings NORDHOST_KEY_PREFIX
+	[[ "$prefix" =~ ^[A-Za-z0-9]+$ ]] ||
+		fail "NORDHOST_KEY_PREFIX is letters and digits only: $prefix!"
 fi
 
 log "Reads:  $sops_file (user, password), $cluster_file (config.json)"
 if (( dry_run )); then
 	log "Writes: nothing; dry run"
+elif [[ -n "$delete_keys" ]]; then
+	log "Writes: deletes login keys $delete_keys at Nordhost"
 else
 	log "Writes: a login key at Nordhost, and it into $cluster_file"
 fi
@@ -352,14 +387,36 @@ log "The password lists the login keys of $user at $base_url"
 show_login_keys "$listing"
 
 if (( dry_run )); then
-	body="$(jq -cn --arg zone "$zone" '{domain: $zone, json: "yes"}')"
-	records="$(directadmin_json CMD_DNS_CONTROL "$user:$current_key" \
-	           "$body")" ||
-		fail "The current key for $zone failed at $base_url!"
-	count="$(jq -r '.records | length' <<<"$records" 2>/dev/null)" ||
-		fail "The current key gets no record listing for $zone!"
+	count="$(zone_record_count "$current_key")" ||
+		fail "The current key lists no records for $zone at $base_url!"
 	log "The current key lists $count records in $zone"
 	log "Dry run; no key minted"
+	exit
+fi
+
+if [[ -n "$delete_keys" ]]; then
+	count="$(zone_record_count "$current_key")" ||
+		fail "The cluster's key fails for $zone already; nothing deleted!"
+	log "The cluster's key lists $count records in $zone"
+	for name in $delete_keys; do
+		tr '&' '\n' <<<"$listing" | grep -qx "$name=.*" ||
+			fail "No login key $name for $user; nothing more deleted!"
+	done
+	for name in $delete_keys; do
+		delete_login_key "$name" ||
+			fail "DirectAdmin did not delete $name!"
+		log "Deleted login key $name"
+	done
+	listing="$(directadmin CMD_API_LOGIN_KEYS "$user:$password")" ||
+		fail "Cannot list the login keys of $user!"
+	for name in $delete_keys; do
+		tr '&' '\n' <<<"$listing" | grep -qx "$name=.*" &&
+			fail "Login key $name is still listed after deleting it!"
+	done
+	count="$(zone_record_count "$current_key")" ||
+		fail "The cluster's key for $zone stopped working: it was among $delete_keys!"
+	log "The cluster's key still lists $count records in $zone"
+	show_login_keys "$listing"
 	exit
 fi
 
@@ -399,10 +456,7 @@ log "Key $keyname is listed for $user and expires $(epoch_date "$expires")"
 show_login_keys "$listing"
 log "The previous key stays until you delete it at $base_url"
 
-body="$(jq -cn --arg zone "$zone" '{domain: $zone, json: "yes"}')"
-records="$(directadmin_json CMD_DNS_CONTROL "$user:$key" "$body")" ||
-	fail "The new key for $zone failed at $base_url; nothing written!"
-count="$(jq -r '.records | length' <<<"$records" 2>/dev/null)" ||
+count="$(zone_record_count "$key")" ||
 	fail "The new key lists no records for $zone; nothing written!"
 log "The new key lists $count records in $zone"
 
