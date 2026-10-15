@@ -1,0 +1,17 @@
+# The Octavia load balancer in front of Envoy is a full proxy: without PROXY protocol, every connection seems to come
+# from the load balancer's own address, and X-Forwarded-For carries that address instead of the visitor's. With it,
+# Envoy reads the visitor's address from the PROXY header and puts it in X-Forwarded-For. Optional while the load
+# balancer is switched over; required afterwards. Envoy Gateway does not merge this with a listener's own policy, so
+# clienttrafficpolicy-s3.yaml repeats it.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  name: proxy-protocol
+  namespace: envoy-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: envoy-gateway
+  proxyProtocol:
+    optional: true

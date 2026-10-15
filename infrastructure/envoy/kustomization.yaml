@@ -5,4 +5,5 @@ resources:
   - envoyproxy.yaml
   - gatewayclass.yaml
   - gateway.yaml
+  - clienttrafficpolicy.yaml
   - clienttrafficpolicy-s3.yaml

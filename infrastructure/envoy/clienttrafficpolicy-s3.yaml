@@ -14,3 +14,6 @@ spec:
       sectionName: https-s3-osl1
   headers:
     withUnderscoresAction: Allow
+  # As clienttrafficpolicy.yaml; a listener's own policy replaces the Gateway's.
+  proxyProtocol:
+    optional: true
