@@ -26,13 +26,23 @@ without the PNGs the kustomize build fails on `favicon.png`.
 `theme-locale.yaml` is the landing page's copy. It cannot be a ConfigMap from git: it is the theme's `make-theme.py`
 patching the en-US locale extracted from the exact Forgejo binary that runs here, and that binary is in the image.
 A CronJob regenerates ConfigMap `forgejo-theme-locale` every fifteen minutes from a fresh `make-theme.py`, as root
-because `apk` installs python3 and kubectl into the rootless image for that one run; `create` cannot be limited by
-name, so its Role covers ConfigMaps in the namespace. The image tag in the CronJob must equal Forgejo's running app
-version, the chart's `appVersion`, not the chart version in `repo.yaml`:
+because `apk` installs python3 and kubectl into the rootless image for that one run. Every `forgejo` subcommand
+refuses uid 0, `embedded extract` with them, so the container sets `GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT`; it runs
+no server. `create` cannot be limited by name, so its Role covers ConfigMaps in the namespace. The image tag in the
+CronJob must equal Forgejo's running app version, the chart's `appVersion`, not the chart version in `repo.yaml`:
 
 ```sh
 kubectl -n forgejo get deploy forgejo -o jsonpath='{.spec.template.spec.containers[0].image}'
 ```
+
+The site name in the page title and header is `APP_NAME` in `release.yaml`, not a locale string; the chart's default
+is "Forgejo: Beyond coding. We forge."
+
+All four theme volumes are `optional`. A rebuilt cluster has none of the ConfigMaps, and all of them come from the
+forge itself: the GitRepository reads it, the CronJob fetches `make-theme.py` from it. So the forge starts on its
+built-in assets and copy, the theme's three ConfigMaps follow within a reconcile of the restored `forgejo-theme`
+repository (mirrored at `github.com/dataverket-org/forgejo-theme`), the CronJob's next run writes the locale, and one
+restart of the forgejo pod then serves the landing page's copy.
 
 Forgejo loads locale strings at startup, so a copy change reaches visitors after the pod's next restart. The CronJob
 does not restart the forge; a person does.

@@ -23,6 +23,8 @@ spec:
           autoDiscoverUrl: "https://zitadel.dataverket.org/.well-known/openid-configuration"
           existingSecret: forgejo-zitadel-oauth-secret
       config:
+        # The page title and header; the chart's default is "Forgejo: Beyond coding. We forge."
+        APP_NAME: Dataverket
         # Actions resolve on this forge's own actions org (decision 022, README.md).
         actions:
           DEFAULT_ACTIONS_URL: self
@@ -83,20 +85,25 @@ spec:
             secretKeyRef:
               name: forgejo-security
               key: LFS_JWT_SECRET
-    # The theme's ConfigMaps over Forgejo's custom paths (README.md).
+    # The theme's ConfigMaps over Forgejo's custom paths (README.md). Optional, so a forge rebuilt before its theme
+    # starts on its built-in assets instead of waiting for ConfigMaps only a running forge can produce.
     extraVolumes:
       - name: theme-css
         configMap:
           name: forgejo-theme-css
+          optional: true
       - name: theme-img
         configMap:
           name: forgejo-theme-img
+          optional: true
       - name: theme-fonts
         configMap:
           name: forgejo-theme-fonts
+          optional: true
       - name: theme-locale
         configMap:
           name: forgejo-theme-locale
+          optional: true
     extraContainerVolumeMounts:
       - name: theme-css
         mountPath: /data/gitea/public/assets/css

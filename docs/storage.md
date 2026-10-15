@@ -152,7 +152,9 @@ mirror, `github.com/dataverket-org/fabrikk-infra`, which carries every repositor
 4. zot comes back empty on a new Standard volume, filled by mirrors, artifacts and rebuilds; the runner volumes empty.
 5. Forgejo's repositories restored by hand from the GitHub mirrors, this repository with the rebuild commit among
    them, before Forgejo's push mirror runs again, since it force-pushes. Then a last commit points `gotk-sync.yaml`
-   back at `git.dataverket.org`.
+   back at `git.dataverket.org`. The forge starts without its theme, whose ConfigMaps only a running forge can
+   produce; once `forgejo-theme` is restored they follow, and one restart of the forgejo pod serves the landing
+   page's copy (`apps/forgejo/README.md`, "The theme").
 
 A rebuild on the same machines resets the `u-pg-zitadel` partitions first, because the provisioner publishes whatever
 is on them. The server group, servers and machine set are made by swamp's models from the files in git; they are below
