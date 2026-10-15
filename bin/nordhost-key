@@ -4,8 +4,11 @@
 # 3, minted from tier 1 with the account password in the operator store
 # (decisions 001, 016). Bounded to NORDHOST_COMMANDS and NORDHOST_KEY_DAYS,
 # and to NORDHOST_ALLOW_IPS when it is set, and named after the day it
-# expires. The key is printed on stdout and nothing else is; the copy into the
-# cluster's file is yours (decision 002). The previous key is left alone.
+# expires. Once it lists the zone's records, it is written into the zone's
+# entry of config.json in the cluster's file with sops set, and is never
+# printed: the key is born there, so this is no copy between stores (decision
+# 002). The previous key is left alone. Commit the file and push the
+# cert-manager artifact; both webhooks read config.json only when they start.
 #
 # The panel and the account come from the zone's entry in the cluster's
 # config.json, the format of nordhost-integrator's cfg package. The default
@@ -316,7 +319,7 @@ log "Reads:  $sops_file (user, password), $cluster_file (config.json)"
 if (( dry_run )); then
 	log "Writes: nothing; dry run"
 else
-	log "Writes: a login key at Nordhost, printed on stdout"
+	log "Writes: a login key at Nordhost, and it into $cluster_file"
 fi
 
 user="$(sops_value "$sops_file" "$user_key")" ||
@@ -395,4 +398,24 @@ listing="$(directadmin CMD_API_LOGIN_KEYS "$user:$password")" ||
 log "Key $keyname is listed for $user and expires $(epoch_date "$expires")"
 show_login_keys "$listing"
 log "The previous key stays until you delete it at $base_url"
-printf '%s\n' "$key" >&3
+
+body="$(jq -cn --arg zone "$zone" '{domain: $zone, json: "yes"}')"
+records="$(directadmin_json CMD_DNS_CONTROL "$user:$key" "$body")" ||
+	fail "The new key for $zone failed at $base_url; nothing written!"
+count="$(jq -r '.records | length' <<<"$records" 2>/dev/null)" ||
+	fail "The new key lists no records for $zone; nothing written!"
+log "The new key lists $count records in $zone"
+
+# The key reaches jq and sops through the environment and stdin, never as an
+# argument, so it is in no process listing.
+KEY="$key" jq --arg zone "$zone" \
+   '(.domains[] | select(.domain == $zone) | .password) = env.KEY' \
+   <<<"$config" | jq -Rs . |
+	run sops set --value-stdin "$cluster_file" "$config_key" ||
+	fail "Cannot write the new key into $cluster_file!"
+written="$(sops_value "$cluster_file" "$config_key" | zone_field password)"
+[[ "$written" == "$key" ]] ||
+	fail "$cluster_file does not hold the new key for $zone after writing!"
+log "Wrote the new key for $zone into $cluster_file"
+log "Next: commit it, artifacts/cert-manager/push.sh, and restart external-dns"
+log "and nordhost-webhook in cert-manager, which read config.json at start"
