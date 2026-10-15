@@ -5,8 +5,7 @@
 # (decisions 001, 016). Bounded to NORDHOST_COMMANDS and NORDHOST_KEY_DAYS,
 # and to NORDHOST_ALLOW_IPS when it is set, and named after the day it
 # expires. The key is printed on stdout and nothing else is; the copy into the
-# cluster's file is yours
-# (decision 002). The previous key is left alone.
+# cluster's file is yours (decision 002). The previous key is left alone.
 #
 # The panel and the account come from the zone's entry in the cluster's
 # config.json, the format of nordhost-integrator's cfg package. The default
@@ -16,8 +15,8 @@
 # account's login keys with the password, each with its expiry, allowed
 # addresses and commands, and lists the zone's records with the key the
 # cluster holds now. The cluster reaches Nordhost from its router's address,
-# 91.242.200.102 (OpenStack router infra1-gw, SNAT), so a key it holds must
-# allow that address.
+# 91.242.200.102 (OpenStack router infra1-gw, SNAT), which NORDHOST_ALLOW_IPS
+# must include when it is set for a key the cluster holds.
 #
 # Settings are environment variables (decision 008):
 #
