@@ -14,6 +14,7 @@ artifact is the database alone (its step 4), the app follows.
 | `backup.yaml` | The `ObjectStore` on bucket `cnpg-zulip` at hov1, 14 days, and a daily base backup at 03:15 |
 | `hov1-s3.yaml` | The hov1 site's endpoint and CA, from `backup/versitygw/bin/site-secret` |
 | `s3-cnpg-zulip.enc.yaml` | The `cnpg-zulip` account on hov1, sops-encrypted to the cluster key and the two operators |
+| `zulip-zitadel-oidc.enc.yaml` | The OIDC client `forum.dataverket.org` in Zitadel project `zulip`: `CLIENT_ID` and `CLIENT_SECRET`, sealed by a person from swamp's vault (operator rule 3) |
 | `s3-zulip.enc.yaml` | The `zulip` account on the osl1 gateway, owner of `zulip-uploads` and `zulip-avatars`, for the app |
 | `postgres-image.sh` | Builds `platform/postgresql-zulip`, the CNPG image with Zulip's search dictionaries, and writes its reference into `postgres.yaml`; not part of the artifact |
 | `push.sh` | Pushes that image, then this directory, into zot; not part of the artifact |
