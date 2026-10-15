@@ -1,3 +1,7 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["boto3==1.43.74"]
+# ///
 """Puts the avatar policy on Zulip's osl1 buckets and runs the S3 proofs of docs/plans/2026-10-zulip.md, decision B.
 
 Run as the `zulip` account with boto3 1.43.74, the version Zulip 12.3 pins; the secret in the environment, never an
@@ -5,7 +9,7 @@ argument:
 
     AWS_ACCESS_KEY_ID=zulip \
     AWS_SECRET_ACCESS_KEY="$(sops -d --extract '["stringData"]["SECRET_ACCESS_KEY"]' artifacts/zulip/s3-zulip.enc.yaml)" \
-    uv run --no-project --with boto3==1.43.74 artifacts/zulip/s3.py policy|prove [--big]
+    uv run artifacts/zulip/s3.py policy|prove [--big]
 
 `prove` writes only under `proof/` and deletes it; `--big` adds one 2 GiB PUT in a single request, the S3 plan's
 step 4. Not part of the artifact.
