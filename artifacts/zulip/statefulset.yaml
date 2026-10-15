@@ -32,11 +32,10 @@ spec:
             # Envoy's pods; Zulip trusts X-Forwarded-For only from these.
             - name: LOADBALANCER_IPS
               value: 10.244.0.0/16
-            # CNPG backs the database up; the image's pg_dump is built for Postgres 14.
+            # CNPG backs the database up. The image's client tools are Postgres 14's and stay so: naming the server's
+            # version in CONFIG_postgresql__version makes puppet install postgresql-client-18, which the image cannot.
             - name: AUTO_BACKUP_ENABLED
               value: "False"
-            - name: CONFIG_postgresql__version
-              value: "18"
 
             # The database: CNPG's read-write Service and its app Secret.
             - name: SETTING_REMOTE_POSTGRES_HOST
