@@ -40,6 +40,59 @@ input is pinned by sha256 and the layer is fixed in owner, mode and mtime, so gi
 CNPG reads the Postgres version from the tag and refuses a digest alone, hence `:18.4-system-trixie@sha256:…`. A
 Postgres upgrade is a new base digest and major in the script, a rebuild, and the major in `tsearch`.
 
+## First organization, once
+
+Zulip runs with no organization until an owner makes one. Every step below is a command or a page; do them in
+order, from a machine with the admin session open (`task admin:login`, then `task admin:renew`, which writes the
+`dataverket-prod-admin` kube context). `zmanage` in the commands is a shorthand to define first:
+
+```sh
+zmanage() { kubectl --context dataverket-prod-admin -n zulip exec zulip-0 -c zulip -- \
+          runuser -u zulip -- /home/zulip/deployments/current/manage.py "$@"; }
+```
+
+1. **Mail works.** Creating the organization sends a confirmation email, so prove mail first:
+   `zmanage send_test_email you@example.org`, with your own address. The message arrives from `noreply@dataverket.org`
+   through Forgejo's Nordhost mailbox (`zulip-mailer.enc.yaml`). If it does not, read
+   `kubectl --context dataverket-prod-admin -n zulip exec zulip-0 -c zulip -- tail -50 /var/log/zulip/errors.log`.
+2. **The creation link.** `zmanage generate_realm_creation_link` prints a URL on `https://forum.dataverket.org/new/`,
+   good for one organization. Treat it as a secret until it is used.
+3. **The organization.** Open the link. Name: Dataverket. Organization URL: the option that is
+   `forum.dataverket.org` itself, with no subdomain in front. Email: **the address of your Zitadel account**, since
+   Zulip matches a Zitadel login to an account by its email, and step 7 turns password login off. Confirm the email
+   that arrives, set your name and a password; you are the organization's owner.
+4. **Who may join.** In Zulip, gear menu, Organization settings, Organization permissions: "Are invitations required
+   for joining the organization?" With "No", anyone who can log in to Zitadel and press "Log in with Dataverket" gets an
+   account at once (`auto_signup` in `statefulset.yaml` skips the sign-up form); Zitadel then decides who that is.
+   With "Yes", each person needs an invitation first. Choose, and save.
+5. **The Zitadel login, proven.** In a private browser window, `https://forum.dataverket.org/`, "Log in with
+   Dataverket", and log in to Zitadel as a second person: they land in Zulip, invited or not as step 4 decided. Then
+   log out and do the same as yourself: you must land in your owner account, not a new one. If you get a new account,
+   your Zulip and Zitadel emails differ; fix that before step 7.
+6. **The rest of the install, proven,** with the two browser windows open:
+   - Send a message from one; it appears in the other with no reload (the long-poll through Envoy).
+   - Attach a file to a message, open it from the other window, and change your avatar; both are served from the
+     osl1 buckets `zulip-uploads` and `zulip-avatars`.
+   - Search for a word from a message, in another form ("organizations" finds "organization"): the dictionary in
+     `postgresql-zulip` is in use.
+   - Organization settings, Data export: start an export and download it when it is ready.
+   - Valkey ran Zulip's rate limiter for those logins:
+     `kubectl --context dataverket-prod-admin -n zulip exec deploy/zulip-redis -- sh -c 'valkey-cli --no-auth-warning -a "$REDIS_PASSWORD" INFO commandstats' | grep -E 'evalsha|script'`
+     shows `cmdstat_evalsha` with calls above 0; if it never does, Redis replaces Valkey (one image in
+     `services.yaml`, `docs/plans/2026-10-zulip.md`, decision A).
+7. **Password login off.** In `statefulset.yaml`, set `ZULIP_AUTH_BACKENDS` to `GenericOpenIdConnectBackend` and drop
+   "email and password until the first owner is in" from the comment above it. Commit, `artifacts/zulip/push.sh`, and
+   `swamp behavior run dataverket-prod-kustomizations reconcile --input name=zulip --input namespace=flux-system
+   --input withSource=true`. The pod restarts on the new revision; the login page then offers only "Log in with
+   Dataverket". Should `zulip-0` crash-loop on a new revision, the StatefulSet does not replace it by itself:
+   `swamp behavior run dataverket-prod-pods delete --input namespace=zulip --input podName=zulip-0` after the fix is
+   pushed.
+8. **The administrator address.** `SETTING_ZULIP_ADMINISTRATOR` in `statefulset.yaml` is `postmaster@dataverket.org`,
+   shown as the contact address and sent error mail; change it there to a mailbox someone reads, in the same push
+   as step 7 or later.
+
+What remains of `docs/plans/2026-10-zulip.md` after this is its restore test and documentation.
+
 ## After a rebuild
 
 zot comes back empty (`docs/storage.md`, "Rebuild from git"): run `push.sh` again from the checkout. Once the first
