@@ -19,6 +19,8 @@ for tool in crane curl bsdtar; do
 done
 
 repo=registry.dataverket.org/platform/postgresql-zulip
+# CNPG reads the Postgres version from the tag and refuses a reference by digest alone.
+tag=18.4-system-trixie
 # ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie, its linux/amd64 manifest; the major is in tsearch below.
 base=ghcr.io/cloudnative-pg/postgresql@sha256:e6e1f467b52112f7e08aa380de81473106ff54b1834d90bcb4265a2a018e1921
 tsearch=usr/share/postgresql/18/tsearch_data
@@ -74,10 +76,10 @@ local_repo=127.0.0.1:$port/postgresql-zulip
 
 built=$(crane append -b "$base" -f "$tmp/layer.tar" -t "$local_repo:build" 2>/dev/null)
 digest=${built#*@}
-ref=$repo@$digest
+ref=$repo:$tag@$digest
 
 committed=
-[ -f postgres.yaml ] && committed=$(sed -n "s#^ *imageName: \($repo@sha256:[0-9a-f]*\)\$#\1#p" postgres.yaml)
+[ -f postgres.yaml ] && committed=$(sed -n "s#^ *imageName: \($repo:$tag@sha256:[0-9a-f]*\)\$#\1#p" postgres.yaml)
 
 case "${1:-}" in
   "")
@@ -86,7 +88,7 @@ case "${1:-}" in
     elif [ "$committed" = "$ref" ]; then
       echo "postgres.yaml already names $ref"
     else
-      sed -i.bak "s#^\( *imageName: \)$repo@sha256:[0-9a-f]*\$#\1$ref#" postgres.yaml
+      sed -i.bak "s#^\( *imageName: \)$repo:$tag@sha256:[0-9a-f]*\$#\1$ref#" postgres.yaml
       rm -f postgres.yaml.bak
       grep -q "imageName: $ref\$" postgres.yaml || { echo "no imageName for $repo in postgres.yaml" >&2; exit 1; }
       echo "postgres.yaml now names $ref; commit it"
@@ -105,6 +107,7 @@ case "${1:-}" in
       export DOCKER_CONFIG
       printf '%s' "$password" | crane auth login registry.dataverket.org -u "$user" --password-stdin >/dev/null
       crane copy "$local_repo@$digest" "$repo:$(git rev-parse HEAD)"
+      crane tag "$repo@$digest" "$tag"
       echo "pushed $ref"
     fi
     ;;
