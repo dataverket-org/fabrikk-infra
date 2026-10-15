@@ -3,8 +3,8 @@
 The S3 service at the osl1 site, `dataverket.s3.osl1.dvkt.no`: one versitygw with the posix backend on one Cinder
 volume, delivered the way zot is. Git holds the pointer, `apps/versitygw/source.yaml`; this directory is the artifact,
 pushed as it is by `push.sh` into zot as `platform/versitygw-config`, and Flux applies whatever the `current` tag
-holds, decrypting the Secret with the cluster key. The plan is `docs/plans/2026-10-s3-osl1.md`; what the gateway holds
-and how it is read is `backup/README.md` once the model `osl1-s3` exists.
+holds, decrypting the Secret with the cluster key. Why it is shaped so is decision 029; its backup, deferred, is
+`docs/plans/2026-10-s3-osl1-backup.md`; what it holds is read by the model `osl1-s3`, below.
 
 ## Contents
 
@@ -50,6 +50,37 @@ same claim.
   versions stay until a client deletes them by version id.
 - **The root key pair** lives here and, by a person's copy, in `vaults/operator/osl1/root.enc.json`. Rotate here first:
   new values in the Secret, push, then the copy.
+
+## Read it
+
+The model `osl1-s3` (`@dataverket/versitygw/gateway`) reads the admin API through a port-forward, signed with the root
+key pair from `vaults/operator/osl1/root.enc.json`, one YubiKey touch:
+
+```sh
+kubectl --context dataverket-prod-admin -n versitygw port-forward svc/versitygw-admin 7071:7071   # its own terminal
+sops exec-env vaults/operator/osl1/root.enc.json 'swamp behavior run osl1-s3 inventory && swamp behavior run osl1-s3 check'
+```
+
+`inventory` records accounts without their secret, buckets and every bucket's settings. `check` with the default rules
+expects three findings and no more: `bucket-owner-not-same-named` for `zulip-uploads` and `zulip-avatars`, both owned
+by the account `zulip`, and `bucket-public` for `zulip-avatars`, whose policy lets anyone `s3:GetObject`.
+
+## What the gateway does
+
+Read from the wiki and the source at v1.8.0 on 2026-10-04 and at v1.9.0 on 2026-10-15, and proven where it says so.
+
+| Fact | Consequence |
+|---|---|
+| Object lock works on the posix backend; lock state, retention and legal hold are xattrs on the bucket directory and the object | A backup must carry xattrs, or a restore re-puts the lock configuration |
+| A bucket created with `ObjectLockEnabledForBucket` gets versioning at once, given `--versioning-dir`; v1.9.0 stores a bucket's default retention on each new object (discussion #2521) | The gateway runs with `/versioning`; no bucket uses lock yet (decision 029) |
+| `COMPLIANCE` retention cannot be shortened by anyone, root included; `GOVERNANCE` can be bypassed with the header by root or a user granted `s3:BypassGovernanceRetention` | Governance is the default a writer gets; compliance is a commitment on a volume no one can trim |
+| Lifecycle configuration answers `NotImplemented` | A versioned bucket keeps every non-current version until a client deletes it by version id |
+| Internal IAM keeps accounts, secrets in clear, in `/iam/users.json`; accounts are made over the admin API, signed by root | `user.sh` makes them in the pod; the admin port is never routed |
+| Startup tests xattr support on `/data` and refuses to start without it | It starts on the Cinder volume's ext4, which is the proof |
+| `aws:SourceIp` in a policy is the connection's peer, never `X-Forwarded-For` | Behind Envoy every client is Envoy; no IP conditions in policies |
+| v1.8.0 stored `Content-Encoding: aws-chunked` on objects written with a trailing checksum (#2398), and with a bucket policy it let the owner do only what the policy granted (#2495) | Fixed in v1.9.0, which osl1 runs; hov1 stays on v1.8.0 for now |
+| Presigned get with `ResponseContentDisposition`, ranges, copy onto itself with new headers, multipart, batch delete, list pages with `KeyCount`, and one 2 GiB PUT through Envoy | Proven 2026-10-15 with `artifacts/zulip/s3proof` on tusd's AWS SDK, 13 of 13 |
+| A standalone IAM service (`versitygw iam`) speaks IAM and STS, with OIDC providers and `AssumeRoleWithWebIdentity` | The mechanism of `docs/plans/2026-10-s3-zitadel.md` |
 
 ## After a rebuild
 

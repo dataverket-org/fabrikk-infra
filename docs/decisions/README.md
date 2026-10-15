@@ -48,6 +48,7 @@ what it supersedes.
 | [012](012-zot-as-plain-manifests.md) | zot is plain manifests, not a Helm chart | zot is a hand-written StatefulSet with a pinned digest, not a chart to render and track. | 2026-09-17 |
 | [013](013-cluster-fetches-registry-through-service.md) | The cluster fetches its own registry through the Service, not the public name | The cluster pulls its own registry through the Service, so the edge being broken cannot lock it out. | 2026-09-17 |
 | [017](017-workers-are-replaced-never-changed-in-place.md) | Workers are replaced, never changed in place | A worker's placement and disk layout arrive with a new machine; the old one is retired, not reconfigured. | 2026-10-01 |
+| [029](029-s3-in-the-cluster-is-one-versitygw-per-org-on-one-volume.md) | S3 in the cluster is one versitygw per org, on one volume | An org's S3 is its own versitygw on one Cinder volume, named <org>.s3.osl1.dvkt.no and path-style; accounts are made with versitygw's own admin CLI, and object lock is available but unused. | 2026-10-15 |
 
 ## Storage
 

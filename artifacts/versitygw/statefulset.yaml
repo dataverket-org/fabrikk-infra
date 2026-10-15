@@ -1,5 +1,5 @@
-# The S3 service at the osl1 site: one versitygw, posix backend, one Cinder volume (README.md,
-# docs/plans/2026-10-s3-osl1.md, decision 018). /data, /versioning and /iam are subPaths of the one claim.
+# The S3 service at the osl1 site: one versitygw, posix backend, one Cinder volume (README.md, decisions 018 and
+# 029). /data, /versioning and /iam are subPaths of the one claim.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

@@ -42,7 +42,7 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # The S3 service at the osl1 site; the org is the leftmost label under the wildcard (docs/plans/2026-10-s3-osl1.md).
+    # The S3 service at the osl1 site; the org is the leftmost label under the wildcard (decision 029).
     # The certificate comes from the annotation above, through DNS-01 on dvkt.no.
     - name: https-s3-osl1
       protocol: HTTPS

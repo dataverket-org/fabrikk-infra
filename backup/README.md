@@ -35,6 +35,7 @@ the map: what is copied, by what, to where, how far back, and what fires when it
 | Forgejo's Postgres, `Cluster forgejo-postgres` | `forgejo` | CNPG Barman Cloud plugin | `cnpg-forgejo` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-forgejo`, `hov1-s3` |
 | Zitadel's Postgres, `Cluster zitadel-db` | `zitadel` | CNPG Barman Cloud plugin | `cnpg-zitadel` | Daily base backup, continuous WAL, 14 days, point-in-time recovery | `s3-cnpg-zitadel`, `hov1-s3` |
 | Forgejo's repositories, PVC `gitea-shared-storage` | `forgejo` | The push mirror to GitHub for now; later a kopia CronJob, pod-affine to the forgejo pod | GitHub; later `kopia-forgejo` | On push; later nightly, 30 daily, 6 monthly | The mirror's token; later `s3-kopia-forgejo`, `hov1-s3`, the kopia password |
+| The osl1 S3 gateway's volume, PVC `data-versitygw-0`: Zulip's uploads and avatars | `versitygw` | Nothing yet. A kopia CronJob pod-affine to the gateway, `docs/plans/2026-10-s3-osl1-backup.md`, deferred | Later `kopia-osl1` | Later nightly, 30 daily, 6 monthly | Later `s3-kopia-osl1`, `hov1-s3`, the kopia password |
 | etcd of the three control planes | `kube-system` | Nothing. Omni's etcd backup store is not configured (checked 2026-10-04: `EtcdBackupStoreStatus` reads "not initialized", no backup exists) | None | None | None |
 
 Account names equal bucket names. Each account owns its bucket and sees nothing else.

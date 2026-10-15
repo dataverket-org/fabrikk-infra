@@ -126,6 +126,8 @@ they recognise a former name as ours, mint the new one, and remove what the old 
 | `registry.dataverket.org` | Everything that pushes or pulls artifacts: CI, developers, other clusters, cosign | The registry's identity (TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
 | `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 013) |
 | `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to GitHub | The source of record; `github.com/dataverket-org/fabrikk-infra` is Flux's source for a rebuild (decision 021) |
+| `dataverket.s3.osl1.dvkt.no` | Zulip, for uploads and avatars; browsers fetching avatars; the `osl1-s3` model | Dataverket's S3 at the osl1 site, path-style, TLS through the gateway; the org is the leftmost label (decision 029) |
+| `versitygw.versitygw.svc.cluster.local:7070` | An in-cluster writer that serves every file itself; none yet | The same gateway without the public path, plain HTTP inside the cluster (decision 029) |
 | `213.128.185.82:443` | CNPG's Barman Cloud plugin, the backup writer; kopia later | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |
 
 ## Secrets
@@ -196,7 +198,7 @@ masterkey and Forgejo's generated security keys are here since 2026-09-30, pinne
 the artifact holds, decrypting with the cluster key. `artifacts/zot/` is the artifact's source, plain manifests with
 the image pinned by digest; `push.sh` pushes the directory as it is, tagged with the commit and `current`.
 `artifacts/versitygw/` and `apps/versitygw/source.yaml` are the second use of the pattern, the S3 service at the
-osl1 site (`docs/plans/2026-10-s3-osl1.md`). `artifacts/cert-manager/` is the third and the first rendered one:
+osl1 site (decision 029). `artifacts/cert-manager/` is the third and the first rendered one:
 two upstream charts, cert-manager and external-dns, inflated by kustomize from `recipe/` into a committed
 `rendered/` tree that `push.sh` ships and `infrastructure/cert-manager/source.yaml` applies (decision 028). The
 diff of `rendered/` is the review of a chart upgrade, and the cluster reads no chart repository for them.
