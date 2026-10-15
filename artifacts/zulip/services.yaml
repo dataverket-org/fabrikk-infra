@@ -1,0 +1,201 @@
+# RabbitMQ, memcached and Valkey for Zulip, as docker-zulip's compose.yaml at 12.3-0 runs them, on official images
+# pinned by digest. No volumes: queues and cache are transient, and Zulip's backup leaves them out. Valkey answers as
+# Redis on the Service zulip-redis (docs/plans/2026-10-zulip.md, decision A).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zulip-rabbitmq
+  namespace: zulip
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: zulip-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: zulip-rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4.2-alpine@sha256:2430a17fa578447eaaabdabc64b805052e4f8f3736a5ebbe4cc55cf4de5690e0
+          command: ["sh", "-euc"]
+          args:
+            - |
+              printf 'default_user = zulip\ndefault_pass = %s\n' "$RABBITMQ_PASSWORD" > /etc/rabbitmq/conf.d/90-zulip.conf
+              exec docker-entrypoint.sh rabbitmq-server
+          env:
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: rabbitmq_password
+          ports:
+            - name: amqp
+              containerPort: 5672
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zulip-rabbitmq
+  namespace: zulip
+spec:
+  selector:
+    app: zulip-rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zulip-memcached
+  namespace: zulip
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zulip-memcached
+  template:
+    metadata:
+      labels:
+        app: zulip-memcached
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 11211
+        runAsGroup: 11211
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: memcached
+          image: memcached:1.6-alpine@sha256:9e4de012dc607573052061c0bcb38abc775e1dd59b24e7ac38d1892842094aaf
+          command: ["sh", "-euc"]
+          # SASL with one user, zulip@localhost, the name Zulip authenticates as (statefulset.yaml).
+          args:
+            - |
+              echo 'mech_list: plain' > "$SASL_CONF_PATH"
+              echo "zulip@localhost:$MEMCACHED_PASSWORD" > "$MEMCACHED_SASL_PWDB"
+              exec memcached -S -m 256
+          env:
+            - name: SASL_CONF_PATH
+              value: /home/memcache/memcached.conf
+            - name: MEMCACHED_SASL_PWDB
+              value: /home/memcache/memcached-sasl-db
+            - name: MEMCACHED_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: memcached_password
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: memcached
+              containerPort: 11211
+          readinessProbe:
+            tcpSocket:
+              port: 11211
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 320Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zulip-memcached
+  namespace: zulip
+spec:
+  selector:
+    app: zulip-memcached
+  ports:
+    - name: memcached
+      port: 11211
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zulip-redis
+  namespace: zulip
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zulip-redis
+  template:
+    metadata:
+      labels:
+        app: zulip-redis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: valkey
+          image: valkey/valkey:9.1-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+          command: ["sh", "-euc"]
+          args:
+            - exec valkey-server --requirepass "$REDIS_PASSWORD" --save '' --appendonly no
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: redis_password
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zulip-redis
+  namespace: zulip
+spec:
+  selector:
+    app: zulip-redis
+  ports:
+    - name: redis
+      port: 6379

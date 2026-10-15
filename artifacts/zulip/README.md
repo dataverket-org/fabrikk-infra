@@ -2,8 +2,7 @@
 
 Zulip at `forum.dataverket.org`, delivered the way zot is: git holds the pointer, `apps/zulip/source.yaml`; this
 directory is the artifact, pushed by `push.sh` into zot as `platform/zulip-config`, and Flux applies whatever the
-`current` tag holds, decrypting the Secrets with the cluster key. The plan is `docs/plans/2026-10-zulip.md`; so far the
-artifact is the database alone (its step 4), the app follows.
+`current` tag holds, decrypting the Secrets with the cluster key. The plan is `docs/plans/2026-10-zulip.md`.
 
 ## Contents
 
@@ -12,6 +11,9 @@ artifact is the database alone (its step 4), the app follows.
 | `namespace.yaml` | Namespace `zulip` |
 | `postgres.yaml` | `Cluster zulip-postgres`: one instance on a 10Gi `csi-cinder-sc-delete` volume, archiving to the hov1 site |
 | `backup.yaml` | The `ObjectStore` on bucket `cnpg-zulip` at hov1, 14 days, and a daily base backup at 03:15 |
+| `services.yaml` | RabbitMQ, memcached with SASL, and Valkey as `zulip-redis`, official images by digest, no volumes |
+| `statefulset.yaml` | Zulip itself, its Service, and the routes for `forum.dataverket.org` on the `https` and `http` listeners |
+| `zulip-secrets.enc.yaml` | The secrets a restore needs kept (`secret_key`, `avatar_salt`, `shared_secret`, `camo_key`, `zulip_org_id`, `zulip_org_key`) and the three service passwords, generated straight into sops |
 | `hov1-s3.yaml` | The hov1 site's endpoint and CA, from `backup/versitygw/bin/site-secret` |
 | `s3-cnpg-zulip.enc.yaml` | The `cnpg-zulip` account on hov1, sops-encrypted to the cluster key and the two operators |
 | `zulip-zitadel-oidc.enc.yaml` | The OIDC client `forum.dataverket.org` in Zitadel project `zulip`: `CLIENT_ID` and `CLIENT_SECRET`, sealed by a person from swamp's vault (operator rule 3) |

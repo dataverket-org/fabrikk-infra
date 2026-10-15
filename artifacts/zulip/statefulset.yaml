@@ -1,0 +1,262 @@
+# Zulip, one pod: nginx, Django, Tornado, the queue workers and cron in the one container ghcr.io/zulip/zulip-server
+# runs. The pod is what helm/zulip 2.3.0 renders, read and not used (docs/plans/2026-10-zulip.md): /data on its own
+# volume, the health probes on loopback, and the env below. Settings are SETTING_* (Python, quoted unless True, False,
+# None, a number or a literal), CONFIG_* (zulip.conf) and SECRETS_* (zulip-secrets.conf).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zulip
+  namespace: zulip
+spec:
+  replicas: 1
+  serviceName: zulip
+  selector:
+    matchLabels:
+      app: zulip
+  template:
+    metadata:
+      labels:
+        app: zulip
+    spec:
+      containers:
+        - name: zulip
+          image: ghcr.io/zulip/zulip-server:12.3-0@sha256:76a1ecc4ba5470869d9609ef1ec16497b410189918b2daba85862183a59aa275
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: SETTING_EXTERNAL_HOST
+              value: forum.dataverket.org
+            - name: SETTING_ZULIP_ADMINISTRATOR
+              value: postmaster@dataverket.org
+            # Envoy's pods; Zulip trusts X-Forwarded-For only from these.
+            - name: LOADBALANCER_IPS
+              value: 10.244.0.0/16
+            # CNPG backs the database up; the image's pg_dump is built for Postgres 14.
+            - name: AUTO_BACKUP_ENABLED
+              value: "False"
+            - name: CONFIG_postgresql__version
+              value: "18"
+
+            # The database: CNPG's read-write Service and its app Secret.
+            - name: SETTING_REMOTE_POSTGRES_HOST
+              value: zulip-postgres-rw
+            - name: SETTING_REMOTE_POSTGRES_PORT
+              value: "5432"
+            - name: SETTING_REMOTE_POSTGRES_SSLMODE
+              value: require
+            - name: CONFIG_postgresql__database_user
+              value: zulip
+            - name: CONFIG_postgresql__database_name
+              value: zulip
+            - name: SECRETS_postgres_password
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-postgres-app
+                  key: password
+
+            # services.yaml
+            - name: SETTING_RABBITMQ_HOST
+              value: zulip-rabbitmq
+            - name: SETTING_RABBITMQ_USERNAME
+              value: zulip
+            - name: SECRETS_rabbitmq_password
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: rabbitmq_password
+            - name: SETTING_MEMCACHED_LOCATION
+              value: zulip-memcached:11211
+            - name: SETTING_MEMCACHED_USERNAME
+              value: zulip@localhost
+            - name: SECRETS_memcached_password
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: memcached_password
+            - name: SETTING_REDIS_HOST
+              value: zulip-redis
+            - name: SETTING_REDIS_PORT
+              value: "6379"
+            - name: SECRETS_redis_password
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: redis_password
+
+            # Pinned so a restore onto an empty /data keeps sessions, avatars and image links.
+            - name: SECRETS_secret_key
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: secret_key
+            - name: SECRETS_avatar_salt
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: avatar_salt
+            - name: SECRETS_shared_secret
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: shared_secret
+            - name: SECRETS_camo_key
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: camo_key
+            - name: SECRETS_zulip_org_key
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: zulip_org_key
+            - name: SECRETS_zulip_org_id
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-secrets
+                  key: zulip_org_id
+
+            # Uploads and avatars on the osl1 gateway, by its public name (decision 029).
+            - name: SETTING_LOCAL_UPLOADS_DIR
+              value: None
+            - name: SETTING_S3_AUTH_UPLOADS_BUCKET
+              value: zulip-uploads
+            - name: SETTING_S3_AVATAR_BUCKET
+              value: zulip-avatars
+            - name: SETTING_S3_ENDPOINT_URL
+              value: https://dataverket.s3.osl1.dvkt.no
+            - name: SETTING_S3_REGION
+              value: us-east-1
+            - name: SETTING_S3_ADDRESSING_STYLE
+              value: path
+            - name: SECRETS_s3_key
+              valueFrom:
+                secretKeyRef:
+                  name: s3-zulip
+                  key: ACCESS_KEY_ID
+            - name: SECRETS_s3_secret_key
+              valueFrom:
+                secretKeyRef:
+                  name: s3-zulip
+                  key: SECRET_ACCESS_KEY
+
+            # Zitadel; email and password only until the first owner is in (plan, step 6).
+            - name: ZULIP_AUTH_BACKENDS
+              value: EmailAuthBackend,GenericOpenIdConnectBackend
+            - name: SETTING_SOCIAL_AUTH_OIDC_ENABLED_IDPS
+              value: >-
+                {"zitadel": {"oidc_url": "https://zitadel.dataverket.org", "display_name": "Dataverket",
+                "client_id": "395237846727787789", "secret": get_secret("social_auth_oidc_secret"),
+                "auto_signup": False}}
+            - name: SECRETS_social_auth_oidc_secret
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-zitadel-oidc
+                  key: CLIENT_SECRET
+
+            # Nordhost, as Forgejo's mailer; the Secret is a person's to make, and Zulip starts without it.
+            - name: SETTING_EMAIL_HOST
+              value: mail.nordhost.no
+            - name: SETTING_EMAIL_PORT
+              value: "465"
+            - name: SETTING_EMAIL_USE_SSL
+              value: "True"
+            - name: SETTING_EMAIL_USE_TLS
+              value: "False"
+            - name: SETTING_NOREPLY_EMAIL_ADDRESS
+              value: noreply@dataverket.org
+            - name: SETTING_EMAIL_HOST_USER
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-mailer
+                  key: username
+                  optional: true
+            - name: SECRETS_email_password
+              valueFrom:
+                secretKeyRef:
+                  name: zulip-mailer
+                  key: password
+                  optional: true
+          # On loopback, which /health trusts whatever LOADBALANCER_IPS says.
+          startupProbe:
+            exec:
+              command: ["curl", "--silent", "--fail", "--max-time", "5", "http://127.0.0.1/health"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 90
+          livenessProbe:
+            exec:
+              command: ["curl", "--silent", "--fail", "--max-time", "5", "http://127.0.0.1/health"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              memory: 4Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: csi-cinder-sc-delete
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zulip
+  namespace: zulip
+spec:
+  selector:
+    app: zulip
+  ports:
+    - name: http
+      port: 80
+---
+# forum.dataverket.org under the wildcard listener. Zulip long-polls, so the request timeout is off, as zot's and
+# versitygw's are.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zulip
+  namespace: zulip
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: https
+  hostnames:
+    - forum.dataverket.org
+  rules:
+    - backendRefs:
+        - name: zulip
+          port: 80
+      timeouts:
+        request: 0s
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zulip-redirect
+  namespace: zulip
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: http
+  hostnames:
+    - forum.dataverket.org
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
