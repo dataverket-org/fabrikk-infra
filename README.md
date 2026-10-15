@@ -65,7 +65,7 @@ What a session writes, and what reads it by name:
 
 | File | Named by | Content | Lifetime |
 |---|---|---|---|
-| `~/.config/openstack/clouds.yaml`, cloud `fabrikk-infra` | the openstack models | An application credential `fabrikk-infra-<operator>-<timestamp>`, role `member` | `TIER2_TTL`, 8 h |
+| `~/.config/openstack/clouds.yaml`, cloud `fabrikk-infra` | the openstack models | An application credential `fabrikk-infra-<operator>-<timestamp>`, roles `member` and `load-balancer_member` | `TIER2_TTL`, 8 h |
 | `~/.kube/config`, contexts `dataverket-prod-readers` and `dataverket-prod-admin` | the kubernetes and flux models | Omni service-account kubeconfigs: group `fabrikk-readers`, and `system:masters` | `TIER2_TTL` |
 | `~/.talos/config`, context `dataverket-prod` | `dataverket-prod-talos` | The Omni-proxied talosconfig, which carries no credential | none; the key file beside it expires |
 | `~/.talos/omni/fabrikk-infra-reader.key` | `omni`, `dataverket-prod-talos` | An Omni service account key, role Reader | `TIER2_TTL` |

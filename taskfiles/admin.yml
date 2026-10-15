@@ -33,6 +33,9 @@ env:
   CLUSTER: dataverket-prod
   OMNI_CONTEXT: default
   OS_CLOUD: nexthop
+  # The roles the session's application credential carries: member for compute and networks, and Octavia's own
+  # load-balancer_member, without which the load balancer in front of Envoy cannot be read or repaired.
+  OS_ROLES: member load-balancer_member
   ZITADEL_CONTEXT: default
   # The projects the Zitadel operator key owns, and so the whole of what it can
   # change. The first holds the application these tasks log in through.
