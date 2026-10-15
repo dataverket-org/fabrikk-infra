@@ -1,0 +1,319 @@
+#!/usr/bin/env bash
+#
+# A DirectAdmin login key for one zone at Nordhost, held by the cluster: tier
+# 3, minted from tier 1 with the account password in the operator store
+# (decisions 001, 016). Bounded to NORDHOST_COMMANDS, NORDHOST_ALLOW_IPS and
+# NORDHOST_KEY_DAYS, and named after the day it expires. The key is printed
+# on stdout and nothing else is; the copy into the cluster's file is yours
+# (decision 002). The previous key is left alone.
+#
+# The panel and the account come from the zone's entry in the cluster's
+# config.json, the format of nordhost-integrator's cfg package. The default
+# command is the one nordhost-integrator's da package calls.
+#
+# NORDHOST_DRY_RUN=1 mints nothing. It decrypts both files, lists the
+# account's login keys with the password, and lists the zone's records with
+# the key the cluster holds now.
+#
+# Settings are environment variables (decision 008):
+#
+#	NORDHOST_ZONE		The zone, dvkt.no or dataverket.org
+#	NORDHOST_ALLOW_IPS	Addresses the key works from, space separated;
+#				not needed for a dry run
+#	NORDHOST_SOPS_FILE	The account's operator file (default
+#				vaults/operator/nordhost/<zone, dots as _>.enc.yaml)
+#	NORDHOST_USER_KEY	sops path to the user in it (default ["user"])
+#	NORDHOST_PASSWORD_KEY	sops path to the password (default ["password"])
+#	NORDHOST_CLUSTER_FILE	The cluster's file (default
+#				artifacts/cert-manager/nordhost-config.enc.yaml)
+#	NORDHOST_CONFIG_KEY	sops path to config.json in it
+#				(default ["stringData"]["config.json"])
+#	NORDHOST_URL		The panel (default the zone's host in config.json)
+#	NORDHOST_KEY_DAYS	Lifetime in days, 1 to 365 (default 90)
+#	NORDHOST_COMMANDS	Commands allowed, space separated
+#				(default CMD_DNS_CONTROL)
+#	NORDHOST_KEY_PREFIX	Key name before the expiry date (default cluster)
+#	NORDHOST_DRY_RUN	1 tests decryption, the password and the
+#				current key, and mints nothing
+#	DEBUG			1 prints every external command before it runs
+#
+
+# shellcheck source=share/logging.sh
+source "${0%/*}/../share/logging.sh" || exit $?
+
+repo_dir="$(cd "${0%/*}/.." && pwd)" || exit $?
+
+enable_debug="${DEBUG:-0}"
+
+zone="$NORDHOST_ZONE"
+allow_ips="$NORDHOST_ALLOW_IPS"
+sops_file="${NORDHOST_SOPS_FILE:-vaults/operator/nordhost/${zone//./_}.enc.yaml}"
+user_key="${NORDHOST_USER_KEY:-[\"user\"]}"
+password_key="${NORDHOST_PASSWORD_KEY:-[\"password\"]}"
+cluster_file="${NORDHOST_CLUSTER_FILE:-artifacts/cert-manager/nordhost-config.enc.yaml}"
+config_key="${NORDHOST_CONFIG_KEY:-[\"stringData\"][\"config.json\"]}"
+base_url="${NORDHOST_URL%/}"
+days="${NORDHOST_KEY_DAYS:-90}"
+commands="${NORDHOST_COMMANDS:-CMD_DNS_CONTROL}"
+prefix="${NORDHOST_KEY_PREFIX:-cluster}"
+
+case "${NORDHOST_DRY_RUN:-0}" in
+	1|true|yes)	dry_run=1 ;;
+	*)		dry_run=0 ;;
+esac
+
+# fd 3 is the caller's stdout, for the key alone.
+exec 3>&1 1>&2
+
+#
+# Stops unless every named variable is set.
+#
+function require_settings()
+{
+	local name
+
+	for name in "$@"; do
+		[[ -n "${!name}" ]] || fail "$name is not set!"
+	done
+}
+
+#
+# Prints a value quoted for a curl config file, with backslashes, double
+# quotes and newlines escaped.
+#
+function curl_quote()
+{
+	local value="$1"
+
+	value="${value//\\/\\\\}"
+	value="${value//\"/\\\"}"
+	value="${value//$'\n'/\\n}"
+	printf '"%s"' "$value"
+}
+
+#
+# Prints the curl config lines for a URL and a user:secret.
+#
+function curl_target()
+{
+	local url="$1"
+	local auth="$2"
+
+	printf 'url = %s\n' "$(curl_quote "$url")"
+	printf 'user = %s\n' "$(curl_quote "$auth")"
+}
+
+#
+# Calls a DirectAdmin command as user:secret and prints the response: a GET
+# without fields, a form POST of the name=value pairs with them. URL,
+# credential and fields go to curl as a config on stdin.
+#
+function directadmin()
+{
+	local command="$1"
+	local auth="$2"
+	shift 2
+
+	local pair
+
+	{
+		curl_target "$base_url/$command" "$auth"
+		for pair in "$@"; do
+			printf 'data-urlencode = %s\n' "$(curl_quote "$pair")"
+		done
+	} | run curl --silent --show-error --fail --config -
+}
+
+#
+# Calls a DirectAdmin command with json=yes and a JSON body, as
+# nordhost-integrator's da package does, and prints the response.
+#
+function directadmin_json()
+{
+	local command="$1"
+	local auth="$2"
+	local body="$3"
+
+	{
+		curl_target "$base_url/$command?json=yes" "$auth"
+		printf 'header = %s\n' "$(curl_quote "Content-Type: application/json")"
+		printf 'data-binary = %s\n' "$(curl_quote "$body")"
+	} | run curl --silent --show-error --fail --config -
+}
+
+#
+# Checks that a DirectAdmin response is an API answer without an error; a
+# login page is a refusal.
+#
+function answered()
+{
+	local response="$1"
+
+	[[ -n "$response" ]] || return 1
+	[[ "$response" != *error=1* ]] || return 1
+	[[ "$response" != *"<html"* && "$response" != *"<HTML"* ]] || return 1
+}
+
+#
+# Prints a URL-encoded string decoded.
+#
+function url_decode()
+{
+	local value="${1//+/ }"
+
+	printf '%b' "${value//%/\\x}"
+}
+
+#
+# Prints DirectAdmin's error text from a response.
+#
+function error_text()
+{
+	local response="$1"
+	local text="${response#*text=}"
+
+	url_decode "${text%%&*}"
+}
+
+#
+# Prints a random login key: 64 letters and digits.
+#
+function random_key()
+{
+	LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 64
+}
+
+#
+# Prints an epoch as YYYYMMDD in UTC, on BSD and GNU date alike.
+#
+function epoch_date()
+{
+	local epoch="$1"
+
+	date -u -r "$epoch" +%Y%m%d 2>/dev/null ||
+	date -u -d "@$epoch" +%Y%m%d 2>/dev/null
+}
+
+#
+# Prints one value from a sops file.
+#
+function sops_value()
+{
+	local file="$1"
+	local path="$2"
+
+	run sops --decrypt --extract "$path" "$file"
+}
+
+#
+# Prints one field of the zone's entry in config.json, read from stdin.
+#
+function zone_field()
+{
+	local field="$1"
+
+	jq -r --arg zone "$zone" --arg field "$field" \
+	   '.domains[] | select(.domain == $zone) | .[$field] // empty'
+}
+
+require_settings NORDHOST_ZONE
+(( dry_run )) || require_settings NORDHOST_ALLOW_IPS
+for tool in sops curl jq; do
+	command -v "$tool" >/dev/null || fail "$tool is not on PATH!"
+done
+
+case "$days" in
+	''|*[!0-9]*)	fail "NORDHOST_KEY_DAYS is not a number: $days!" ;;
+esac
+(( days >= 1 && days <= 365 )) || fail "NORDHOST_KEY_DAYS is not 1 to 365!"
+
+cd "$repo_dir" || exit $?
+[[ -f "$sops_file" ]] || fail "No operator file for $zone at $sops_file!"
+[[ -f "$cluster_file" ]] || fail "No cluster file at $cluster_file!"
+
+if (( ! dry_run )) && [[ -t 3 ]]; then
+	fail "Pipe the key into sops; it is not printed on a terminal!"
+fi
+
+log "Reads:  $sops_file (user, password), $cluster_file (config.json)"
+if (( dry_run )); then
+	log "Writes: nothing; dry run"
+else
+	log "Writes: a login key at Nordhost, printed on stdout"
+fi
+
+user="$(sops_value "$sops_file" "$user_key")" ||
+	fail "Cannot decrypt the user in $sops_file!"
+password="$(sops_value "$sops_file" "$password_key")" ||
+	fail "Cannot decrypt the password in $sops_file!"
+[[ -n "$user" && -n "$password" ]] ||
+	fail "The user or the password in $sops_file is empty!"
+log "Decrypted the user and the password in $sops_file"
+
+config="$(sops_value "$cluster_file" "$config_key")" ||
+	fail "Cannot decrypt config.json in $cluster_file!"
+config_user="$(zone_field username <<<"$config")"
+current_key="$(zone_field password <<<"$config")"
+[[ -n "$config_user" && -n "$current_key" ]] ||
+	fail "config.json in $cluster_file has no entry for $zone!"
+[[ -n "$base_url" ]] || base_url="$(zone_field host <<<"$config")"
+base_url="${base_url%/}"
+log "Decrypted the entry for $zone in $cluster_file"
+
+[[ "$config_user" == "$user" ]] ||
+	fail "config.json names $config_user for $zone, $sops_file names $user!"
+[[ "$base_url" == https://* ]] || fail "The panel is not https: $base_url!"
+
+listing="$(directadmin CMD_API_LOGIN_KEYS "$user:$password")" ||
+	fail "The password for $user failed at $base_url!"
+answered "$listing" ||
+	fail "DirectAdmin refused $user at $base_url: $(error_text "$listing")"
+log "The password lists the login keys of $user at $base_url"
+
+if (( dry_run )); then
+	body="$(jq -cn --arg zone "$zone" '{domain: $zone, json: "yes"}')"
+	records="$(directadmin_json CMD_DNS_CONTROL "$user:$current_key" \
+	           "$body")" ||
+		fail "The current key for $zone failed at $base_url!"
+	count="$(jq -r '.records | length' <<<"$records" 2>/dev/null)" ||
+		fail "The current key gets no record listing for $zone!"
+	log "The current key lists $count records in $zone"
+	log "Dry run; no key minted"
+	exit
+fi
+
+expires=$(( $(date +%s) + days * 86400 ))
+keyname="$prefix$(epoch_date "$expires")" || fail "Cannot format the expiry!"
+key="$(random_key)"
+(( ${#key} == 64 )) || fail "Cannot generate a key!"
+
+ips=""
+for ip in $allow_ips; do
+	ips="${ips:+$ips$'\n'}$ip"
+done
+
+fields=(action=create type=key "keyname=$keyname" "key=$key" "key2=$key"
+        never_expires=no "expiry_timestamp=$expires" max_uses=0
+        clear_key=yes allow_html=no "ips=$ips" "passwd=$password"
+        create=Create)
+i=0
+for command in $commands; do
+	fields+=("select_allow$i=$command")
+	i=$(( i + 1 ))
+done
+
+log "Creating key $keyname for $user ($zone): $days days, $commands ..."
+log "Allowed from: $allow_ips"
+response="$(directadmin CMD_API_LOGIN_KEYS "$user:$password" "${fields[@]}")" ||
+	fail "DirectAdmin did not answer at $base_url!"
+[[ "$response" == *error=0* ]] ||
+	fail "DirectAdmin refused key $keyname: $(error_text "$response")"
+
+listing="$(directadmin CMD_API_LOGIN_KEYS "$user:$password")" ||
+	fail "Cannot list the login keys of $user!"
+[[ "$listing" == *"$keyname"* ]] ||
+	fail "Key $keyname was accepted but is not listed!"
+
+log "Key $keyname is listed for $user and expires $(epoch_date "$expires")"
+log "The previous key stays until you delete it at $base_url"
+printf '%s\n' "$key" >&3
