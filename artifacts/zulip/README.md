@@ -90,6 +90,16 @@ zmanage() { kubectl --context dataverket-prod-admin -n zulip exec zulip-0 -c zul
 8. **The administrator address** is `admin@dataverket.org` (`SETTING_ZULIP_ADMINISTRATOR` in `statefulset.yaml`),
    shown as the contact address and sent error mail; Zulip's mail goes out as plain `noreply@dataverket.org`.
 
+If creating the organization fails halfway (on 2026-10-15 an S3 header Envoy refused, then a cache that outlived
+the rollback), clean up before trying again:
+
+- Restart memcached: `swamp behavior run dataverket-prod-deployments restart --input namespace=zulip --input
+  deploymentName=zulip-memcached`. A rolled-back attempt leaves cached rows the database no longer has.
+- An organization left with no users is deleted, not repaired: `zmanage list_realms` names its numeric id, then
+  `zmanage delete_realm -r <id>` run in an interactive shell inside the pod, since the command reads its confirmation
+  from a terminal and the pipe through `kubectl exec` gives it none. The confirmation it wants is the organization's
+  subdomain, which for `forum.dataverket.org` itself is empty: press Enter. Then a new link from step 2.
+
 What remains of `docs/plans/2026-10-zulip.md` after this is its restore test and documentation.
 
 ## After a rebuild
