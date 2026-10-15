@@ -25,6 +25,10 @@ spec:
       config:
         # The page title and header; the chart's default is "Forgejo: Beyond coding. We forge."
         APP_NAME: Dataverket
+        # Off: zot is the registry. LFS is off by default; attachments and Actions artifacts keep their defaults on
+        # the volume (docs/plans/2026-10-s3-osl1.md leaves Forgejo out since 2026-10-15).
+        packages:
+          ENABLED: false
         # Actions resolve on this forge's own actions org (decision 022, README.md).
         actions:
           DEFAULT_ACTIONS_URL: self

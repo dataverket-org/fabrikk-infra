@@ -21,7 +21,7 @@ Cinder holds 60 GB of SSD and 10 GB of Standard. Every Cinder class allows expan
 layer (decision 018): Zitadel's replicates itself, every other one is a single instance on a volume Cinder keeps three
 copies of. Zulip's database, when it comes, is one more single instance on its own SSD volume, sized at install. An
 in-cluster S3 endpoint, one versitygw on one Cinder volume, is `docs/plans/2026-10-s3-osl1.md`; Zulip's uploads and
-avatars are its first writer, Forgejo's LFS and packages the second.
+avatars are its first writer; Forgejo stays on its volume, with packages off and LFS unused.
 
 ## The workers
 
