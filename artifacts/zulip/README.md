@@ -137,7 +137,7 @@ Each line was learned while setting Zulip up. The first column is the fact, the 
 | Zulip's nginx and the browsers fetch uploads and avatars by the S3 gateway's public name | Zulip uses `https://dataverket.s3.osl1.dvkt.no`, not the in-cluster Service. `zulip-avatars` is public by policy |
 | Zulip's S3 uploads carry metadata headers with underscores, such as `x-amz-meta-user_profile_id`. Envoy refuses those by default | `infrastructure/envoy/clienttrafficpolicy-s3.yaml` allows them on the S3 listener only |
 | Zulip long-polls: a request can stay open for minutes | The route has no request timeout |
-| Zulip trusts forwarded client addresses only from the proxies in `LOADBALANCER_IPS`, and rate-limits by that address | It lists Envoy's pod network, `10.244.0.0/16` |
+| Zulip trusts forwarded client addresses only from the proxies in `LOADBALANCER_IPS`, and rate-limits by that address | It lists Envoy's pod network, `10.244.0.0/16`. The Octavia load balancer sends Envoy each visitor's address with PROXY v2 (`infrastructure/envoy/`), so X-Forwarded-For names the visitor |
 | Zulip's default no-reply address is on `forum.dataverket.org`, which has no mail domain | `ADD_TOKENS_TO_NOREPLY_ADDRESS` is off, so mail comes from `noreply@dataverket.org` |
 | Zulip uses Redis for rate limits, through one Lua script and basic commands. Valkey implements all of them | Valkey 9.1 runs as `zulip-redis`. Redis can replace it with one image change |
 | memcached needs a login, since Zulip sends one | memcached runs with SASL and the user `zulip@localhost` |
