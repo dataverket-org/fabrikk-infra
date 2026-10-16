@@ -13,7 +13,7 @@ are 014 and 017 to 021, and 025. How a disk becomes a volume, and which names ar
 | Zitadel | postgres, CNPG ×3, one synchronous replica | each worker's `u-pg-zitadel` partition | `pg-zitadel-storage`, local | 3 × 11 GiB, claim 10Gi | the database itself, one instance per worker | Barman to the hov1 site, 14 days, PITR |
 | zot | blobs and config | Cinder | `csi-cinder-standard-retain`, Standard | 10 GB | Cinder ×3 | none; mirrors re-copy, artifacts come from git |
 | versitygw, osl1 | S3 objects, versions, the IAM store; Zulip's uploads and avatars | Cinder | `csi-cinder-standard-retain`, Standard | 20 GB | Cinder ×3 | none yet: kopia to the hov1 site is `docs/plans/2026-10-s3-osl1-backup.md`, deferred |
-| Runner, org | docker-store, a raw disk dind formats itself, overlay2 (Kata) | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | disposable | none |
+| Runner, org | docker-store, dind's `/var/lib/docker`, overlay2 | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | disposable | none |
 | Runner, release | state | Cinder | `csi-cinder-sc-delete`, SSD | 20 GB | Cinder ×3 | none |
 | Control planes ×3 | Talos, etcd | flavor root disk, `c5.large` | EPHEMERAL default | 3 × 25 GiB | etcd ×3 | none: Omni's etcd backup store is not configured (decision 003's audit) |
 | Workers ×3 | Talos, images, logs | flavor root disk, `m5.large` | EPHEMERAL 14 GiB | 3 × 30 GiB | none needed | none |

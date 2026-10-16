@@ -1,13 +1,12 @@
-# The runner's docker store, a raw Block disk (README.md).
+# The runner's docker store, mounted at dind's /var/lib/docker (README.md).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: org-dataverket-runner-docker-store
+  name: org-dataverket-runner-docker
   namespace: forgejo-runners
 spec:
   accessModes:
     - ReadWriteOnce
-  volumeMode: Block
   storageClassName: csi-cinder-sc-delete
   resources:
     requests:

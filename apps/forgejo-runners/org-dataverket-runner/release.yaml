@@ -21,8 +21,6 @@ spec:
           cpu: "1"
           memory: 2Gi
         limits:
-          # Kata sizes the guest from the limits (README.md).
-          cpu: "1"
           memory: 4Gi
     resources:
       requests:
@@ -32,11 +30,28 @@ spec:
       config:
         instance: https://git.dataverket.org
         existingSecret: org-dataverket-runner-secret
-    # The docker store, a raw Block disk handed to dind as a device in the patch below (README.md).
+        # Jobs reach the pod's dind, the chart's values-dind-bypass.yaml (README.md).
+        file:
+          runner:
+            envs:
+              A_TEST_ENV_NAME_1: null
+              A_TEST_ENV_NAME_2: null
+              DOCKER_HOST: tcp://127.0.0.1:2376
+              DOCKER_TLS_VERIFY: 1
+              DOCKER_CERT_PATH: /certs/client
+          container:
+            network: host
+            options: -v /certs/client:/certs/client
+            valid_volumes:
+              - /certs/client
+    # The docker store, a Cinder volume at dind's /var/lib/docker (README.md).
     volumes:
       - name: docker-store
         persistentVolumeClaim:
-          claimName: org-dataverket-runner-docker-store
+          claimName: org-dataverket-runner-docker
+    volumeMounts:
+      - name: docker-store
+        mountPath: /var/lib/docker
   postRenderers:
     - kustomize:
         patches:
@@ -55,23 +70,3 @@ spec:
                   rollingUpdate:
                     maxSurge: 0
                     maxUnavailable: 1
-                template:
-                  spec:
-                    runtimeClassName: kata
-                    containers:
-                      - name: dind
-                        # Format once, when blank; mount afterwards (README.md).
-                        command: ["sh", "-ec"]
-                        args:
-                          - |
-                            dev=/dev/docker-store
-                            if ! blkid "$dev" | grep -q 'TYPE='; then
-                              echo "formatting $dev (blank disk)"
-                              mkfs.ext4 -q -F "$dev"
-                            fi
-                            mkdir -p /var/lib/docker
-                            mount -o noatime "$dev" /var/lib/docker
-                            exec dockerd-entrypoint.sh --storage-driver=overlay2
-                        volumeDevices:
-                          - name: docker-store
-                            devicePath: /dev/docker-store
