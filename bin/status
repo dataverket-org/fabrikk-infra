@@ -244,7 +244,9 @@ function tier1_rows()
 #
 function tier3_rows()
 {
-	local vault_keys flux_files glass_files
+	local vault_keys flux_files glass_files process_key_file
+
+	process_key_file="$HOME/.config/sops/age/swamp-$repo.txt"
 
 	vault_keys="$(find "$repo_dir/vaults/infra" -name '*.enc.json' 2>/dev/null |
 	              grep -c . || true)"
@@ -267,12 +269,14 @@ function tier3_rows()
 			"the two YubiKeys; break-glass and hov1 fill it"
 	fi
 
-	if [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
-		row "$(short_path "$HOME/.config/sops/age/keys.txt")" \
-			swamp-fabrikk-infra swamp - - "the key that opens the vault"
+	# The process key lives in its own file, named after the process, so that
+	# sops from a terminal never loads it; keys.txt holds the humans.
+	if [[ -f "$process_key_file" ]]; then
+		row "$(short_path "$process_key_file")" \
+			"swamp-$repo" swamp - - "the process key that opens the vault"
 	else
-		row "$(short_path "$HOME/.config/sops/age/keys.txt")" \
-			swamp-fabrikk-infra absent - - "nothing here decrypts the vault"
+		row "$(short_path "$process_key_file")" \
+			"swamp-$repo" absent - - "no process key; nothing here decrypts the vault"
 	fi
 }
 

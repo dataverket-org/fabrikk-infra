@@ -7,7 +7,8 @@
 # - cluster-dataverket-prod  age1g3x9w...      Secret flux-system/sops-age, generated in-cluster 2026-09-17 by
 #                                              bootstrap/sops-age-keygen.yaml; never leaves the cluster. Decrypts
 #                                              the Flux files and nothing else.
-# - swamp-fabrikk-infra    age15d64...         ~/.config/sops/age/keys.txt on the swamp host, mode 0600.
+# - swamp-fabrikk-infra    age15d64...         ~/.config/sops/age/swamp-fabrikk-infra.txt on the swamp host, mode
+#                                              0600, its own file so that sops from a terminal never loads it.
 #                                              Decrypts the swamp vault unattended, never a cluster file. A second
 #                                              swamp repository gets its own swamp-<repo> key, never a copy.
 # - beddari                age1yubikey1q0d8... YubiKey serial 19668198 (PIN once, touch always)
