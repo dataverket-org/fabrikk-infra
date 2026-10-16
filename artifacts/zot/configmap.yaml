@@ -1,6 +1,8 @@
-# zot's configuration. Anonymous pull everywhere; push only for the fabrikk-ci user in /secret/htpasswd
-# (Secret zot-htpasswd, encrypted in this directory). Browser login goes through Zitadel (Secret zot-oidc); OIDC users are
-# identified by email, so grant them in accessControl by email. They mint API keys in the UI for docker/skopeo.
+# zot's configuration. Anonymous pull everywhere; push for the fabrikk-ci user, and under tools/ also for
+# nordhost-pipeline, both in /secret/htpasswd (Secret zot-htpasswd, encrypted in this directory). zot applies the
+# longest pattern a repository matches, so tools/** repeats the read policies and fabrikk-ci. Browser login goes
+# through Zitadel (Secret zot-oidc); OIDC users are identified by email, so grant them in accessControl by email.
+# They mint API keys in the UI for docker/skopeo.
 # No delete for anyone yet: promotion retags, it never removes.
 apiVersion: v1
 kind: ConfigMap
@@ -44,6 +46,13 @@ data:
               "defaultPolicy": ["read"],
               "policies": [
                 { "users": ["fabrikk-ci"], "actions": ["read", "create", "update"] }
+              ]
+            },
+            "tools/**": {
+              "anonymousPolicy": ["read"],
+              "defaultPolicy": ["read"],
+              "policies": [
+                { "users": ["fabrikk-ci", "nordhost-pipeline"], "actions": ["read", "create", "update"] }
               ]
             }
           }
