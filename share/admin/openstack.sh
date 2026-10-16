@@ -63,7 +63,13 @@ function current_credential_id()
 #
 # Prints the JSON record of an application credential, read by the credential
 # itself through the cloud entry; nothing when it cannot, which is the case
-# once it has expired. `show -f json` uses title-case keys.
+# once it has expired.
+#
+# The keys of a `show` or `create` record depend on the client: title case
+# (ID, Name, Expires At, Roles as a list of objects) up to openstackclient 7,
+# lower case (id, name, expires_at, roles as one string) from 8, where the two
+# commands moved onto the SDK. `list` kept title case. Every reader below
+# accepts both, so operators on either client get the same answer.
 #
 function credential_record()
 {
@@ -101,7 +107,7 @@ function credential_name()
 	local fallback="$2"
 	local name
 
-	name="$(printf '%s' "$record" | jq -r '.Name // empty' 2>/dev/null)"
+	name="$(printf '%s' "$record" | jq -r '.name // .Name // empty' 2>/dev/null)"
 	echo -n "${name:-$fallback}"
 }
 
@@ -131,7 +137,9 @@ function credential_roles()
 {
 	local record="$1"
 
-	printf '%s' "$record" | jq -r '[.Roles[].name] | join(" ")' 2>/dev/null
+	printf '%s' "$record" | jq -r '
+		(.roles // .Roles // empty) |
+		if type == "array" then [.[].name] | join(" ") else . end' 2>/dev/null
 }
 
 #
@@ -143,8 +151,8 @@ function credential_seconds_left()
 	local record="$1"
 	local expiration
 
-	expiration="$(printf '%s' "$record" | jq -r '."Expires At" // empty' \
-	              2>/dev/null)"
+	expiration="$(printf '%s' "$record" |
+	              jq -r '.expires_at // ."Expires At" // empty' 2>/dev/null)"
 
 	if [[ -z "$record" || -z "$expiration" ]]; then
 		echo -n 0
@@ -211,9 +219,8 @@ function write_cloud()
 	local record="$1"
 	local credential secret
 
-	# `create -f json` uses title-case keys, like `show`.
-	credential="$(printf '%s' "$record" | jq -r '.ID // empty')"
-	secret="$(printf '%s' "$record" | jq -r '.Secret // empty')"
+	credential="$(printf '%s' "$record" | jq -r '.id // .ID // empty')"
+	secret="$(printf '%s' "$record" | jq -r '.secret // .Secret // empty')"
 
 	if [[ -z "$credential" || -z "$secret" ]]; then
 		error "The credential record has no ID or Secret; not writing $clouds"
