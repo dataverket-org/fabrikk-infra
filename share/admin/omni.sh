@@ -63,6 +63,10 @@ function omni_login_key()
 # the PGP key; nothing when gpg or the key is absent. Omni issues these for a
 # few hours, which is the lifetime of tier 1.
 #
+# omnictl writes the expiry into the key's self-signature, which gpg reports
+# on the uid line, not the sec line; the sec line's expiry field is empty for
+# these keys, which is why both lines are read.
+#
 function omni_login_expiry()
 {
 	local key
@@ -72,7 +76,7 @@ function omni_login_expiry()
 	[[ -f "$key" ]] || return
 
 	gpg --show-keys --with-colons "$key" 2>/dev/null |
-		awk -F: '$1 == "sec" && $7 != "" { print $7; exit }'
+		awk -F: '($1 == "sec" || $1 == "uid") && $7 != "" { print $7; exit }'
 }
 
 #
