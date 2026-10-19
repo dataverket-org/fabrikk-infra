@@ -11,17 +11,45 @@
 source "${0%/*}/../share/admin/admin.sh" || exit $?
 
 #
+# Opens a URL in the default browser, on macOS and Linux alike; not over SSH,
+# where the browser is on another screen.
+#
+function open_url()
+{
+	local url="$1"
+
+	[[ -z "$SSH_CONNECTION" ]] || return 1
+
+	if   command -v open >/dev/null; then open "$url"
+	elif command -v xdg-open >/dev/null; then xdg-open "$url" >/dev/null 2>&1
+	else return 1
+	fi
+}
+
+#
 # Checks that Proton Pass has a session; logs in through the browser if not.
+# pass-cli prints the login URL and waits; the first one it prints is opened,
+# as omnictl does by itself, and every line still reaches the terminal.
 #
 function proton_pass_login()
 {
+	local line opened="" status
+
 	if pass-cli info >/dev/null 2>&1; then
 		log "Proton Pass session is open"
 		return
 	fi
 
-	log "Proton Pass: web login ..."
-	run pass-cli login || return $?
+	log "Proton Pass: web login, in your browser ..."
+	run pass-cli login 2>&1 | while IFS= read -r line; do
+		echo "$line"
+		if [[ -z "$opened" && "$line" =~ (https://[^[:space:]]+) ]]; then
+			open_url "${BASH_REMATCH[1]}" && opened=1
+		fi
+	done
+	status="${PIPESTATUS[0]}"
+
+	(( status == 0 )) || return "$status"
 	pass-cli info >/dev/null 2>&1 || return 1
 	log "Proton Pass session is open"
 }
