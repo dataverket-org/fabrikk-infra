@@ -16,8 +16,8 @@ function require_human_cloud()
 	[[ -f "$clouds" ]] || { error "$clouds does not exist!"; return 1; }
 
 	if [[ "$human_cloud" == "$os_cloud" ]]; then
-		error "Cloud entry $human_cloud is the one this repository writes"
-		error "Tier 1 logs in as you; set OS_CLOUD to your own entry"
+		error "Cloud entry $human_cloud is the one this repository writes;" \
+		      "set OS_CLOUD to your own"
 		return 1
 	fi
 
@@ -26,8 +26,8 @@ function require_human_cloud()
 
 	case "$url" in
 		""|null)
-			error "Cloud entry $human_cloud is not in $clouds"
-			error "Add your own login there; the address is in the README"
+			error "Cloud entry $human_cloud is not in $clouds;" \
+			      "add your login (address in README)"
 			return 1
 			;;
 	esac
@@ -36,8 +36,8 @@ function require_human_cloud()
 	        "$clouds" 2>/dev/null)"
 
 	if [[ "$type" == "v3applicationcredential" ]]; then
-		error "Cloud entry $human_cloud is an application credential"
-		error "That is a machine's credential; tier 1 logs in as you"
+		error "Cloud entry $human_cloud is an application credential," \
+		      "a machine's; tier 1 logs in as you"
 		return 1
 	fi
 
@@ -84,17 +84,33 @@ function credential_record()
 #
 # Prints the JSON record of an application credential, read as you through
 # your own cloud entry; nothing when Keystone no longer has it. This is how
-# an expired credential is still recognised as ours or as hand-made.
+# an expired credential is still recognised as ours or as hand-made. Any
+# other failure, a refused login above all, is printed and fails.
 #
 function credential_record_as_you()
 {
 	local credential="$1"
+	local err_file record
 
 	[[ -n "$credential" ]] || return
 
 	human_login
-	openstack --os-cloud "$human_cloud" application credential show \
-		"$credential" -f json 2>/dev/null
+	err_file="$(mktemp)" || return $?
+
+	if record="$(openstack --os-cloud "$human_cloud" application credential \
+	             show "$credential" -f json 2>"$err_file")"; then
+		printf '%s' "$record"
+	elif grep -qiE 'No ApplicationCredential|not found|\(HTTP 404\)' \
+	     "$err_file"; then
+		:	# Keystone no longer has it
+	else
+		error "Looking up $credential as you through $human_cloud failed!"
+		error "$(cat "$err_file")"
+		rm -f "$err_file"
+		return 1
+	fi
+
+	rm -f "$err_file"
 }
 
 #
@@ -297,7 +313,7 @@ function prune_application_credentials()
 	others="$(other_credentials "$keep")" || return $?
 
 	if ! printf '%s\n' "$others" | grep -q '^delete '; then
-		log "Nothing of ours to prune"
+		:
 	else
 		human_login   # at top level: prune is never called in a subshell
 	fi
@@ -307,10 +323,11 @@ function prune_application_credentials()
 			delete)
 				run openstack --os-cloud "$human_cloud" application credential \
 				    delete "$credential" </dev/null || return $?
-				log "Deleted $name"
+				log "Deleted superseded credential $name"
 				;;
 			keep)
-				warn "Left alone: $name ($credential), not ours by name"
+				warn "Credential $name ($credential) is not ours by name;" \
+				     "left alone"
 				;;
 		esac
 	done <<<"$others"

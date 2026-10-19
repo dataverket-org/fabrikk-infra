@@ -294,14 +294,15 @@ function create_machine_user()
 #
 # Brings a user's membership to exactly one role: added when the user is no
 # member, set when it holds anything else, left alone when it already holds
-# that role and no other. The members path says of what: the instance or
-# your organization.
+# that role and no other. The members path says of what: the instance, your
+# organization or a project; what names it in the messages.
 #
 function ensure_member()
 {
 	local members="$1"
 	local user_id="$2"
 	local role="$3"
+	local what="${4:-Membership}"
 	local body output held
 
 	body="$(jq -n --arg id "$user_id" \
@@ -316,11 +317,11 @@ function ensure_member()
 		body="$(jq -n --arg id "$user_id" --arg role "$role" \
 		        '{ userId: $id, roles: [$role] }')"
 		zitadel_api POST "$members" "$body" >/dev/null || return $?
-		log "Gave it $role"
+		log "$what: gave it $role"
 	else
 		body="$(jq -n --arg role "$role" '{ roles: [$role] }')"
 		zitadel_api PUT "$members/$user_id" "$body" >/dev/null || return $?
-		log "It held $held; set to $role and nothing else"
+		log "$what: it held $held; set to $role only"
 	fi
 }
 
@@ -493,28 +494,28 @@ function ensure_zitadel_key()
 
 	local left holder reason org user_id file_user key_id
 
-	log "Zitadel machine user $name, ${role:-no role of its own}, $tier2_ttl ..."
+	local what="Zitadel machine user $name (${role:-project owner})"
 
 	if [[ -s "$file" ]]; then
 		left="$(key_file_seconds_left "$file")"
 		holder="$(key_file_username "$file")"
 
 		if [[ -n "$holder" && "$holder" != "$name" ]]; then
-			warn "$file is a key for $holder, not ours; left alone"
-			warn "To let this script manage it, remove the file and rerun"
+			warn "$file is a key for $holder, not ours; left alone," \
+			     "remove it to hand it over"
 			return
 		fi
 
 		if reason="$(renew_now "$left")"; then
-			log "$name $reason; renewing ..."
+			log "$what: $reason; renewing ..."
 		elif [[ "$holder" == "$name" ]]; then
-			log "$name has $(humanize "$left") left and its key file answers"
+			log "$what: $(humanize "$left") left; keeping it"
 			return
 		else
-			log "$file does not authenticate; renewing ..."
+			log "$what: $file is refused; renewing ..."
 		fi
 	else
-		log "No key file at $file; minting ..."
+		log "$what: no key file; minting, $tier2_ttl ..."
 	fi
 
 	zitadel_login || return $?
@@ -532,8 +533,8 @@ function ensure_zitadel_key()
 	file_user="$(jq -r '.userId // empty' "$file" 2>/dev/null)"
 
 	if [[ -n "$file_user" && "$file_user" != "$user_id" ]]; then
-		warn "$file is a key for user $file_user, not $name; left alone"
-		warn "To let this script manage it, remove the file and rerun"
+		warn "$file is a key for user $file_user, not $name;" \
+		     "left alone, remove it to hand it over"
 		return
 	fi
 
@@ -542,15 +543,13 @@ function ensure_zitadel_key()
 	fi
 
 	key_id="$(create_user_key "$user_id" "$file")" || return $?
-	log "Wrote $file"
-
 	if [[ "$(key_file_username "$file")" != "$name" ]]; then
 		error "The new key in $file does not authenticate as $name"
 		return 1
 	fi
 
 	delete_other_user_keys "$user_id" "$key_id" || return $?
-	log "$name answers at $zitadel_url with a key that lives $tier2_ttl"
+	log "Wrote $file: $name answers at $zitadel_url"
 }
 
 #
@@ -597,10 +596,12 @@ function ensure_project_owner()
 			[[ -n "$project" ]] || return 1
 		fi
 
-		log "Project $name: owner ..."
 		ensure_member "/management/v1/projects/$project/members" \
-			"$user_id" "$zitadel_project_role" || return $?
+			"$user_id" "$zitadel_project_role" "Project $name" ||
+			return $?
 	done
+
+	log "Projects $*: the operator key owns them"
 }
 
 #

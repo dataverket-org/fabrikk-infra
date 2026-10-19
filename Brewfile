@@ -19,6 +19,7 @@ brew "go"                       # artifacts/zulip/s3proof, run with go run; the 
 brew "sops"
 brew "age"
 brew "age-plugin-yubikey"
+brew "bash"                     # every bin/ script wants bash 5; macOS has 3.2 as /bin/bash
 brew "jq"
 brew "yq"
 brew "git"

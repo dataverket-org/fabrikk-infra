@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 #
-# Tier 1 session up. Opens the two logins the session needs: Proton Pass,
-# whose session the CLI keeps, and Omni, which issues a login key that lives
-# a few hours. With OS_PASSWORD_REF set, the openstack action then resolves
-# the OpenStack password from Proton Pass for its own run only, so nothing
-# prompts and no password is ambient. `task admin:logout` closes what this
-# opened. With SESSION_SHELL=1, the task admin:shell variant, it ends in a
-# shell where OS_PASSWORD is already resolved and therefore ambient.
+# Tier 1 session up. Opens Omni, whose login key lives a few hours, and Proton
+# Pass when OS_PASSWORD_REF is a pass:// reference, and checks the reference.
+# The openstack step resolves the password through bin/with-secrets for its
+# own run only, so no password stays in any environment. The first step of
+# `task admin:start`; `task admin:stop` closes what this opened.
 #
 
 # shellcheck source=share/admin/admin.sh
@@ -48,38 +46,24 @@ function omni_login()
 	log "Omni login key is good until $(omni_login_expires)"
 }
 
-want_shell="${SESSION_SHELL:-0}"
-
 writes="$(omni_login_key) (Omni writes it on login)"
 announce_files "$omniconfig" "$writes, and $omniconfig if missing"
-require_tools pass-cli omnictl gpg yq || exit $?
+require_tools omnictl gpg yq || exit $?
 require_omni_context || exit $?
 
-if [[ -n "$ADMIN_SESSION" ]]; then
-	warn "You are already in a session shell (since $ADMIN_SESSION)"
-	warn "exit it, or run task admin:logout, before logging in again"
-	exit 1
+if [[ "$(secret_backend "$os_password_ref")" == proton ]]; then
+	require_tools pass-cli || exit $?
+	proton_pass_login || fail "Proton Pass login failed!"
 fi
 
-proton_pass_login || fail "Proton Pass login failed!"
-omni_login        || fail "Omni login failed!"
+omni_login || fail "Omni login failed!"
 
-if [[ -z "$os_password_ref" ]]; then
-	warn "OS_PASSWORD_REF is not set; the openstack action asks for the password"
+if [[ -n "$OS_PASSWORD" ]]; then
+	warn "OS_PASSWORD is already set; it wins over any reference"
+elif [[ -z "$os_password_ref" ]]; then
+	warn "OS_PASSWORD_REF is empty; the OpenStack step asks for the password"
+elif secret_ref_usable "$os_password_ref"; then
+	log "OpenStack password: $os_password_ref, resolved per run"
 else
-	log "OS_PASSWORD_REF is set; it is resolved per run, nothing prompts"
-fi
-
-if [[ "$want_shell" != 1 ]]; then
-	log "Logged in. Next: task admin:renew"
-	exit
-fi
-
-warn "Opening a session shell ($SHELL) with OS_PASSWORD ambient in it"
-warn "Everything started from it inherits the password; exit ends that"
-if [[ -n "$os_password_ref" ]]; then
-	OS_PASSWORD="$os_password_ref" OS_CLOUD="$human_cloud" ADMIN_PASS_RUN=1 \
-	ADMIN_SESSION="$(date +%H:%M)" exec pass-cli run -- "$SHELL"
-else
-	OS_CLOUD="$human_cloud" ADMIN_SESSION="$(date +%H:%M)" exec "$SHELL"
+	warn "Until OS_PASSWORD_REF names yours, the OpenStack step asks for it"
 fi

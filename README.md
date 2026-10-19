@@ -41,8 +41,8 @@ and the one commit that must precede it, is `docs/storage.md`, "Rebuild from git
 
 `task` lists them. One namespace per group. The `admin:` group is one *session*: the stretch of a working day in
 which an operator has logged in and the short-lived credentials exist, opened deliberately and closed or expired at
-the end of it. The Proton Pass session, the shell it may open and the Omni login are parts of it, not other things
-with the same name. It runs on the swamp host with your own Omni, OpenStack and Zitadel logins, writes the credentials the
+the end of it. The Omni login, the Proton Pass session when your OpenStack password lives there, and the shell it may
+open are parts of it, not other things with the same name. It runs on the swamp host with your own Omni, OpenStack and Zitadel logins, writes the credentials the
 models then use by name, touches only config files in your home directory, and never reads the swamp vault. The
 rule behind it is decision 001. What comes after it, in order: the second door in
 `docs/plans/2026-09-break-glass.md`, then Kubernetes authentication in `docs/plans/2026-09-kubernetes-identity.md`.
@@ -50,16 +50,13 @@ rule behind it is decision 001. What comes after it, in order: the second door i
 
 | Task | What |
 |---|---|
-| `task admin` | All three tiers as tables with the same columns: where each credential lives, the name it is selected by, who holds it and when it expires. Only tier 2 has anything in the lifetime columns, which is the design in one screen. The same as `admin:status`. |
-| `task admin:login`, `task admin:logout` | Open and close the session: the Proton Pass session and the Omni login key. |
-| `task admin:renew` | Every credential of ours, in order, when any one of them is due. `RENEW=1` renews them now. |
-| `task admin:omni-key`, `admin:kube-admin`, `admin:kube-readers`, `admin:talos`, `admin:openstack` | One credential each, to run alone. |
-| `task admin:omni-operator-key` | The one key that can change a cluster. Run deliberately; `admin:renew` leaves it out and `admin:logout` removes it. |
-| `task admin:zitadel-key` | The Zitadel reader key the zitadel models name. It reads the whole instance and changes nothing. A renewal logs you in through the browser; a current key opens nothing. Part of `admin:renew`. |
-| `task admin:zitadel-operator-key` | The Zitadel key that can write, and only to the projects named in `ZITADEL_PROJECTS`. Run deliberately; `admin:renew` leaves it out and `admin:logout` removes it. After changing the list, run it with `RENEW=1`. |
-| `task admin:zitadel-bootstrap` | Once per instance, and on a host whose config lacks the client id: the organization's name, the admin project and the application the browser login goes through. It acts as the machine user the chart made at install, whose key it reads from the cluster for that run and writes nowhere. |
-| `task admin:nordhost-keys`, `admin:nordhost-key` | New Nordhost login keys for the cluster's DNS zones, named `dataverketprod<expiry>` and written into `artifacts/cert-manager/nordhost-config.enc.yaml` with sops; then commit, `artifacts/cert-manager/push.sh`, and restart `external-dns` and `nordhost-webhook`, which read the keys only at start. `NORDHOST_DRY_RUN=1` tests the current key; `NORDHOST_DELETE_KEYS` removes old ones once the new are running |
-| `task check-recipients` | Every encrypted file is encrypted to the recipients its rule names, and to nobody else. `bootstrap.sh` runs it first, `admin:renew` before it mints anything. |
+| `task admin` | What you hold now: all three tiers as tables with the same columns, where each credential lives, the name it is selected by, who holds it and when it expires, then whether anything needs doing. Only tier 2 has anything in the lifetime columns, which is the design in one screen. `admin:status` is the same. |
+| `task admin:start` | The working day: the Omni login, the Proton Pass session when `OS_PASSWORD_REF` is `pass://` (and a check that the reference resolves), then every credential of ours, in order, when any one of them is due: the Omni Reader key, both kube contexts, the talos context, the OpenStack cloud entry and the Zitadel reader key. A Zitadel renewal logs you in through the browser; a current key opens nothing. `RENEW=1` renews them all now. Safe to rerun. |
+| `task admin:elevate` | The two keys that can change something, minted deliberately when you are about to: the Omni Operator key, and the Zitadel key that writes to the projects in `ZITADEL_PROJECTS` and nothing else. `admin:start` never mints them. After changing `ZITADEL_PROJECTS`, run it with `RENEW=1`. |
+| `task admin:stop` | The end of the day: closes the Proton Pass session, removes the Omni login key and both elevated keys. The rest of tier 2 expires by itself. |
+| `task admin:dns-keys` | New Nordhost login keys for the cluster's DNS zones, named `dataverketprod<expiry>` and written into `artifacts/cert-manager/nordhost-config.enc.yaml` with sops; then commit, `artifacts/cert-manager/push.sh`, and restart `external-dns` and `nordhost-webhook`, which read the keys only at start. `DRY_RUN=1` tests the current keys; `NORDHOST_DELETE_KEYS` removes old ones once the new are running. Each zone's account password comes from `vaults/operator/nordhost/`, a YubiKey touch each. |
+| `task admin:zitadel-setup` | Once per instance, and on a host whose config lacks the client id: the organization's name, the admin project and the application the browser login goes through. It acts as the machine user the chart made at install, whose key it reads from the cluster for that run and writes nowhere. |
+| `task check-recipients` | Every encrypted file is encrypted to the recipients its rule names, and to nobody else. `bootstrap.sh` runs it first, `admin:start` before it mints anything. |
 
 What a session writes, and what reads it by name:
 
@@ -69,12 +66,12 @@ What a session writes, and what reads it by name:
 | `~/.kube/config`, contexts `dataverket-prod-readers` and `dataverket-prod-admin` | the kubernetes and flux models | Omni service-account kubeconfigs: group `fabrikk-readers`, and `system:masters` | `TIER2_TTL` |
 | `~/.talos/config`, context `dataverket-prod` | `dataverket-prod-talos` | The Omni-proxied talosconfig, which carries no credential | none; the key file beside it expires |
 | `~/.talos/omni/fabrikk-infra-reader.key` | `omni`, `dataverket-prod-talos` | An Omni service account key, role Reader | `TIER2_TTL` |
-| `~/.talos/omni/fabrikk-infra-operator.key` | `omni-cluster` only | An Omni service account key, role Operator; `admin:omni-operator-key` mints it, `admin:logout` removes it | `TIER2_TTL` |
+| `~/.talos/omni/fabrikk-infra-operator.key` | `omni-cluster` only | An Omni service account key, role Operator; `admin:elevate` mints it, `admin:stop` removes it | `TIER2_TTL` |
 | `~/.config/zitadel/fabrikk-infra-reader.json` | the zitadel models | A Zitadel machine key, `IAM_OWNER_VIEWER` | `TIER2_TTL` |
 | `~/.config/zitadel/fabrikk-infra-operator.json` | a definition that writes | A Zitadel machine key, owner of the projects in `ZITADEL_PROJECTS` and of nothing else | `TIER2_TTL` |
 
-Every item shares the one lifetime, and `admin:renew` renews them all when any has less than a quarter of it left.
-`admin:status` reads each item's expiry from its own file or record. The two process keys of tier 3 never rotate on a
+Every item shares the one lifetime, and `admin:start` renews them all when any has less than a quarter of it left.
+`task admin` reads each item's expiry from its own file or record. The two process keys of tier 3 never rotate on a
 schedule: `swamp-fabrikk-infra` lasts until the swamp host is rebuilt, `cluster-dataverket-prod` the cluster's life.
 
 The readers context's group, `fabrikk-readers`, has Kubernetes' `view` role cluster-wide (`infrastructure/readers/`):
@@ -86,7 +83,17 @@ what is decided and what is still pending read at a glance; `decisions:new` star
 it in `$EDITOR`; `decisions:index` rewrites the generated index.
 
 Settings are environment variables, not options: `RENEW=1`, `DEBUG=1`, `TIER2_TTL` for the shared lifetime,
-and `OPERATOR` for the name a provider records you under, which defaults to `$USER`.
+`OPERATOR` for the name a provider records you under, which defaults to `$USER`, and `OS_PASSWORD_REF` for where your
+OpenStack password lives: `pass://VAULT/ITEM/FIELD` (Proton Pass, active items only), `passstore://PATH` or
+`sops://FILE#FIELD`, resolved for one run at a time by `bin/with-secrets` (`share/secrets.sh`). Its default is in
+`taskfiles/admin.yml`.
+
+A task prints one line per item: what it found, and what it did about it. `DEBUG=1` adds the files each script reads
+and may write, and every command it runs. Every line, debug included, also goes to
+`~/.local/state/fabrikk-infra/log.jsonl`, one JSON object each with the fields of Go's `log/slog` (`time`, `level`,
+`msg`) and `script` and `run`, the id one task invocation shares; `jq 'select(.level != "DEBUG")'` reads it back.
+`LOG_FILE` moves it and `LOG_FILE=` turns it off. No secret reaches it. The scripts need bash 5.2 or newer: under
+macOS's `/bin/bash` they restart under Homebrew's, which `brew bundle` installs.
 What this repository administers, its cluster and the names its three logins go by, is not a setting but a fact,
 and `taskfiles/admin.yml` sets it; `bin/` and `share/admin/` name no cluster and no cloud of their own.
 
@@ -248,7 +255,7 @@ so run the workflow rather than the model's methods alone. Its `reset`, `upgrade
 `volumes`, `version` and `services` do not.
 
 Kube contexts come from your default kubeconfig (`dataverket-prod-readers` for reading, `dataverket-prod-admin`
-for changes), and `task admin:renew` mints both for the working day. A model definition names a context, or a key
+for changes), and `task admin:start` mints both for the working day. A model definition names a context, or a key
 file the same session wrote, and never a secret value. The vault holds what a process consumes and decrypts with
 an operator's YubiKey or the swamp host's key, see Secrets above; `swamp vault list-keys infra` shows what it
 holds.

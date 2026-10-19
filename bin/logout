@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# Tier 1 session down. Closes the Proton Pass session and removes the Omni
-# login key from this host. Tier 2 is left alone: it dies by itself within its
-# lifetime, and that is the design. If you are inside the session shell that
-# task admin:shell opened, exit it afterwards; OS_PASSWORD lives only there.
+# Tier 1 session down. Closes the Proton Pass session, if pass-cli is here,
+# and removes the Omni login key from this host; a pass store or a sops file
+# has no session of its own. Tier 2 is left to expire within its lifetime, by
+# design. This is `task admin:stop`.
 #
 
 # shellcheck source=share/admin/admin.sh
@@ -12,9 +12,11 @@ source "${0%/*}/../share/admin/admin.sh" || exit $?
 key="$(omni_login_key)"
 announce_files "$omniconfig" \
 	"$key, $operator_key_file and $zitadel_operator_key_file (removed)"
-require_tools pass-cli yq || exit $?
+require_tools yq || exit $?
 
-if pass-cli info >/dev/null 2>&1; then
+if ! command -v pass-cli >/dev/null; then
+	:
+elif pass-cli info >/dev/null 2>&1; then
 	run pass-cli logout >/dev/null || fail "Proton Pass logout failed!"
 	log "Proton Pass session closed"
 else
@@ -43,8 +45,4 @@ else
 	log "No Zitadel operator key on this host"
 fi
 
-log "The rest of tier 2 is untouched and expires by itself; admin:status shows when"
-
-if [[ -n "$ADMIN_SESSION" ]]; then
-	warn "You are inside the session shell from $ADMIN_SESSION; exit it now"
-fi
+log "The rest expires by itself; task admin shows when"

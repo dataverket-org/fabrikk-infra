@@ -6,10 +6,11 @@ version: '3'
 # README's Commands section lists. None reads or writes the swamp vault, and
 # none needs swamp on PATH.
 #
-# One task per tier 2 item, each safe to rerun and able to run alone.
-# `admin:renew` renews them all in one session when any one is due.
-# `admin:omni-operator-key` and `admin:zitadel-operator-key` stay outside it:
-# each mints a key that can change something, and `admin:logout` removes it.
+# What `task --list` shows is what a person driving this repository does:
+# look (`task admin`), start the working day (`admin:start`), take the keys
+# that can change things when about to (`admin:elevate`), and end it
+# (`admin:stop`), plus two rare jobs. The steps behind them have no desc, so
+# the list leaves them out, and each still runs alone by name.
 #
 # Settings are environment variables, not options (decision 008):
 #
@@ -20,7 +21,14 @@ version: '3'
 #	TIER2_TTL=8h	The one lifetime of every tier 2 item, whole hours
 #	OS_CLOUD	The clouds.yaml entry you log in with; when it is unset,
 #			the one entry that reaches our Keystone is found
-#	OS_PASSWORD_REF	pass:// reference to your OpenStack password
+#	OS_PASSWORD_REF	Where your OpenStack password lives: pass:// (Proton
+#			Pass), passstore:// (passwordstore.org) or sops://FILE#FIELD
+#			(share/secrets.sh); set below, yours wins
+#	OS_PASSWORD	Your OpenStack password itself; set, no reference is read
+#
+# A task that needs a secret names it in front of its command, as
+# `bin/with-secrets NAME -- bin/<script>`, and finds it in NAME_REF: the
+# password manager is the wrapper's business, never the script's.
 #
 # What this repository administers is set below and nowhere else; the scripts
 # require every value and default none. A shell that exports one wins for that
@@ -28,11 +36,23 @@ version: '3'
 # (decision 009); where they answer is in the README.
 #
 
+# Every script names what it works on, so task's own echo of the command
+# would only repeat it.
+silent: true
+
 env:
+  # One id for every script a task invocation runs, so admin:start is one run
+  # in the log (share/logging.sh).
+  LOG_RUN: { sh: date -u +%Y%m%dT%H%M%SZ }
   SWAMP_REPO: fabrikk-infra
   CLUSTER: dataverket-prod
   OMNI_CONTEXT: default
   OS_CLOUD: nexthop
+  # Where the OpenStack password for OS_CLOUD lives, by name: the login item
+  # Proton Pass saves from the cloud's web console, in its default vault. A
+  # reference, never the secret. Export your own if yours is elsewhere, e.g.
+  # passstore://nexthop/openstack or sops://~/.config/fabrikk/nexthop.enc.yaml.
+  OS_PASSWORD_REF: pass://Personal/cloud.nexthop.no/password
   # The roles the session's application credential carries: member for compute and networks, and Octavia's own
   # load-balancer_member, without which the load balancer in front of Envoy cannot be read or repaired.
   OS_ROLES: member load-balancer_member
@@ -50,19 +70,43 @@ env:
   NORDHOST_KEY_PREFIX: dataverketprod
 
 tasks:
-  default: { cmds: [{ task: status }] }
-  status:	{ desc: "What tier 2 holds: each item, its owner, its time left", cmds: [bin/status] }
-  due:		{ desc: "Whether any item of ours is due: prints 1 or 0",         cmds: [bin/due] }
-  login:	{ desc: "Open the session: Proton Pass and Omni",                 cmds: [bin/login] }
-  logout:	{ desc: "Close the session; tier 2 is left to expire",            cmds: [bin/logout] }
+  default:
+    desc: "What you hold now, and whether anything needs doing"
+    aliases: [status]
+    cmds: [bin/status]
 
-  shell:
-    desc: "Open the session and a shell with OS_PASSWORD resolved in it"
-    cmds: [bin/login]
-    env:  { SESSION_SHELL: '1' }
+  start:
+    desc: "Log in and bring every credential current; RENEW=1 renews all of them now"
+    cmds:
+      - bin/login
+      - task: renew
+      - echo ">>> Ready. task admin shows what you hold; task admin:stop ends the day"
+
+  elevate:
+    desc: "Keys that can change things: Omni Operator and Zitadel operator, until admin:stop"
+    cmds:
+      - task: omni-operator-key
+      - task: zitadel-operator-key
+
+  stop:
+    desc: "Log out and remove the keys that can change things; the rest expires by itself"
+    cmds: [bin/logout]
+
+  dns-keys:
+    desc: "New Nordhost DNS keys for the cluster's zones; DRY_RUN=1 only tests the current ones"
+    cmds:
+      - for: { var: NORDHOST_ZONES, split: ' ' }
+        task: nordhost-key
+        vars: { NORDHOST_ZONE: '{{.ITEM}}' }
+
+  zitadel-setup:
+    desc: "Once per Zitadel instance: its organization's name, the admin project, the login app"
+    cmds: [bin/zitadel-bootstrap]
+
+  # The steps. renew asks bin/due once and hands the answer to every item, so
+  # the whole of tier 2 is renewed together and expires together.
 
   renew:
-    desc: "Every tier 2 item, in order, when any one of them is due"
     vars:
       RENEW: { sh: bin/due }
     cmds:
@@ -81,59 +125,31 @@ tasks:
         vars: { RENEW: '{{.RENEW}}' }
       - task: zitadel-key
         vars: { RENEW: '{{.RENEW}}' }
-      - cmd: echo ">>> Tier 2 on this host is current"
-        silent: true
 
-  omni-key:
-    desc: "Omni Reader service account and the key file talosctl reads"
-    cmds: [bin/omni-key]
-    env:  { RENEW: '{{.RENEW}}' }
-
-  omni-operator-key:
-    desc: "Omni Operator key, deliberately: it can change clusters"
-    cmds: [bin/omni-operator-key]
-    env:  { RENEW: '{{.RENEW}}' }
-
-  kube-admin:
-    desc: "Kube context <cluster>-admin, system:masters"
-    cmds: [bin/kube-admin]
-    env:  { RENEW: '{{.RENEW}}' }
-
-  kube-readers:
-    desc: "Kube context <cluster>-readers, the readers group only"
-    cmds: [bin/kube-readers]
-    env:  { RENEW: '{{.RENEW}}' }
-
-  talos:
-    desc: "Talos context <cluster>, Omni-proxied, no credential of its own"
-    cmds: [bin/talos]
-    env:  { RENEW: '{{.RENEW}}' }
+  login:		{ cmds: [bin/login] }
+  due:			{ cmds: [bin/due] }
+  omni-key:		{ cmds: [bin/omni-key],		env: { RENEW: '{{.RENEW}}' } }
+  kube-admin:		{ cmds: [bin/kube-admin],	env: { RENEW: '{{.RENEW}}' } }
+  kube-readers:		{ cmds: [bin/kube-readers],	env: { RENEW: '{{.RENEW}}' } }
+  talos:		{ cmds: [bin/talos],		env: { RENEW: '{{.RENEW}}' } }
+  zitadel-key:		{ cmds: [bin/zitadel-key],	env: { RENEW: '{{.RENEW}}' } }
+  omni-operator-key:	{ cmds: [bin/omni-operator-key],	env: { RENEW: '{{.RENEW}}' } }
+  zitadel-operator-key:	{ cmds: [bin/zitadel-operator-key],	env: { RENEW: '{{.RENEW}}' } }
 
   openstack:
-    desc: "Cloud entry <repo> in clouds.yaml and its application credential"
-    cmds: [bin/openstack]
+    cmds: [bin/with-secrets OS_PASSWORD -- bin/openstack]
     env:  { RENEW: '{{.RENEW}}' }
 
-  zitadel-bootstrap:
-    desc: "Once per instance: the organization's name, the admin project, the login application"
-    cmds: [bin/zitadel-bootstrap]
-
-  zitadel-key:
-    desc: "Zitadel reader machine user and the key file the zitadel models name"
-    cmds: [bin/zitadel-key]
-    env:  { RENEW: '{{.RENEW}}' }
-
-  zitadel-operator-key:
-    desc: "Zitadel operator key, deliberately: it owns the named projects"
-    cmds: [bin/zitadel-operator-key]
-    env:  { RENEW: '{{.RENEW}}' }
-
-  nordhost-keys:
-    desc: "New Nordhost login keys for every zone the cluster holds, written into its file"
-    cmds:
-      - for: { var: NORDHOST_ZONES, split: ' ' }
-        cmd: NORDHOST_ZONE={{.ITEM}} bin/nordhost-key
-
+  # The account password for a zone is one value in the operator store, in
+  # vaults/operator/nordhost/<zone, dots as _>.enc.json, unless
+  # NORDHOST_PASSWORD_REF names another for a run of one zone.
   nordhost-key:
-    desc: "One zone's Nordhost key: NORDHOST_ZONE, with NORDHOST_DRY_RUN or NORDHOST_DELETE_KEYS"
-    cmds: [bin/nordhost-key]
+    vars:
+      PASSWORD_REF: >-
+        {{.NORDHOST_PASSWORD_REF | default
+          (printf "sops://vaults/operator/nordhost/%s.enc.json" (.NORDHOST_ZONE | replace "." "_"))}}
+    cmds:
+      - >-
+        NORDHOST_ZONE='{{.NORDHOST_ZONE}}' NORDHOST_PASSWORD_REF='{{.PASSWORD_REF}}'
+        NORDHOST_DRY_RUN="${NORDHOST_DRY_RUN:-${DRY_RUN:-}}"
+        bin/with-secrets NORDHOST_PASSWORD -- bin/nordhost-key

@@ -8,13 +8,15 @@
 # files (README, Commands). It never reads or writes the swamp vault and does
 # not need swamp on PATH.
 #
-# Every tier 2 item has the one lifetime TIER2_TTL, and `task admin:renew`
+# Every tier 2 item has the one lifetime TIER2_TTL, and `task admin:start`
 # renews all of them in one session as soon as one is due.
 #
-# The Omni and OpenStack logins are web credentials in Proton Pass. Omni's is
-# used in the browser. OpenStack's reaches the scripts as OS_PASSWORD, typed
-# once per run, or resolved by `pass-cli run` from a pass:// reference for that
-# one run. Never a personal access token (invariant 1 of decision 001).
+# The Omni login is a browser session. The OpenStack password reaches the
+# scripts as OS_PASSWORD: taken from the environment when set, else resolved
+# for that one run from the reference OS_PASSWORD_REF, in Proton Pass, a
+# passwordstore.org store or a sops file, by bin/with-secrets (share/
+# secrets.sh), which the openstack task runs it under, else typed once per run.
+# Never a personal access token (invariant 1 of decision 001).
 #
 # Everything is an environment variable (decision 008). What this repository
 # administers is set in taskfiles/admin.yml and required unless a default is
@@ -37,8 +39,10 @@
 #	TIER2_TTL	The one lifetime, whole hours (default 8h)
 #	OPERATOR	You, in the names providers record (default $USER)
 #	OS_ROLES	Roles for a new application credential, space separated
-#	OS_PASSWORD	Your OpenStack password, else asked for once per run
-#	OS_PASSWORD_REF	pass:// reference to it, resolved per run
+#	OS_PASSWORD	Your OpenStack password; wins over the reference
+#	OS_PASSWORD_REF	Reference to it, pass://, passstore:// or sops://
+#			(share/secrets.sh), resolved per run, else asked for once
+#			per run (default in taskfiles/admin.yml)
 #
 
 admin_dir="${BASH_SOURCE[0]%/*}"
@@ -116,18 +120,19 @@ omni_url=""
 os_role="${OS_ROLE:-member}"
 readers_group="fabrikk-readers"
 
-# Where your OpenStack password lives in Proton Pass, as a pass:// reference
-# (pass://SHARE_ID/ITEM_ID/password). A reference, not a secret. The openstack
-# action hands it to `pass-cli run` for the length of its own run.
+# Where your OpenStack password lives, as a reference whose scheme names the
+# password manager (share/secrets.sh). A reference, not a secret. The
+# openstack task resolves it into its own environment for the length of its
+# run, through bin/with-secrets.
 os_password_ref="${OS_PASSWORD_REF:-}"
 
 omniconfig="${OMNICONFIG:-$HOME/.talos/omni/config}"
 reader_key_file="$HOME/.talos/omni/$id-reader.key"
 
 # The Operator key is tier 2 like the reader key and under the same lifetime,
-# but it is minted deliberately, by admin:omni-operator-key and never by
-# admin:renew, and removed at logout: an ordinary session holds no key that can
-# change a cluster. Only the mutating omni model names this file.
+# but it is minted deliberately, by admin:elevate and never by admin:start,
+# and removed by admin:stop: an ordinary session holds no key that can change
+# a cluster. Only the mutating omni model names this file.
 operator_key_file="$HOME/.talos/omni/$id-operator.key"
 clouds="$HOME/.config/openstack/clouds.yaml"
 
@@ -174,7 +179,7 @@ clock_slack=300                     # servers and this host disagree a little
 
 now="$(date +%s)"
 
-# RENEW=1 is what `task admin:renew` sets once it has found an item due, so
+# RENEW=1 is what the renew step of `task admin:start` sets once it has found an item due, so
 # that the whole session is renewed together.
 case "${RENEW:-0}" in
 	1|true|yes)	force_renew=1 ;;
@@ -192,18 +197,19 @@ source "$admin_dir/kube.sh"
 source "$admin_dir/talos.sh"
 source "$admin_dir/openstack.sh"
 source "$admin_dir/zitadel.sh"
+source "$admin_dir/../secrets.sh"
 
 #
-# Prints the files an action reads and the files it may write, before it
-# starts, so a reviewer knows what is at stake from the first two lines.
+# Prints the files an action reads and may write, with DEBUG=1; an ordinary
+# run says "Wrote ..." when it writes one.
 #
 function announce_files()
 {
 	local reads="$1"
 	local writes="$2"
 
-	log "Reads:  $reads"
-	log "Writes: ${writes:-nothing}"
+	debug "Reads:  $(tilde "$reads")"
+	debug "Writes: $(tilde "$writes")"
 }
 
 #
@@ -215,8 +221,7 @@ function require_tools()
 
 	for tool in "$@"; do
 		if ! command -v "$tool" >/dev/null; then
-			error "$tool is not on PATH"
-			error "brew bundle installs it, from the Brewfile in this repository"
+			error "$tool is not on PATH; brew bundle installs it (Brewfile)"
 			return 1
 		fi
 	done
@@ -234,6 +239,8 @@ function renew_now()
 
 	if (( force_renew )); then
 		echo -n "renewing with the rest"
+	elif (( left <= 0 )); then
+		echo -n "expired"
 	elif (( left <= renew_before )); then
 		echo -n "has $(humanize "$left") left; due"
 	elif (( left > ttl_seconds + clock_slack )); then
@@ -241,23 +248,6 @@ function renew_now()
 	else
 		return 1
 	fi
-}
-
-#
-# Re-executes the calling script under `pass-cli run` so that OS_PASSWORD is
-# resolved from Proton Pass for that one run, when a reference is configured,
-# no password is in the environment yet, Proton Pass has a session, and this
-# is not already the re-executed copy.
-#
-function with_proton_pass()
-{
-	[[ -z "$OS_PASSWORD" && -n "$os_password_ref" ]] || return 0
-	[[ -z "$ADMIN_PASS_RUN" ]] || return 0
-	command -v pass-cli >/dev/null || return 0
-	pass-cli info >/dev/null 2>&1 || return 0
-
-	log "OS_PASSWORD comes from Proton Pass for this run only"
-	ADMIN_PASS_RUN=1 OS_PASSWORD="$os_password_ref" exec pass-cli run -- "$0"
 }
 
 #

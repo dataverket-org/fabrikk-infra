@@ -28,8 +28,8 @@ function require_omni_context()
 	case "$omni_url" in
 		""|null)
 			error "Omni context $omni_context is not in $omniconfig"
-			error "Create it once with: omnictl config new --url <our Omni>"
-			error "The address is in this repository's README"
+			error "Create it once:" \
+			      "omnictl config new --url <Omni, see README>"
 			return 1
 			;;
 	esac
@@ -230,8 +230,8 @@ function create_service_account()
 				error "$output"
 				return 1
 			fi
-			warn "$name exists in Omni but the listing does not show it"
-			warn "Destroying and recreating it under the same name ..."
+			# Held but not listed: every key it had has expired.
+			log "$name is held with an expired key; recreating it ..."
 			omni serviceaccount destroy "$name" >/dev/null || return $?
 			create_service_account "$name" "$role" "$file" 1 || return $?
 			;;
@@ -312,22 +312,22 @@ function ensure_service_account()
 
 	local left reason
 
-	log "Omni service account $name, role $role, $tier2_ttl ..."
+	local what="Omni service account $name ($role)"
 
 	if ! service_account_listed "$name"; then
-		log "Creating $name ..."
+		log "$what: creating, $tier2_ttl ..."
 		create_service_account "$name" "$role" "$file" || return $?
 	else
 		left="$(service_account_seconds_left "$name")"
 
 		if reason="$(renew_now "$left")"; then
-			log "$name $reason; renewing ..."
+			log "$what: $reason; renewing ..."
 			renew_service_account "$name" "$role" "$file" || return $?
 		elif ! service_account_works "$file"; then
-			log "$file is missing or does not authenticate; renewing ..."
+			log "$what: $file is missing or refused; renewing ..."
 			renew_service_account "$name" "$role" "$file" || return $?
 		else
-			log "$name has $(humanize "$left") left and its key file answers"
+			log "$what: $(humanize "$left") left; keeping it"
 		fi
 	fi
 

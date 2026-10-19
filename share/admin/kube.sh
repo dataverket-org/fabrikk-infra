@@ -125,22 +125,22 @@ function mint_kube_context()
 	local left reason current previous
 
 	if ! context_is_ours "$name" "$role"; then
-		warn "Context $name is not ours ($(context_user "$name")); left alone"
-		warn "To let this script manage it, delete the context and rerun"
+		warn "Kube context $name is hand-made ($(context_user "$name"));" \
+		     "left alone, delete it to hand it over"
 		return
 	fi
 
 	left="$(context_seconds_left "$name")"
 
 	if ! reason="$(renew_now "$left")"; then
-		log "Context $name has $(humanize "$left") left; keeping it"
+		log "Kube context $name: $(humanize "$left") left; keeping it"
 		return
 	fi
 
 	current="$(kubectl config current-context 2>/dev/null)"
 	previous="$(context_user "$name")"
 
-	log "Context $name $reason; minting ..."
+	log "Kube context $name: ${reason:-absent}; minting, $tier2_ttl ..."
 	omni kubeconfig --cluster "$cluster" --service-account --ttl "$tier2_ttl" \
 	     --user "$subject" --force-context-name "$name" --force "$@" \
 	     >/dev/null || return $?
@@ -163,5 +163,5 @@ function mint_kube_context()
 	fi
 
 	run kubectl --context "$name" get --raw=/version >/dev/null || return $?
-	log "Wrote $kubeconfig: context $name for $subject, $tier2_ttl; it answers"
+	log "Wrote $kubeconfig: context $name for $subject; it answers"
 }

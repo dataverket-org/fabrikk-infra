@@ -29,9 +29,7 @@ function row()
 #
 function short_path()
 {
-	local path="$1"
-
-	echo -n "${path/#"$HOME"/\~}"
+	tilde "$1"
 }
 
 #
@@ -187,7 +185,7 @@ function cloud_row()
 		row "$file" "$os_cloud" absent - - "no credential in the entry"
 	elif [[ -z "$record" ]]; then
 		row "$file" "$os_cloud" unknown - - \
-			"$credential does not answer; admin:openstack checks it as you"
+			"$credential does not answer; admin:start checks it as you"
 	elif ! credential_is_ours "$name"; then
 		row "$file" "$os_cloud" hand-made - - "$name, left alone"
 	elif (( left > 0 )); then
@@ -229,12 +227,14 @@ function tier1_rows()
 			"no Omni login on this host"
 	fi
 
+	# Only for a pass:// reference, or a session open anyway.
 	if ! command -v pass-cli >/dev/null; then
-		row "(Proton Pass)" session absent - - "pass-cli is not installed"
+		[[ "$(secret_backend "$os_password_ref")" == proton ]] &&
+			row "(Proton Pass)" session absent - - "pass-cli is not installed"
 	elif pass-cli info >/dev/null 2>&1; then
-		row "(Proton Pass)" session you - - "open; admin:logout closes it"
-	else
-		row "(Proton Pass)" session absent - - "closed"
+		row "(Proton Pass)" session you - - "open; admin:stop closes it"
+	elif [[ "$(secret_backend "$os_password_ref")" == proton ]]; then
+		row "(Proton Pass)" session absent - - "closed; admin:start opens it"
 	fi
 }
 
@@ -258,9 +258,9 @@ function tier3_rows()
 	               grep -c . || true)"
 
 	row "vaults/infra/" "$vault_keys secrets" swamp - - \
-		"swamp-fabrikk-infra decrypts it, unattended"
-	row "apps, artifacts, infrastructure/" "$flux_files manifests" cluster - - \
-		"cluster-dataverket-prod decrypts them, in-cluster"
+		"swamp-$repo decrypts it, unattended"
+	row "apps, artifacts, infra*/" "$flux_files manifests" cluster - - \
+		"cluster-$cluster decrypts them, in-cluster"
 	if (( glass_files )); then
 		row "vaults/operator/" "$glass_files files" humans - - \
 			"the two YubiKeys and nothing else"
@@ -272,11 +272,13 @@ function tier3_rows()
 	# The process key lives in its own file, named after the process, so that
 	# sops from a terminal never loads it; keys.txt holds the humans.
 	if [[ -f "$process_key_file" ]]; then
-		row "$(short_path "$process_key_file")" \
-			"swamp-$repo" swamp - - "the process key that opens the vault"
+		row "$(short_path "${process_key_file%/*}")/" \
+			"${process_key_file##*/}" swamp - - \
+			"the process key that opens the vault"
 	else
-		row "$(short_path "$process_key_file")" \
-			"swamp-$repo" absent - - "no process key; nothing here decrypts the vault"
+		row "$(short_path "${process_key_file%/*}")/" \
+			"${process_key_file##*/}" absent - - \
+			"no process key; nothing here decrypts the vault"
 	fi
 }
 
@@ -285,7 +287,7 @@ function tier3_rows()
 #
 function tier2_status()
 {
-	local table total due
+	local table renewed total due stale
 
 	table="$(kube_rows; talos_row
 		key_row "$reader_key_file" "$me-reader" Reader "a session mints it"
@@ -312,18 +314,23 @@ function tier2_status()
 	tier3_rows
 	echo
 
-	# An absent Operator key is the ordinary state, not something to renew; an
-	# expired one is, since that means the account went while the file stayed.
-	# The row is matched by its path, which is the only place its name appears.
-	total="$(printf '%s\n' "$table" | grep -c .)"
-	due="$(printf '%s\n' "$table" | grep -cE ' expired ')"
-	due=$(( due + $(printf '%s\n' "$table" | grep -vE 'operator\.(key|json) ' |
-	                grep -cE ' absent ') ))
+	# admin:start leaves the operator keys out: absent is their ordinary
+	# state, and admin:stop removes an expired one. Matched by path.
+	renewed="$(printf '%s\n' "$table" | grep -vE 'operator\.(key|json) ')"
+	total="$(printf '%s\n' "$renewed" | grep -c .)"
+	due="$(printf '%s\n' "$renewed" | grep -cE ' (expired|absent) ')"
+	stale="$(printf '%s\n' "$table" | grep -E 'operator\.(key|json) ' |
+	         grep -cE ' expired ')"
 
 	if (( due )); then
-		log "tier 2: $due of $total are expired or absent; task admin:renew"
+		log "Tier 2: $due of $total due or absent; task admin:start"
 	else
-		log "tier 2: $total items, all current"
+		log "Tier 2: all $total current"
+	fi
+
+	if (( stale )); then
+		log "$stale expired operator key file(s);" \
+		    "task admin:stop removes them"
 	fi
 }
 

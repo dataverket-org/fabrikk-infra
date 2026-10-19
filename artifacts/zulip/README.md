@@ -52,8 +52,8 @@ swamp behavior run dataverket-prod-pods delete --input namespace=zulip --input p
 
 ## Run a management command
 
-Zulip's management commands run inside the pod as the user `zulip`. Open the admin session first (`task admin:login`,
-then `task admin:renew`), and define this shorthand:
+Zulip's management commands run inside the pod as the user `zulip`. Open the admin session first
+(`task admin:start`), and define this shorthand:
 
 ```sh
 zmanage() { kubectl --context dataverket-prod-admin -n zulip exec zulip-0 -c zulip -- \

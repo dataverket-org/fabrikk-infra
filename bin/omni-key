@@ -15,4 +15,3 @@ require_omni_context || exit $?
 
 ensure_service_account "$me-reader" Reader "$reader_key_file" ||
 	fail "No working Reader key at $omni_url, context $omni_context!"
-log "Reader key lists clusters at $omni_url"

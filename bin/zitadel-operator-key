@@ -5,7 +5,7 @@
 # in ZITADEL_PROJECTS and nothing else: no other project, no user, no setting.
 # It is tier 2 like the reader key and under the same lifetime, but it is
 # minted deliberately rather than with the rest: an ordinary session holds no
-# key that can write to Zitadel, and `task admin:logout` removes this one. Run
+# key that can write to Zitadel, and `task admin:stop` removes this one. Run
 # it when you are about to change something. The projects are handed over
 # when the key is minted, so after changing the list, run it with RENEW=1.
 # Safe to rerun at any time.
@@ -39,8 +39,8 @@ require_zitadel_context || exit $?
 [[ "$zitadel_projects" =~ [^[:space:]] ]] ||
 	fail "ZITADEL_PROJECTS names no project; the key would own nothing"
 
-warn "This key can change these projects at $zitadel_url: $zitadel_projects"
-warn "It lives $tier2_ttl and is removed by task admin:logout"
+warn "Zitadel operator key: can change $zitadel_projects at $zitadel_url," \
+     "for $tier2_ttl or until task admin:stop"
 
 ensure_operator
 status=$?
