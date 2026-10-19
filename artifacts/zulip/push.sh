@@ -35,7 +35,7 @@ pushed=$(flux push artifact "$repo:$rev" \
   --source "$source" \
   --revision "main@sha1:$rev" \
   --reproducible \
-  --ignore-paths push.sh,postgres-image.sh,README.md,s3proof/ \
+  --ignore-paths push.sh,postgres-image.sh,organization.sh,README.md,s3proof/ \
   --output json)
 digest_url=$(printf '%s' "$pushed" | jq -r '.repository + "@" + .digest')
 echo "pushed $digest_url"
