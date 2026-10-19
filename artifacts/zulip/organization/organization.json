@@ -1,0 +1,12 @@
+{
+  "subdomain": "",
+  "name": "Dataverket",
+  "description": "Kunnskap, åpen kildekode, suverenitet.",
+  "owner": {
+    "email": "admin@dataverket.org",
+    "name": "Dataverket"
+  },
+  "spectatorAccess": true,
+  "publicChannels": "web-public",
+  "channels": []
+}

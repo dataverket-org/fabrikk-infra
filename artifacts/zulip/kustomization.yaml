@@ -1,0 +1,30 @@
+# The artifact, listed so that the two ConfigMaps can be generated: Flux builds this with kustomize, decrypts the
+# Secrets, and applies the result. The generated names carry a hash of their content, so the organization Job's spec
+# changes with them (organization-job.yaml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./namespace.yaml
+  - ./hov1-s3.yaml
+  - ./s3-cnpg-zulip.enc.yaml
+  - ./s3-zulip.enc.yaml
+  - ./zulip-secrets.enc.yaml
+  - ./zulip-zitadel-oidc.enc.yaml
+  - ./zulip-mailer.enc.yaml
+  - ./postgres.yaml
+  - ./backup.yaml
+  - ./services.yaml
+  - ./statefulset.yaml
+  - ./organization-job.yaml
+configMapGenerator:
+  - name: zulip-organization
+    namespace: zulip
+    files:
+      - organization/organization.json
+      - organization/apply.py
+  - name: zulip-brand
+    namespace: zulip
+    files:
+      - brand/icon.png
+      - brand/logo.png
+      - brand/night_logo.png
