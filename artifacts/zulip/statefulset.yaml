@@ -36,6 +36,10 @@ spec:
             # version in CONFIG_postgresql__version makes puppet install postgresql-client-18, which the image cannot.
             - name: AUTO_BACKUP_ENABLED
               value: "False"
+            # Web-public channels, which anyone can read without logging in; off in Zulip until the server allows
+            # them. The organization and its channels are opened by organization.sh.
+            - name: SETTING_WEB_PUBLIC_STREAMS_ENABLED
+              value: "True"
 
             # The database: CNPG's read-write Service and its app Secret.
             - name: SETTING_REMOTE_POSTGRES_HOST

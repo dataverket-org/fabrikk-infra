@@ -22,6 +22,7 @@ with the cluster key. How it was built, step by step, is `docs/plans/2026-10-zul
 | `s3-zulip.enc.yaml` | The account `zulip` on the osl1 S3 gateway, owner of `zulip-uploads` and `zulip-avatars` |
 | `s3-cnpg-zulip.enc.yaml`, `hov1-s3.yaml` | The database backup's account at hov1, and the site's address and CA |
 | `postgres-image.sh` | Builds the database image with Zulip's search dictionaries; not part of the artifact |
+| `organization.sh` | Brands the organization with Dataverket's logo and icon, and opens it to readers without an account; not part of the artifact |
 | `push.sh` | Pushes that image, then this directory, into zot; not part of the artifact |
 | `s3proof/` | Tests Zulip's S3 use against the osl1 gateway, in Go; not part of the artifact |
 
@@ -106,6 +107,38 @@ again after a fresh install, or a rebuild with no database to restore.
      If it stays at 0, replace Valkey with Redis: one image in `services.yaml`.
 7. **Turn off password login.** In `statefulset.yaml`, set `ZULIP_AUTH_BACKENDS` to `GenericOpenIdConnectBackend`
    and update the comment above it. Ship the change. The login page should then offer only "Log in with Dataverket".
+8. **Brand and open the organization.** Run `artifacts/zulip/organization.sh` from the admin session, below.
+
+## Brand and open the organization
+
+Zulip shows four things of ours: the organization's name, its description, its icon and its logo. Everything else
+is Zulip's own light or dark theme, which each person picks; there is no custom CSS. `organization.sh` sets the
+four from `dataverket/org`'s `design/build` at a pinned commit, rendered to PNG as Zulip wants: the glyph, white on
+the theme's navy, as the icon, and the wide mark as the logo, navy for the light theme and white for the dark one.
+The design README's rules for the logo are followed, and a new mark is a new commit and three new hashes in the
+script. `organization.sh --render DIR` renders the three images into `DIR` and stops, to look at them first.
+
+The same run opens the organization. Reading without an account needs three settings, each of which alone does
+nothing: the server allows web-public channels (`statefulset.yaml`, `SETTING_WEB_PUBLIC_STREAMS_ENABLED`, off in
+Zulip until set), the organization allows them, and a channel is web-public. The script sets the second and makes
+every public channel web-public, with history visible. Private channels stay private, and whoever may make
+web-public channels later is Zulip's default, the organization's owners. A visitor with no account then sees the
+open channels at `https://forum.dataverket.org/`, can search and read, and is asked to log in to write.
+
+```sh
+task admin:start                                   # the admin context
+artifacts/zulip/organization.sh --render /tmp/brand  # optional: look at the images
+artifacts/zulip/organization.sh                    # the brand, the description, the organization and channels opened
+```
+
+The script runs Zulip's own actions in the pod through `manage.py shell`, as a management command does, so the
+changes land in the organization's audit log under one acting user: `ZULIP_OWNER=<email>`, or the organization's
+first owner. It ends by fetching the front page as a visitor without a session, which must answer 200; a closed
+organization redirects to the login page. A later channel that should be open is made so in Organization settings,
+then Channel settings, or by one more run.
+
+The icon and logos are stored in the `zulip-avatars` bucket, the settings in the database, so a restore keeps them
+and the script is needed again only after a rebuild with nothing to restore.
 
 ### If creating the organization fails
 
@@ -141,6 +174,8 @@ Each line was learned while setting Zulip up. The first column is the fact, the 
 | Zulip's default no-reply address is on `forum.dataverket.org`, which has no mail domain | `ADD_TOKENS_TO_NOREPLY_ADDRESS` is off, so mail comes from `noreply@dataverket.org` |
 | Zulip uses Redis for rate limits, through one Lua script and basic commands. Valkey implements all of them | Valkey 9.1 runs as `zulip-redis`. Redis can replace it with one image change |
 | memcached needs a login, since Zulip sends one | memcached runs with SASL and the user `zulip@localhost` |
+| Web-public channels are off on a self-hosted server until `WEB_PUBLIC_STREAMS_ENABLED` is set, and then off in the organization until it allows them | `statefulset.yaml` sets it; `organization.sh` opens the organization and its public channels |
+| Zulip takes the organization's icon and logos as PNG, JPEG, GIF, WebP, AVIF, HEIC or TIFF, never SVG, and keeps them in the avatar bucket | `organization.sh` renders the design repo's SVG files with rsvg-convert |
 
 ## Change the Postgres image
 

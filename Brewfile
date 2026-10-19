@@ -16,6 +16,7 @@ brew "cosign"                   # signs an artifact at push.sh time with the sit
 brew "helm"                     # inflates a chart when an artifact recipe is rendered; never run against a cluster
 brew "crane"                    # builds the website image (artifacts/www/site.sh); bsdtar comes with macOS
 brew "go"                       # artifacts/zulip/s3proof, run with go run; the SDK versions are in its go.mod
+brew "librsvg"                  # rsvg-convert renders the design repo's marks to PNG (artifacts/zulip/organization.sh)
 brew "sops"
 brew "age"
 brew "age-plugin-yubikey"
