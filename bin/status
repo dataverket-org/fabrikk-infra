@@ -271,14 +271,14 @@ function tier3_rows()
 	fi
 
 	# The process key lives in its own file, named after the process, and the
-	# swamp process alone is handed it, in SOPS_AGE_KEY_FILE from the swamp
-	# shell function. sops from a terminal reads keys.txt, which holds the
-	# humans: a plain key in there would open the vault with no touch, so it
-	# gets a row only when it is wrong.
+	# vault config names it (ageKeyName), so only swamp's own sops calls get
+	# it. sops from a terminal reads keys.txt, which holds the humans: a plain
+	# key in there would open the vault with no touch, so it gets a row only
+	# when it is wrong.
 	if [[ -f "$process_key_file" ]]; then
 		row "$(short_path "${process_key_file%/*}")/" \
 			"${process_key_file##*/}" swamp - - \
-			"the process key; swamp alone names it"
+			"the process key; the vault config names it"
 	else
 		row "$(short_path "${process_key_file%/*}")/" \
 			"${process_key_file##*/}" absent - - \

@@ -123,8 +123,8 @@
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/sops": {
-    "version": "2026.09.20.2",
-    "pulledAt": "2026-09-20T17:29:01.059Z",
+    "version": "2026.10.19.1",
+    "pulledAt": "2026-10-19T13:04:20.711Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/sops/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/sops/files/NOTICE.md",
@@ -134,9 +134,10 @@
       ".swamp/pulled-extensions/@dataverket/sops/vaults/sops.ts",
       ".swamp/vault-bundles/443ea5fd/files.js"
     ],
-    "checksum": "dcb6cae7218e02f35e5a89b7422e06f15b60a569688f8f25018dfd77b361d95e",
-    "filesChecksum": "ab78af3cfbfbcabf7be4ed573863616c508b5ba8a33c52977ea0fbcaa5d11ae4",
-    "serverUrl": "https://swamp-club.com"
+    "checksum": "dab491faa176179504719378d45d07ff9cc0703bfcf6f4fd65fbeb40e048ce83",
+    "filesChecksum": "acee1a2b0d615080a285816f67f7e590bc7567925bab1ad67edecdacb086c18b",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   },
   "@dataverket/omnictl": {
     "version": "2026.10.01.3",
