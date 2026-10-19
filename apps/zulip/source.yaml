@@ -10,6 +10,10 @@ spec:
   insecure: true
   ref:
     tag: current
+  # Set, this replaces source-controller's default ignore list, which drops *.png and with it the brand
+  # (artifacts/zulip/brand/), the files the ConfigMap zulip-brand is generated from.
+  ignore: |
+    .git/
   # Verification, switched on after this artifact has been pushed signed once with the site key
   # (vaults/operator/README.md, "Signing keys"; clusters/production/cosign-osl1.yaml holds the public half):
   # verify:
