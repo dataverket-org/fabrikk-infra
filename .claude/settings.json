@@ -3,5 +3,15 @@
     "commit": "",
     "pr": "",
     "sessionUrl": false
+  },
+  "permissions": {
+    "allow": [
+      "Bash(zmx list:*)",
+      "Bash(zmx history:*)",
+      "Bash(zmx wait:*)",
+      "Bash(kubectl --context dataverket-prod-readers get:*)",
+      "Bash(kubectl --context dataverket-prod-readers describe:*)",
+      "Bash(kubectl --context dataverket-prod-readers logs:*)"
+    ]
   }
 }
