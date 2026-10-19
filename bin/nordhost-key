@@ -2,7 +2,8 @@
 #
 # A DirectAdmin login key for one zone at Nordhost, held by the cluster: tier
 # 3, minted from tier 1 with the account password in the operator store
-# (decisions 001, 016). Bounded to NORDHOST_COMMANDS and NORDHOST_KEY_DAYS,
+# (decisions 001, 016), which bin/with-secrets puts in NORDHOST_PASSWORD; the
+# task names it. Bounded to NORDHOST_COMMANDS and NORDHOST_KEY_DAYS,
 # and to NORDHOST_ALLOW_IPS when it is set, and named after the day it
 # expires. Once it lists the zone's records, it is written into the zone's
 # entry of config.json in the cluster's file with sops set, and is never
@@ -11,10 +12,11 @@
 # cert-manager artifact; both webhooks read config.json only when they start.
 #
 # The panel and the account come from the zone's entry in the cluster's
-# config.json, the format of nordhost-integrator's cfg package. The default
+# config.json, the format of nordhost-integrator's cfg package; the password
+# is the one value this needs from elsewhere. The default
 # command is the one nordhost-integrator's da package calls.
 #
-# NORDHOST_DRY_RUN=1 mints nothing. It decrypts both files, lists the
+# NORDHOST_DRY_RUN=1 mints nothing. It decrypts the cluster's file, lists the
 # account's login keys with the password, and lists the zone's records with
 # the key the cluster holds now.
 #
@@ -26,10 +28,8 @@
 #	NORDHOST_ZONE		The zone, dvkt.no or dataverket.org
 #	NORDHOST_ALLOW_IPS	Addresses the key works from, space separated;
 #				empty or unset, any address
-#	NORDHOST_SOPS_FILE	The account's operator file (default
-#				vaults/operator/nordhost/<zone, dots as _>.enc.json)
-#	NORDHOST_USER_KEY	sops path to the user in it (default ["user"])
-#	NORDHOST_PASSWORD_KEY	sops path to the password (default ["password"])
+#	NORDHOST_PASSWORD	The account password, else asked for once; the
+#				task resolves it from NORDHOST_PASSWORD_REF
 #	NORDHOST_CLUSTER_FILE	The cluster's file (default
 #				artifacts/cert-manager/nordhost-config.enc.yaml)
 #	NORDHOST_CONFIG_KEY	sops path to config.json in it
@@ -55,9 +55,7 @@ enable_debug="${DEBUG:-0}"
 
 zone="$NORDHOST_ZONE"
 allow_ips="$NORDHOST_ALLOW_IPS"
-sops_file="${NORDHOST_SOPS_FILE:-vaults/operator/nordhost/${zone//./_}.enc.json}"
-user_key="${NORDHOST_USER_KEY:-[\"user\"]}"
-password_key="${NORDHOST_PASSWORD_KEY:-[\"password\"]}"
+password="${NORDHOST_PASSWORD:-}"
 cluster_file="${NORDHOST_CLUSTER_FILE:-artifacts/cert-manager/nordhost-config.enc.yaml}"
 config_key="${NORDHOST_CONFIG_KEY:-[\"stringData\"][\"config.json\"]}"
 base_url="${NORDHOST_URL%/}"
@@ -130,7 +128,7 @@ function directadmin()
 		for pair in "$@"; do
 			printf 'data-urlencode = %s\n' "$(curl_quote "$pair")"
 		done
-	} | run curl --silent --show-error --fail --config -
+	} | run curl --silent --show-error --fail-with-body --config -
 }
 
 #
@@ -174,78 +172,44 @@ function url_decode()
 }
 
 #
-# Prints each login key of a DirectAdmin listing with its attributes: expiry,
-# the addresses it works from, its commands and its last use. A field whose
-# name speaks of a key, hash, password or secret is left out, though
-# DirectAdmin keeps only a hash and returns no key.
+# Prints one attribute of a login key from its decoded attribute string.
+#
+function key_attr()
+{
+	local name="$1"
+	local attrs="$2"
+
+	tr '&' '\n' <<<"$attrs" | sed -n "s/^$name=//p" | head -n 1
+}
+
+#
+# Prints each login key of a DirectAdmin listing on one line: its name, the
+# day it expires, and whether this task made it, by NORDHOST_KEY_PREFIX.
+# Warns of a key that never expires. DirectAdmin keeps only a hash of a key,
+# so which name the cluster holds cannot be told from here.
 #
 function print_login_keys()
 {
 	local listing="$1"
-	local name attrs field fname fvalue fields
+	local name attrs expiry made
 
-	tr '&' '\n' <<<"$listing" | while IFS='=' read -r name attrs; do
+	while IFS='=' read -r name attrs; do
 		[[ -n "$name" && -n "$attrs" && "$name" != error ]] || continue
-		fields=""
-		while IFS='=' read -r fname fvalue || [[ -n "$fname" ]]; do
-			[[ -n "$fname" ]] || continue
-			case "$fname" in
-				*[Kk][Ee][Yy]*|*[Hh][Aa][Ss][Hh]*) continue ;;
-				*[Pp][Aa][Ss][Ss]*|*[Ss][Ee][Cc][Rr][Ee][Tt]*) continue ;;
-			esac
-			fvalue="$(url_decode "$fvalue" | tr '\n' ' ')"
-			fields="${fields:+$fields, }$fname=${fvalue% }"
-		done < <(url_decode "$attrs" | tr '&' '\n')
-		log "  $(url_decode "$name"): $fields"
-	done
-}
+		name="$(url_decode "$name")"
+		attrs="$(url_decode "$attrs")"
+		expiry="$(key_attr expiry "$attrs")"
+		made=""
+		[[ -n "$prefix" && "$name" == "$prefix"[0-9]* ]] &&
+			made=", made by this task"
 
-#
-# Prints each login key from DirectAdmin's JSON listing, which carries the
-# allowed addresses and commands the plain one leaves out, with the same
-# fields left out as print_login_keys. Takes an object of keys or an array of
-# them; prints nothing for anything else, so the caller can fall back.
-#
-function print_login_keys_json()
-{
-	local listing="$1"
-	local line
-
-	jq -r '
-		def clean: with_entries(select(.key |
-			test("key|hash|pass|secret"; "i") | not));
-		def fmt: to_entries | map("\(.key)=\(.value |
-			if type == "array" then map(tostring) | join(" ")
-			elif type == "object" then tojson
-			else tostring end)") | join(", ");
-		if type == "object" then
-			to_entries[] | select(.value | type == "object") |
-			"\(.key): \(.value | clean | fmt)"
-		elif type == "array" then
-			.[] | select(type == "object") |
-			"\(.name // .keyname // "?"): \(clean | fmt)"
-		else empty end' <<<"$listing" 2>/dev/null |
-	while IFS= read -r line; do
-		log "  $line"
-	done
-}
-
-#
-# Prints the account's login keys, from the JSON listing when DirectAdmin
-# gives one, from the plain listing otherwise.
-#
-function show_login_keys()
-{
-	local plain="$1"
-	local json shown
-
-	json="$(directadmin "CMD_API_LOGIN_KEYS?json=yes" "$user:$password")" &&
-		shown="$(print_login_keys_json "$json")"
-	if [[ -n "$shown" ]]; then
-		printf '%s\n' "$shown"
-	else
-		print_login_keys "$plain"
-	fi
+		if [[ -z "$expiry" || "$expiry" == 0 ]]; then
+			warn "  $name never expires;" \
+			     "NORDHOST_DELETE_KEYS=$name removes it"
+		else
+			log "  $(printf '%-26s' "$name")" \
+			    "expires $(epoch_date "$expiry" +%Y-%m-%d)$made"
+		fi
+	done < <(tr '&' '\n' <<<"$listing")
 }
 
 #
@@ -264,16 +228,42 @@ function zone_record_count()
 }
 
 #
-# Deletes one login key by name, with the account password.
+# Deletes one login key by name, with the account password, also in passwd
+# as for a create. DirectAdmin's list form, action=select with delete=yes:
+# action=delete gets a 500 (2026-10-19). Prints its answer when it refuses.
 #
 function delete_login_key()
 {
 	local name="$1"
 	local response
 
-	response="$(directadmin CMD_API_LOGIN_KEYS "$user:$password" \
-	            action=delete "select0=$name")" || return 1
-	[[ "$response" == *error=0* ]]
+	if ! response="$(directadmin CMD_API_LOGIN_KEYS "$user:$password" \
+	                 action=select delete=yes "select0=$name" \
+	                 "passwd=$password")" ||
+	   [[ "$response" != *error=0* ]]; then
+		error "DirectAdmin answered: $(answer_text "$response")"
+		return 1
+	fi
+}
+
+#
+# Prints the readable part of a DirectAdmin answer, at most 300 characters:
+# its error text, or the page without tags. The account password, should the
+# answer echo it, is masked.
+#
+function answer_text()
+{
+	local response="$1"
+	local text
+
+	if [[ "$response" == *text=* ]]; then
+		text="$(error_text "$response")"
+	else
+		text="$(tr -s ' \n\t' ' ' <<<"$response" | sed -e 's/<[^>]*>/ /g')"
+	fi
+
+	text="${text//"$password"/***}"
+	echo -n "${text:0:300}"
 }
 
 #
@@ -296,14 +286,16 @@ function random_key()
 }
 
 #
-# Prints an epoch as YYYYMMDD in UTC, on BSD and GNU date alike.
+# Prints an epoch as a UTC date, YYYYMMDD unless a date format is given, on
+# BSD and GNU date alike.
 #
 function epoch_date()
 {
 	local epoch="$1"
+	local format="${2:-+%Y%m%d}"
 
-	date -u -r "$epoch" +%Y%m%d 2>/dev/null ||
-	date -u -d "@$epoch" +%Y%m%d 2>/dev/null
+	date -u -r "$epoch" "$format" 2>/dev/null ||
+	date -u -d "@$epoch" "$format" 2>/dev/null
 }
 
 #
@@ -339,7 +331,6 @@ esac
 (( days >= 1 && days <= 365 )) || fail "NORDHOST_KEY_DAYS is not 1 to 365!"
 
 cd "$repo_dir" || exit $?
-[[ -f "$sops_file" ]] || fail "No operator file for $zone at $sops_file!"
 [[ -f "$cluster_file" ]] || fail "No cluster file at $cluster_file!"
 
 if (( ! dry_run )) && [[ -z "$delete_keys" ]]; then
@@ -348,49 +339,47 @@ if (( ! dry_run )) && [[ -z "$delete_keys" ]]; then
 		fail "NORDHOST_KEY_PREFIX is letters and digits only: $prefix!"
 fi
 
-log "Reads:  $sops_file (user, password), $cluster_file (config.json)"
+debug "Reads:  NORDHOST_PASSWORD, $cluster_file (config.json)"
 if (( dry_run )); then
-	log "Writes: nothing; dry run"
+	debug "Writes: nothing; dry run"
 elif [[ -n "$delete_keys" ]]; then
-	log "Writes: deletes login keys $delete_keys at Nordhost"
+	debug "Writes: deletes login keys $delete_keys at Nordhost"
 else
-	log "Writes: a login key at Nordhost, and it into $cluster_file"
+	debug "Writes: a login key at Nordhost, and it into $cluster_file"
 fi
-
-user="$(sops_value "$sops_file" "$user_key")" ||
-	fail "Cannot decrypt the user in $sops_file!"
-password="$(sops_value "$sops_file" "$password_key")" ||
-	fail "Cannot decrypt the password in $sops_file!"
-[[ -n "$user" && -n "$password" ]] ||
-	fail "The user or the password in $sops_file is empty!"
-log "Decrypted the user and the password in $sops_file"
 
 config="$(sops_value "$cluster_file" "$config_key")" ||
 	fail "Cannot decrypt config.json in $cluster_file!"
-config_user="$(zone_field username <<<"$config")"
+user="$(zone_field username <<<"$config")"
 current_key="$(zone_field password <<<"$config")"
-[[ -n "$config_user" && -n "$current_key" ]] ||
+[[ -n "$user" && -n "$current_key" ]] ||
 	fail "config.json in $cluster_file has no entry for $zone!"
 [[ -n "$base_url" ]] || base_url="$(zone_field host <<<"$config")"
 base_url="${base_url%/}"
-log "Decrypted the entry for $zone in $cluster_file"
+debug "Decrypted the entry for $zone in $cluster_file"
 
-[[ "$config_user" == "$user" ]] ||
-	fail "config.json names $config_user for $zone, $sops_file names $user!"
 [[ "$base_url" == https://* ]] || fail "The panel is not https: $base_url!"
+
+if [[ -z "$password" && -t 0 ]]; then
+	read -r -s -p "Nordhost password for $user ($zone): " password </dev/tty
+	echo >&2
+fi
+[[ -n "$password" ]] ||
+	fail "No password for $user: run it through task, or set" \
+	     "NORDHOST_PASSWORD_REF!"
 
 listing="$(directadmin CMD_API_LOGIN_KEYS "$user:$password")" ||
 	fail "The password for $user failed at $base_url!"
 answered "$listing" ||
 	fail "DirectAdmin refused $user at $base_url: $(error_text "$listing")"
-log "The password lists the login keys of $user at $base_url"
-show_login_keys "$listing"
+host="${base_url#https://}"
+log "$zone: account $user at ${host%%[:/]*}, its login keys:"
+print_login_keys "$listing"
 
 if (( dry_run )); then
 	count="$(zone_record_count "$current_key")" ||
-		fail "The current key lists no records for $zone at $base_url!"
-	log "The current key lists $count records in $zone"
-	log "Dry run; no key minted"
+		fail "The cluster's key lists no records for $zone at $base_url!"
+	log "$zone: the cluster's key lists $count records; dry run, nothing minted"
 	exit
 fi
 
@@ -415,8 +404,8 @@ if [[ -n "$delete_keys" ]]; then
 	done
 	count="$(zone_record_count "$current_key")" ||
 		fail "The cluster's key for $zone stopped working: it was among $delete_keys!"
-	log "The cluster's key still lists $count records in $zone"
-	show_login_keys "$listing"
+	log "The cluster's key still lists $count records in $zone; now:"
+	print_login_keys "$listing"
 	exit
 fi
 
@@ -452,9 +441,8 @@ listing="$(directadmin CMD_API_LOGIN_KEYS "$user:$password")" ||
 [[ "$listing" == *"$keyname"* ]] ||
 	fail "Key $keyname was accepted but is not listed!"
 
-log "Key $keyname is listed for $user and expires $(epoch_date "$expires")"
-show_login_keys "$listing"
-log "The previous key stays until you delete it at $base_url"
+log "Key $keyname is listed for $user; the keys now:"
+print_login_keys "$listing"
 
 count="$(zone_record_count "$key")" ||
 	fail "The new key lists no records for $zone; nothing written!"
@@ -471,5 +459,6 @@ written="$(sops_value "$cluster_file" "$config_key" | zone_field password)"
 [[ "$written" == "$key" ]] ||
 	fail "$cluster_file does not hold the new key for $zone after writing!"
 log "Wrote the new key for $zone into $cluster_file"
-log "Next: commit it, artifacts/cert-manager/push.sh, and restart external-dns"
-log "and nordhost-webhook in cert-manager, which read config.json at start"
+log "Next: commit it, artifacts/cert-manager/push.sh, restart external-dns" \
+    "and nordhost-webhook, then delete the previous key with" \
+    "NORDHOST_DELETE_KEYS"

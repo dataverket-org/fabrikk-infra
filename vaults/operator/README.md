@@ -9,6 +9,7 @@ folder is the one only they can read. Decision 016.
 |---|---|---|
 | `break-glass/` | What tier 1 falls back on when a login mechanism fails | `docs/plans/2026-09-break-glass.md` |
 | `hov1/` | The hov1 gateway's CA key (`ca.key`) and root key pair (`root`) (`backup/versitygw/`) | A person, from `backup/hov1/` on the site host |
+| `nordhost/` | Each zone's DirectAdmin account password (`<zone, dots as _>`, `value`), for `task admin:dns-keys`; the account's name is in the cluster's `config.json` | A person, from the Nordhost panel |
 | `osl1/` | The osl1 gateway's root key pair (`root`), for the `osl1-s3` model (`artifacts/versitygw/`); the site's artifact signing key pair (`cosign`), below | A person, from `artifacts/versitygw/versitygw-root.enc.yaml`, the source of record; a person, at a terminal, once |
 
 One secret per file, `<name>.enc.json`. A secret's fields are its values: `root` holds `ROOT_ACCESS_KEY` and
