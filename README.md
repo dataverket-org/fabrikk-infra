@@ -148,7 +148,7 @@ the file is safe to commit.
 | Setup | Files | Who decrypts | Recipients |
 |---|---|---|---|
 | Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | `cluster-dataverket-prod` (Secret `flux-system/sops-age`, generated in-cluster, decision 003), `beddari`, `linus` |
-| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/swamp-fabrikk-infra.txt` on the swamp host), `beddari`, `linus` |
+| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/swamp-fabrikk-infra.txt` on the swamp host, named to the swamp process alone), `beddari`, `linus` |
 | Operator values | `vaults/operator/**/*.enc.json` (and `.enc.yaml`) | Nothing automated. A person, with a touch | `beddari`, `linus`, and no process key at all |
 
 **Cluster files** are Secret manifests with only `data`/`stringData` encrypted, so kind, name and namespace stay
@@ -169,9 +169,14 @@ opens it (decision 001). The `@dataverket/sops` vault type keeps one SOPS-encryp
 the recipients' public keys. Its recipient list lives in `vaults/@dataverket/sops/*.yaml` (`agePublicKey`) and it
 ignores `.sops.yaml`; the second rule there repeats the same recipients so that `sops` on a file under `vaults/`
 from a terminal encrypts to the same set. The swamp host's key is a file rather than a YubiKey, and is a recipient
-so that scheduled runs decrypt unattended; it is never a recipient of a cluster file. A model whose output schema
-marks a field sensitive writes into this vault too, under a generated key; `swamp vault audit-trail --vault infra`
-shows who wrote what.
+so that scheduled runs decrypt unattended; it is never a recipient of a cluster file. It is a file of its own,
+named after the process, and nothing loads it unless named: the swamp process is handed it in `SOPS_AGE_KEY_FILE`,
+by the `swamp` shell function in the operator's dotfiles today and by the service environment once runs are
+scheduled. `sops` from a terminal reads `keys.txt`, which holds the YubiKey identities and no plain key, so a
+person always touches; swamp on a host without the file falls through to the same and shows up as a touch prompt,
+never as a silent read. The vault config carries no path, so a clone needs no setting in it. A model whose output
+schema marks a field sensitive writes into this vault too, under a generated key; `swamp vault audit-trail --vault
+infra` shows who wrote what.
 
 **Moving a value between the stores** is a human step, never an automated one. A value that has to exist in both
 is copied by a person with a YubiKey, from the store where it was born to the other, and the commit message says

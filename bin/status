@@ -244,9 +244,10 @@ function tier1_rows()
 #
 function tier3_rows()
 {
-	local vault_keys flux_files glass_files process_key_file
+	local vault_keys flux_files glass_files process_key_file humans_key_file
 
 	process_key_file="$HOME/.config/sops/age/swamp-$repo.txt"
+	humans_key_file="${process_key_file%/*}/keys.txt"
 
 	vault_keys="$(find "$repo_dir/vaults/infra" -name '*.enc.json' 2>/dev/null |
 	              grep -c . || true)"
@@ -269,16 +270,24 @@ function tier3_rows()
 			"the two YubiKeys; break-glass and hov1 fill it"
 	fi
 
-	# The process key lives in its own file, named after the process, so that
-	# sops from a terminal never loads it; keys.txt holds the humans.
+	# The process key lives in its own file, named after the process, and the
+	# swamp process alone is handed it, in SOPS_AGE_KEY_FILE from the swamp
+	# shell function. sops from a terminal reads keys.txt, which holds the
+	# humans: a plain key in there would open the vault with no touch, so it
+	# gets a row only when it is wrong.
 	if [[ -f "$process_key_file" ]]; then
 		row "$(short_path "${process_key_file%/*}")/" \
 			"${process_key_file##*/}" swamp - - \
-			"the process key that opens the vault"
+			"the process key; swamp alone names it"
 	else
 		row "$(short_path "${process_key_file%/*}")/" \
 			"${process_key_file##*/}" absent - - \
-			"no process key; nothing here decrypts the vault"
+			"no process key; swamp here asks for a touch"
+	fi
+	if grep -q '^AGE-SECRET-KEY-' "$humans_key_file" 2>/dev/null; then
+		row "$(short_path "${humans_key_file%/*}")/" \
+			"${humans_key_file##*/}" humans - - \
+			"holds a plain key; sops from a terminal would use it"
 	fi
 }
 
