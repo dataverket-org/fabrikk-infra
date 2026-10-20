@@ -114,10 +114,11 @@ but not web-public until the Job runs again or someone opens it in its channel s
 
 Zulip shows four things of ours: the organization's name, its description, its icon and its logo. Everything else is
 Zulip's own light or dark theme, which each person picks; there is no custom CSS. `brand.sh` renders the three images
-from `dataverket/org`'s `design/build` at a pinned commit, following the design README's rules: the glyph, white on
-the theme's navy, as the icon, which every square icon slot takes; and the wide mark as the logo, navy for the light
-theme and white for the dark one. Zulip takes PNG, not SVG. A new mark is a new commit and three new hashes in the
-script, then:
+from `dataverket/org`'s `design/build` at a pinned commit: the master mark in navy on a white square with padding as
+the icon, and the wide mark as the logo, navy for the light theme and white for the dark one. The icon is what a
+visitor sees first: the login page shows it at 50 to 100 px on a white card beside the name, and Zulip's own logo in
+the header there is hard-coded. Those pages have no dark theme beyond the footer, which is why the icon carries its
+own white. Zulip takes PNG, not SVG. A new mark is a new commit and three new hashes in the script, then:
 
 ```sh
 artifacts/zulip/brand.sh            # rewrites brand/; review the diff as pictures, then commit and push
