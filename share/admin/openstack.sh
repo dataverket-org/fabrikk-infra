@@ -45,6 +45,26 @@ function require_human_cloud()
 }
 
 #
+# Warns when the openstack on PATH is not Homebrew's, the one Brewfile
+# installs and these scripts are run with. A pipx install ahead of it on PATH
+# crashed with a TypeError on a credential Keystone no longer had, where
+# Homebrew's client says "not found", and the morning renewal failed on it
+# for two days.
+#
+function warn_shadowed_openstack()
+{
+	local found prefix
+
+	found="$(command -v openstack)"
+	prefix="${HOMEBREW_PREFIX:-$(brew --prefix 2>/dev/null)}"
+
+	[[ -n "$prefix" && "$found" != "$prefix/bin/openstack" ]] || return 0
+
+	warn "openstack is $found, not $prefix/bin/openstack from Brewfile;" \
+	     "it is $(openstack --version 2>&1)"
+}
+
+#
 # Prints the application credential id the cloud entry uses; nothing if none.
 #
 function current_credential_id()
@@ -103,6 +123,13 @@ function credential_record_as_you()
 	elif grep -qiE 'No ApplicationCredential|not found|\(HTTP 404\)' \
 	     "$err_file"; then
 		:	# Keystone no longer has it
+	elif grep -qiE 'requires authentication|\(HTTP 401\)' "$err_file"; then
+		error "Keystone refused your login through $human_cloud (401):" \
+		      "the value OS_PASSWORD_REF resolves to, or the user and domain" \
+		      "of entry $human_cloud in $clouds. Check one of them by hand;" \
+		      "repeated failures lock the account"
+		rm -f "$err_file"
+		return 1
 	else
 		error "Looking up $credential as you through $human_cloud failed!"
 		error "$(cat "$err_file")"

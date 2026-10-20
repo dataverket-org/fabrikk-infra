@@ -15,6 +15,7 @@
 source "${0%/*}/../share/admin/admin.sh" || exit $?
 
 require_tools openstack jq yq || exit $?
+warn_shadowed_openstack
 
 require_human_cloud || fail "Cannot log in as you through $human_cloud!"
 announce_files "$clouds (entry $human_cloud)" "$clouds (entry $os_cloud)"
