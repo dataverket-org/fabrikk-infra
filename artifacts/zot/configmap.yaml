@@ -52,7 +52,7 @@ data:
               "anonymousPolicy": ["read"],
               "defaultPolicy": ["read"],
               "policies": [
-                { "users": ["fabrikk-ci", "nordhost-pipeline"], "actions": ["read", "create", "update"] }
+                { "users": ["fabrikk-ci", "nordhost-pipeline", "salmon-pipeline"], "actions": ["read", "create", "update"] }
               ]
             }
           }
