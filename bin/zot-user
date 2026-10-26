@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+#
+# A push user for zot, or a new password for one. The password is generated
+# here and written in two places in artifacts/zot/: its own Secret,
+# zot-<user>-credentials.enc.yaml, the source of record that a pipeline's
+# copies come from, and a bcrypt line in zot-htpasswd.enc.yaml, which zot
+# checks logins against. Both are written with sops from stdin, so the
+# password is never on disk in plaintext, in a process listing or printed.
+# Copying it to the pipeline is a person's step (operator rule 3): this prints
+# the command that reads it, and copies nothing.
+#
+# The credentials file is written first: a password zot does not accept yet
+# is harmless, and one zot accepts that nobody holds is not.
+#
+# What a user may push is configmap.yaml's accessControl; this prints the
+# policy to add and leaves the file alone. fabrikk-ci is refused: push.sh
+# signs in as it, and could not push the change that rotates it.
+#
+# Settings are environment variables, asked for when unset and there is a
+# terminal to ask on:
+#
+#	ZOT_USER	The user, lowercase letters, digits and dashes
+#	ZOT_REPOS	Repository patterns it pushes to, space separated
+#			(default tools/**); only printed, for configmap.yaml
+#	ZOT_ROTATE	1 gives an existing user a new password
+#	ZOT_YES		1 writes without asking first
+#	DEBUG		1 prints every external command before it runs
+#
+
+# shellcheck source=share/logging.sh
+source "${0%/*}/../share/logging.sh" || exit $?
+
+repo_dir="$(cd "${0%/*}/.." && pwd)" || exit $?
+
+enable_debug="${DEBUG:-0}"
+
+user="${ZOT_USER:-}"
+repos="${ZOT_REPOS:-tools/**}"
+rotate="${ZOT_ROTATE:-0}"
+yes="${ZOT_YES:-0}"
+
+htpasswd_file="artifacts/zot/zot-htpasswd.enc.yaml"
+htpasswd_key='["stringData"]["htpasswd"]'
+
+#
+# Prints one value from a sops file.
+#
+function sops_value()
+{
+	local file="$1"
+	local path="$2"
+
+	run sops --decrypt --extract "$path" "$file"
+}
+
+#
+# Writes stdin, a plain string, into one value of a sops file.
+#
+function sops_write()
+{
+	local file="$1"
+	local path="$2"
+
+	jq -Rs . | run sops set --value-stdin "$file" "$path"
+}
+
+for tool in sops jq yq htpasswd openssl; do
+	command -v "$tool" >/dev/null || fail "$tool is not on PATH!"
+done
+
+if [[ -z "$user" ]]; then
+	[[ -t 0 ]] || fail "ZOT_USER is not set and there is no terminal to ask on"
+	read -r -p "The zot user: " user
+fi
+
+[[ "$user" =~ ^[a-z0-9][a-z0-9-]*$ ]] ||
+	fail "ZOT_USER is lowercase letters, digits and dashes: $user!"
+[[ "$user" != fabrikk-ci ]] ||
+	fail "fabrikk-ci is the user push.sh signs in as; rotate it by hand"
+
+cd "$repo_dir" || exit $?
+
+credentials_file="artifacts/zot/zot-$user-credentials.enc.yaml"
+
+current="$(sops_value "$htpasswd_file" "$htpasswd_key")" ||
+	fail "Cannot decrypt $htpasswd_file!"
+
+if grep -q "^$user:" <<<"$current"; then
+	(( rotate )) ||
+		fail "$user is already in $htpasswd_file; ZOT_ROTATE=1 gives it a new password"
+	[[ -f "$credentials_file" ]] ||
+		fail "$user has no $credentials_file to rotate in; write it by hand first"
+else
+	(( ! rotate )) || fail "$user is not in $htpasswd_file; nothing to rotate"
+	[[ ! -e "$credentials_file" ]] ||
+		fail "$credentials_file exists but $user is not in $htpasswd_file!"
+fi
+
+if (( rotate )); then
+	log "A new password for $user, in $credentials_file and $htpasswd_file"
+else
+	log "A new user $user, in a new $credentials_file and in $htpasswd_file"
+fi
+
+if (( ! yes )) && [[ -t 0 ]]; then
+	read -r -p "Write it? [y/N] " answer
+	[[ "$answer" == [yY]* ]] || fail "Nothing written"
+fi
+
+# 32 characters of base64 without the ones URLs and shells trip on.
+password="$(openssl rand -base64 48 | tr -d '\n/+=' | cut -c1-32)"
+(( ${#password} == 32 )) || fail "Cannot generate a password!"
+
+# htpasswd reads the password from stdin (-i), so it is in no process listing.
+line="$(printf %s "$password" | htpasswd -niB -C 12 "$user")" ||
+	fail "Cannot hash the password!"
+line="${line%%$'\n'*}"
+
+if (( rotate )); then
+	printf %s "$password" |
+		sops_write "$credentials_file" '["stringData"]["password"]' || fail "Cannot write the password into $credentials_file!"
+else
+	# sops encrypts stdin; --filename-override picks the rule in .sops.yaml.
+	PASSWORD="$password" yq -n '
+		.apiVersion = "v1" | .kind = "Secret" |
+		.metadata.name = "zot-'"$user"'-credentials" |
+		.metadata.namespace = "zot" | .type = "Opaque" |
+		.stringData.username = "'"$user"'" |
+		.stringData.password = strenv(PASSWORD) |
+		. head_comment = "The '"$user"' registry credential, source of record. Its copies are taken from here; rotate here first, with ZOT_ROTATE=1 bin/zot-user."' |
+		run sops encrypt --filename-override "$credentials_file" \
+		    --input-type yaml --output-type yaml /dev/stdin \
+		    >"$credentials_file" ||
+		{ rm -f "$credentials_file"; fail "Cannot write $credentials_file!"; }
+fi
+
+[[ "$(sops_value "$credentials_file" '["stringData"]["password"]')" == "$password" ]] ||
+	fail "$credentials_file does not hold the new password after writing!"
+log "Wrote $credentials_file"
+
+{ grep -v "^$user:" <<<"$current"; echo "$line"; } | grep -v '^$' |
+	sops_write "$htpasswd_file" "$htpasswd_key" ||
+	fail "Cannot write $user into $htpasswd_file; $credentials_file holds a password zot does not know!"
+
+sops_value "$htpasswd_file" "$htpasswd_key" | grep -qxF "$line" ||
+	fail "$htpasswd_file does not hold the new line for $user after writing!"
+log "Wrote $user into $htpasswd_file"
+
+if ! (( rotate )) && ! grep -q "\"$user\"" artifacts/zot/configmap.yaml; then
+	log "Next: grant $user in artifacts/zot/configmap.yaml's accessControl:"
+	for pattern in $repos; do
+		echo "    \"$pattern\": add \"$user\" to a policy with" \
+		     '"actions": ["read", "create", "update"]'
+	done
+	echo "  zot applies the longest pattern that matches, so a new pattern" \
+	     "repeats the read policies and fabrikk-ci from \"**\"."
+fi
+
+log "Next: commit, run artifacts/zot/push.sh, and copy the password to" \
+    "where $user runs. It reads with:"
+echo "    sops --decrypt --extract '[\"stringData\"][\"password\"]' $credentials_file"
+echo "  e.g. into a Forgejo Actions secret, or piped into" \
+     "swamp vault put <vault> <key> on its own."
+(( ! rotate )) || warn "The previous password stops working once zot has the new $htpasswd_file"

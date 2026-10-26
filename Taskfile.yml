@@ -9,6 +9,7 @@ version: '3'
 includes:
   admin: taskfiles/admin.yml
   decisions: taskfiles/decisions.yml
+  zot: taskfiles/zot.yml
 
 tasks:
   default:           { cmds: [{ task: help }] }

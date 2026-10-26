@@ -1,0 +1,16 @@
+version: '3'
+
+#
+# The registry, zot at registry.dataverket.org. Its config is the artifact in
+# artifacts/zot/, shipped with artifacts/zot/push.sh.
+#
+# Settings for `user`, as everywhere here, are environment variables:
+#
+#	ZOT_USER	The push user. Asked for when unset.
+#	ZOT_REPOS	Repository patterns it pushes to (default tools/**)
+#	ZOT_ROTATE=1	A new password for an existing user
+#	ZOT_YES=1	Write without asking first
+#
+
+tasks:
+  user: { desc: "A push user for zot, or with ZOT_ROTATE=1 a new password for one", cmds: [bin/zot-user], interactive: true }
