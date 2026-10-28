@@ -59,6 +59,7 @@ what it supersedes.
 | [019](019-ephemeral-is-a-fixed-14-gib-on-the-workers.md) | EPHEMERAL is a fixed 14 GiB on the workers | Volume sizes on a shared system disk are stated with minSize equal to maxSize; 14 GiB EPHEMERAL on m5.large workers, 32 GiB at most anywhere. | 2026-10-01 |
 | [020](020-backups-go-to-the-hov1-site.md) | Backups go to the hov1 site, by address, over the public internet | The copy that matters is off the provider: a versitygw at the hov1 site, reached by IP with its own private CA. | 2026-10-01 |
 | [025](025-storage-is-named-by-binding-and-tier.md) | Storage is named by binding and tier, on every kind of node | Four classes, fast, large, local-fast and local-large, mean the same on cloud, Incus and bare metal; Talos names a slot by tier and number, never by workload; volumeMode on the claim picks filesystem or block; a disk Talos does not name stays raw for Ceph. | 2026-10-05 |
+| [030](030-the-swamp-datastore-is-a-bucket-on-the-osl1-gateway.md) | The swamp datastore is a bucket on the osl1 gateway, shared by every operator host | Swamp's data lives in bucket swamp-fabrikk-infra on Dataverket's S3 at osl1, written by one account that every operator host holds; versioning and object lock stay off until the lifecycle program exists. | 2026-10-28 |
 
 ## Renumbered 2026-09-29
 

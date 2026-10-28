@@ -265,6 +265,19 @@ talosconfig are the `talosconfig-dataverket-prod` record that `omni talosconfig`
 so run the workflow rather than the model's methods alone. Its `reset`, `upgrade` and `patchConfig` change machines;
 `volumes`, `version` and `services` do not.
 
+**The datastore** is bucket `swamp-fabrikk-infra` on Dataverket's S3 at osl1 (decision 030), named in `.swamp.yaml`
+with no credential. Every operator host holds the one writer's key pair in its AWS default profile, copied once
+from the operator store with a touch; the first swamp command on a fresh host then hydrates the local cache from
+the bucket, and every command after it syncs. A host that already has AWS credentials of its own uses a named
+profile and `AWS_PROFILE` instead.
+
+```sh
+mkdir -p ~/.aws && chmod 700 ~/.aws && umask 077 && sops -d vaults/operator/osl1/swamp-fabrikk-infra.enc.json |
+  jq -r '"[default]\naws_access_key_id = \(.AWS_ACCESS_KEY_ID)\naws_secret_access_key = \(.AWS_SECRET_ACCESS_KEY)"' \
+  > ~/.aws/credentials && chmod 600 ~/.aws/credentials
+swamp datastore status                                # the bucket answers; the cache is at ~/.swamp/repos/<repoId>
+```
+
 Kube contexts come from your default kubeconfig (`dataverket-prod-readers` for reading, `dataverket-prod-admin`
 for changes), and `task admin:start` mints both for the working day. A model definition names a context, or a key
 file the same session wrote, and never a secret value. The vault holds what a process consumes and decrypts with

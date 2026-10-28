@@ -9,3 +9,11 @@ trustedCollectives:
   - swamp
   - dataverket
 upgradedAt: "2026-10-28T12:28:58.975Z"
+datastore:
+  type: "@swamp/s3-datastore"
+  config:
+    bucket: swamp-fabrikk-infra
+    prefix: fabrikk-infra
+    region: us-east-1
+    endpoint: "https://dataverket.s3.osl1.dvkt.no"
+    forcePathStyle: true

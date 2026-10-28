@@ -136,4 +136,4 @@ shell and wins over the name.
 - Adding the key to the cluster-files rule or the `vaults/operator/` rule. Those stay as they are.
 - Copying the key from the first host. A second host is a second process and gets a second key.
 - Editing the README. Its Secrets section already describes one key per host under one file name.
-- The S3 datastore itself. That is the next step on the osl1 plan and needs this done first.
+- Joining the datastore. That is one key copy, in the README's Operating models section, and needs this done first.

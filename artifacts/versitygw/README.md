@@ -82,6 +82,7 @@ Read from the wiki and the source at v1.8.0 on 2026-10-04 and at v1.9.0 on 2026-
 | v1.8.0 stored `Content-Encoding: aws-chunked` on objects written with a trailing checksum (#2398), and with a bucket policy it let the owner do only what the policy granted (#2495) | Fixed in v1.9.0, which osl1 runs; hov1 stays on v1.8.0 for now |
 | Presigned get with `ResponseContentDisposition`, ranges, copy onto itself with new headers, multipart, batch delete, list pages with `KeyCount`, and one 2 GiB PUT through Envoy | Proven 2026-10-15 with `artifacts/zulip/s3proof` on tusd's AWS SDK, 13 of 13 |
 | A standalone IAM service (`versitygw iam`) speaks IAM and STS, with OIDC providers and `AssumeRoleWithWebIdentity` | The mechanism of `docs/plans/2026-10-s3-zitadel.md` |
+| `PutObject` honours `If-None-Match` and `If-Match`, proven 2026-10-28 by `@swamp/s3-datastore`'s setup probe, which refuses an endpoint that ignores either | The swamp datastore's lock is safe on it; bucket `swamp-fabrikk-infra` holds the repository's data (decision 030) |
 
 ## After a rebuild
 

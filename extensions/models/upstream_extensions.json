@@ -239,5 +239,32 @@
     "filesChecksum": "f7eaad3e309b0bcd61f483c9c370124cc70866297bc48b2b35c5a458c137d390",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
+  },
+  "@swamp/s3-datastore": {
+    "version": "2026.10.24.2",
+    "pulledAt": "2026-10-28T16:52:34.769Z",
+    "files": [
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/atomic_write.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/aws_credentials.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/interfaces.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/path_containment.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/s3_cache_sync.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/s3_client.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/s3_control_plane.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/s3_format_guard.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/s3_lock.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/s3_replica_paths.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/s3_storage.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/s3_verifier.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/tracing.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/s3.ts",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/files/LICENSE.txt",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/files/README.md",
+      ".swamp/pulled-extensions/@swamp/s3-datastore/manifest.yaml"
+    ],
+    "checksum": "5b23db5329ba342bd74f983d2a6c10b78aeff4718b7cc0baac8640343288b7e2",
+    "filesChecksum": "d89759302b57f64eb963894bd1dcf7f99dfaea52c8b19d8c5d1a658e9f41d8e1",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   }
 }

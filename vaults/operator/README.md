@@ -10,7 +10,7 @@ folder is the one only they can read. Decision 016.
 | `break-glass/` | What tier 1 falls back on when a login mechanism fails | `docs/plans/2026-09-break-glass.md` |
 | `hov1/` | The hov1 gateway's CA key (`ca.key`) and root key pair (`root`) (`backup/versitygw/`) | A person, from `backup/hov1/` on the site host |
 | `nordhost/` | Each zone's DirectAdmin account password (`<zone, dots as _>`, `value`), for `task admin:dns-keys`; the account's name is in the cluster's `config.json` | A person, from the Nordhost panel |
-| `osl1/` | The osl1 gateway's root key pair (`root`), for the `osl1-s3` model (`artifacts/versitygw/`); the site's artifact signing key pair (`cosign`), below | A person, from `artifacts/versitygw/versitygw-root.enc.yaml`, the source of record; a person, at a terminal, once |
+| `osl1/` | The osl1 gateway's root key pair (`root`), for the `osl1-s3` model (`artifacts/versitygw/`); the swamp datastore's writer key pair (`swamp-fabrikk-infra`, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`), which every operator host copies once into its AWS profile (decision 030); the site's artifact signing key pair (`cosign`), below | A person, from `artifacts/versitygw/versitygw-root.enc.yaml`, the source of record; `artifacts/versitygw/user.sh` piped into `sops`, born here; a person, at a terminal, once |
 
 One secret per file, `<name>.enc.json`. A secret's fields are its values: `root` holds `ROOT_ACCESS_KEY` and
 `ROOT_SECRET_KEY`, `ca.key` holds `value`. Named after the variables a tool reads, the fields go straight into its

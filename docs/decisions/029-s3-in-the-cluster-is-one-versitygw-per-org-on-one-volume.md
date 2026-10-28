@@ -85,3 +85,20 @@ Dataverket's S3 is `https://dataverket.s3.osl1.dvkt.no`, versitygw v1.9.0 on a 2
 **Summary:** One gateway for Dataverket runs with Zulip's buckets on it and no backup yet.
 
 **Action Required:** The backup, `docs/plans/2026-10-s3-osl1-backup.md`; object lock when a writer wants it.
+
+### 2026-10-28
+
+**Status:** Implemented, a second writer
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| A second account, `swamp-fabrikk-infra`, owner of its same-named bucket, made with `user.sh` | `osl1-s3` inventory | done; the writer is swamp on every operator host, decision 030 |
+| Conditional writes on `PutObject` | `artifacts/versitygw/README.md` | proven by the datastore's setup probe |
+| Backup | `docs/plans/2026-10-s3-osl1-backup.md` | due: the gateway now holds data that exists nowhere else |
+| Object lock | no bucket | still deferred; the datastore is the writer that will want it, after the lifecycle program |
+
+**Summary:** The gateway's second writer is this repository's own datastore, which makes the backup plan due.
+
+**Action Required:** The backup plan.

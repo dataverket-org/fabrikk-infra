@@ -2,14 +2,17 @@
 
 Written 2026-10-04 as the backup step of the osl1 S3 plan, which is otherwise done: the gateway, its name, accounts
 and model are decision 029 and `artifacts/versitygw/README.md`. Skipped on 2026-10-15, to be taken up before the
-gateway holds data that exists nowhere else and matters more than Zulip's uploads do. Until then the volume has
-Cinder's three copies and nothing else (decision 018), as `docs/storage.md` and `backup/README.md` say.
+gateway holds data that exists nowhere else and matters more than Zulip's uploads do. **Due since 2026-10-28**: the
+swamp datastore of this repository is on the gateway (decision 030), with a local cache on each operator host as
+its only other copy. Until this runs the volume has Cinder's three copies and nothing else (decision 018), as
+`docs/storage.md` and `backup/README.md` say.
 
 ## What it backs up
 
 The gateway's one claim, `data-versitygw-0`, `csi-cinder-standard-retain`, 20 GiB: `/data` (buckets as directories,
 objects as files), `/versioning` (non-current versions) and `/iam` (`users.json`, every account's secret in clear).
-On 2026-10-15 it holds the account `zulip` and the buckets `zulip-uploads` and `zulip-avatars`.
+On 2026-10-15 it holds the account `zulip` and the buckets `zulip-uploads` and `zulip-avatars`; since 2026-10-28
+also the account `swamp-fabrikk-infra` and its bucket, the swamp datastore (decision 030).
 
 ## Shape
 
