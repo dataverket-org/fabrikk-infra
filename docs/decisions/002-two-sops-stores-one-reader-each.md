@@ -89,7 +89,7 @@ the cluster key, and a file no rule covers.
 |---------|-------|------------|
 | A second swamp host for the same repository is a second decrypting process | `.sops.yaml`, README Secrets | its own key, generated on that host, never a copy of the first |
 | One file name on every host, `swamp-fabrikk-infra.txt`, since the vault config names the key by name | `vaults/@dataverket/sops/` | unchanged; the public key is what tells hosts apart |
-| Each host's public key listed as `swamp-fabrikk-infra.<host>`, a recipient of `vaults/infra/` only | `.sops.yaml` | the first host's entry renamed to `.jubilato`; no recipient changed |
+| Each host's public key listed as `swamp-fabrikk-infra.<host>`, a recipient of `vaults/infra/` only | `.sops.yaml` | the key of 2026-09-20 keeps its plain name: its file is on no host checked (jubilato, 2026-10-28), so its holder is to be confirmed or the entry removed by an operator; no recipient changed |
 
 **Summary:** The decision said a second repository gets its own key. A second host running the same repository, for
 the shared S3 datastore on osl1, follows the same rule: one key per process, and a host is a process. The copy the

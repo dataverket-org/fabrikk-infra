@@ -13,7 +13,9 @@
 #                                              same everywhere, since the vault config names it, and the entry here
 #                                              adds the host. Decrypts the swamp vault unattended, never a cluster
 #                                              file. A second swamp repository gets its own swamp-<repo> key.
-#     .jubilato            age15d64...         beddari's host, since 2026-09-20
+#     (no host)            age15d64...         made 2026-09-20 with the vault; the host that holds its file is to
+#                                              be confirmed (not jubilato, checked 2026-10-28). If none does, an
+#                                              operator removes it with sops updatekeys.
 # - beddari                age1yubikey1q0d8... YubiKey serial 19668198 (PIN once, touch always)
 # - linus                  age1yubikey1qwt...  YubiKey, since 2026-09-20
 #
@@ -25,7 +27,7 @@
 # ignores this file; the second rule keeps `sops` from a terminal on the same set. sops ignores `identities`.
 identities:
   cluster-dataverket-prod: &cluster_dataverket_prod age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
-  swamp-fabrikk-infra.jubilato: &swamp_fabrikk_infra_jubilato age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
+  swamp-fabrikk-infra: &swamp_fabrikk_infra age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
   beddari: &beddari age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
   linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
 
@@ -47,7 +49,7 @@ creation_rules:
   - path_regex: vaults/infra/.*\.enc\.json(\.plain\.tmp)?$
     key_groups:
       - age:
-          - *swamp_fabrikk_infra_jubilato
+          - *swamp_fabrikk_infra
           - *beddari
           - *linus
   # Every other folder under vaults/: the operators alone, until a rule above names a process (decision 016).

@@ -1,6 +1,8 @@
 # Runbook: a second swamp host
 
-Written 2026-10-28 for the second operator's host, ahead of the shared S3 datastore on osl1. Not yet run.
+Written 2026-10-28 for the second operator's host, ahead of the shared S3 datastore on osl1. Not yet run. It
+applies to any host that runs swamp here and has no key file of its own, which on 2026-10-28 is every host: the
+key made with the vault on 2026-09-20 is on none of them.
 
 ## Why
 
@@ -17,8 +19,8 @@ repository.
 |---|---|
 | Reads | `vaults/infra/`, nine `*.enc.json`, the swamp vault `infra` |
 | Never reads | The cluster files under `apps/`, `artifacts/`, `infrastructure/`; anything under `vaults/operator/` |
-| File on the host | `~/.config/sops/age/swamp-fabrikk-infra.txt`, mode 0600. The vault config names the key by this file name, so it is the same on every host |
-| Listed as | `swamp-fabrikk-infra.<host>` in `.sops.yaml`, the host's short name after the dot, as `hostname -s` prints it. The first host is `.jubilato`. The public key is what tells hosts apart |
+| File on the host | `~/.config/sops/age/swamp-fabrikk-infra.txt`, mode 0600. The rule is `swamp-<repo>.txt`: one static name per repository, the same on every host, never a host or an owner in it. The vault config names the key by this file name, which is why it cannot vary |
+| Listed as | `swamp-fabrikk-infra.<host>` in `.sops.yaml`, the host's short name after the dot, as `hostname -s` prints it. The entry without a host is the key made with the vault on 2026-09-20, whose holder is to be confirmed. The public key is what tells hosts apart |
 | Touches | The operator's YubiKey, once per vault file in step 4. Everything else is public keys only |
 | Needs | `age`, `sops`, `yq`; a checkout on `main` with `task hooks` run once |
 
@@ -27,8 +29,8 @@ Who decrypts what, once step 6 is pushed:
 | Key | Lives | Cluster files | `vaults/infra/` | `vaults/operator/` |
 |---|---|---|---|---|
 | `cluster-dataverket-prod` | Secret `flux-system/sops-age`, in the cluster | unattended | | |
-| `swamp-fabrikk-infra.jubilato` | key file on the first swamp host | | unattended | |
-| `swamp-fabrikk-infra.<host>` | key file on the second swamp host, step 1 | | unattended | |
+| `swamp-fabrikk-infra` | key file on the host that made it, to be confirmed | | unattended | |
+| `swamp-fabrikk-infra.<host>` | key file on this host, step 1 | | unattended | |
 | `beddari` | YubiKey | touch | touch | touch |
 | `linus` | YubiKey | touch | touch | touch |
 
@@ -54,7 +56,7 @@ No process key reads `vaults/operator/`, and no swamp key reads a cluster file.
    ```diff
     identities:
       cluster-dataverket-prod: &cluster_dataverket_prod age1g3x9w...
-      swamp-fabrikk-infra.jubilato: &swamp_fabrikk_infra_jubilato age15d64a...
+      swamp-fabrikk-infra: &swamp_fabrikk_infra age15d64a...
    +  swamp-fabrikk-infra.<host>: &swamp_fabrikk_infra_<host> age1<your public key>
       beddari: &beddari age1yubikey1q0d8...
       linus: &linus age1yubikey1qwta...
@@ -63,18 +65,18 @@ No process key reads `vaults/operator/`, and no swamp key reads a cluster file.
       - path_regex: vaults/infra/.*\.enc\.json(\.plain\.tmp)?$
         key_groups:
           - age:
-              - *swamp_fabrikk_infra_jubilato
+              - *swamp_fabrikk_infra
    +          - *swamp_fabrikk_infra_<host>
               - *beddari
               - *linus
    ```
 
-   In the header comment the `swamp-fabrikk-infra.<host>` entry already describes the key; under its `.jubilato`
+   In the header comment the `swamp-fabrikk-infra.<host>` entry already describes the key; under its `(no host)`
    line add one for the new host in the same shape:
 
    ```diff
-    #     .jubilato            age15d64...         beddari's host, since 2026-09-20
-   +#     .<host>              age1...             linus's host, since <date>
+    #     (no host)            age15d64...         made 2026-09-20 with the vault; ...
+   +#     .<host>              age1...             <owner>'s host, since <date>
    ```
 
 3. **Add it to the vault config.** The `@dataverket/sops` vault encrypts to its own config and ignores
