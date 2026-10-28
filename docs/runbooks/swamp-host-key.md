@@ -1,6 +1,6 @@
-# Runbook: a second swamp host
+# Runbook: a process key for a swamp host
 
-Written 2026-10-28 for the second operator's host, ahead of the shared S3 datastore on osl1. Not yet run. It
+Written 2026-10-28 ahead of the shared S3 datastore on osl1, for any host that runs swamp here. Not yet run. It
 applies to any host that runs swamp here and has no key file of its own, which on 2026-10-28 is every host: the
 key made with the vault on 2026-09-20 is on none of them.
 
@@ -9,7 +9,7 @@ key made with the vault on 2026-09-20 is on none of them.
 Swamp on a host reads `vaults/infra/` unattended on every model run, with a process key the vault config names by
 file name. One key per decrypting process, and a host is a process (decision 002, audit of 2026-10-28): a second
 host gets a key of its own, generated there, under the same file name as every swamp host. The first host's key is
-never copied. The alternative, the first key wrapped into `vaults/operator/` for the second host to fetch, was
+never copied. The alternative, one key wrapped into `vaults/operator/` for every host to fetch, was
 declined because two hosts on one key cannot be revoked apart, and the key would become material at rest in the
 repository.
 
@@ -21,10 +21,10 @@ repository.
 | Never reads | The cluster files under `apps/`, `artifacts/`, `infrastructure/`; anything under `vaults/operator/` |
 | File on the host | `~/.config/sops/age/swamp-fabrikk-infra.txt`, mode 0600. The rule is `swamp-<repo>.txt`: one static name per repository, the same on every host, never a host or an owner in it. The vault config names the key by this file name, which is why it cannot vary |
 | Listed as | `swamp-fabrikk-infra.<host>` in `.sops.yaml`, the host's short name after the dot, as `hostname -s` prints it. The entry without a host is the key made with the vault on 2026-09-20, whose holder is to be confirmed. The public key is what tells hosts apart |
-| Touches | The operator's YubiKey, once per vault file in step 4. Everything else is public keys only |
+| Touches | The operator's YubiKey, once per vault file when re-encrypting, in both jobs. Everything else is public keys only |
 | Needs | `age`, `sops`, `yq`; a checkout on `main` with `task hooks` run once |
 
-Who decrypts what, once step 6 is pushed:
+Who decrypts what, once a host is added:
 
 | Key | Lives | Cluster files | `vaults/infra/` | `vaults/operator/` |
 |---|---|---|---|---|
@@ -36,7 +36,7 @@ Who decrypts what, once step 6 is pushed:
 
 No process key reads `vaults/operator/`, and no swamp key reads a cluster file.
 
-## Steps
+## Add a host
 
 1. **Generate the key on the swamp host**, as the user that runs swamp. Nothing of this file ever leaves the host.
 
@@ -120,7 +120,7 @@ No process key reads `vaults/operator/`, and no swamp key reads a cluster file.
    git push
    ```
 
-## Proof
+### Proof
 
 On the new host, a model that reads the vault runs without a touch prompt, and the audit trail records the read:
 
@@ -133,9 +133,82 @@ swamp vault audit-trail --vault infra | tail -3
 A touch prompt means the key file is not where the vault config looks, or `SOPS_AGE_KEY_FILE` is exported in that
 shell and wins over the name.
 
+## Remove a host
+
+When a host is retired, rebuilt, lost, or its key file cannot be accounted for. The entry without a host, the key
+made with the vault on 2026-09-20, is removed this way the day no host is found holding its file. Needs the
+operator's YubiKey in step 3.
+
+1. **Delete the key file on the host**, when the host still exists. A host that is gone or lost skips this; what
+   protects the vault then is step 3, not this one.
+
+   ```sh
+   rm -P ~/.config/sops/age/swamp-fabrikk-infra.txt      # macOS; shred -u on Linux
+   ```
+
+2. **Take the entry out of `.sops.yaml` and the vault config.** The reverse of adding: the identity line, its
+   comment line, its alias in the `vaults/infra/` rule, and its public key in `agePublicKey`. The two lists must
+   stay equal.
+
+   ```diff
+    identities:
+      cluster-dataverket-prod: &cluster_dataverket_prod age1g3x9w...
+   -  swamp-fabrikk-infra.<host>: &swamp_fabrikk_infra_<host> age1...
+      beddari: &beddari age1yubikey1q0d8...
+
+      - path_regex: vaults/infra/.*\.enc\.json(\.plain\.tmp)?$
+        key_groups:
+          - age:
+   -          - *swamp_fabrikk_infra_<host>
+              - *beddari
+              - *linus
+   ```
+
+   ```diff
+     agePublicKey: >-
+   -    age1yubikey1q0d8...,age1<the host's key>,age1yubikey1qwta...
+   +    age1yubikey1q0d8...,age1yubikey1qwta...
+   ```
+
+3. **Re-encrypt the vault files.** Needs the operator's YubiKey. `sops updatekeys` wraps each file's data key for
+   the recipients that remain, so the removed key opens nothing committed from here on. PIN once, one touch per
+   file.
+
+   ```sh
+   find vaults/infra -name '*.enc.json' -exec sops updatekeys -y {} \;
+   ```
+
+   It does not rewrite history: the versions already in git stay readable by the removed key. When the key may
+   be in someone else's hands, rotate the secrets themselves at their origin, as the README's Secrets section
+   says, and commit the new values.
+
+4. **Check, commit and push.**
+
+   ```sh
+   bin/check-recipients
+   git add .sops.yaml vaults/@dataverket/sops vaults/infra
+   git commit -m 'fix(vaults): swamp-fabrikk-infra.<host> no longer reads vaults/infra
+
+   <why: the host is retired | rebuilt | lost | the key file was never found>.
+   One key per host (decision 002); the remaining recipients re-wrap every
+   file under vaults/infra/.'
+   git push
+   ```
+
+### Proof
+
+`bin/check-recipients` ends clean, and every file under `vaults/infra/` names one recipient fewer:
+
+```sh
+jq -r '.sops.age[].recipient' vaults/infra/forgejo/api_token.enc.json      # the remaining keys, not the removed one
+```
+
+On the removed host, if it still exists, any model that reads the vault now asks for a touch instead of reading
+silently.
+
 ## Not part of this
 
 - Adding the key to the cluster-files rule or the `vaults/operator/` rule. Those stay as they are.
-- Copying the key from the first host. A second host is a second process and gets a second key.
+- Copying a key from another host. Every host is its own process and gets its own key.
 - Editing the README. Its Secrets section already describes one key per host under one file name.
 - Joining the datastore. That is one key copy, in the README's Operating models section, and needs this done first.

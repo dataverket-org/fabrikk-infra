@@ -26,7 +26,7 @@ environment variable, as the operator rules require.
 
 | Runbook | The job | Rests on |
 |---|---|---|
-| [second-swamp-host.md](second-swamp-host.md) | Give a second swamp host its own process key for `vaults/infra/` | decisions 001, 002, 016 |
+| [swamp-host-key.md](swamp-host-key.md) | Give a host that runs swamp here its own process key for `vaults/infra/`, or take a host's key away | decisions 001, 002, 016 |
 
 Procedures that live beside what they operate stay there for now: reading the osl1 gateway
 (`artifacts/versitygw/README.md`), a restore of a database (`backup/README.md`), signing an artifact

@@ -24,7 +24,7 @@ related:
 
 ## Status
 
-Accepted 2026-10-28. The datastore runs; the second host joins through `docs/runbooks/second-swamp-host.md`.
+Accepted 2026-10-28. The datastore runs; a host joins through `docs/runbooks/swamp-host-key.md` and the key copy.
 
 ## Context
 
@@ -80,9 +80,9 @@ Follows 001, 002, 016 and 029. Makes the backup in 020's shape due for osl1.
 | Account and bucket on osl1 | `osl1-s3` inventory | done, `user.sh` on 2026-10-28 |
 | Key pair in the operator store, copied to the first host | `vaults/operator/osl1/swamp-fabrikk-infra.enc.json` | done |
 | Datastore set up, local data migrated, bucket healthy | `.swamp.yaml`, `swamp datastore status` | done; 5348 files pushed |
-| Second host | `docs/runbooks/second-swamp-host.md`, then the key copy | pending, its owner's job |
+| The other operator's host | `docs/runbooks/swamp-host-key.md`, then the key copy | pending, its owner's job |
 | Backup of the gateway | `docs/plans/2026-10-s3-osl1-backup.md` | due since this record |
 
 **Summary:** The first host writes to the bucket; the second joins when its vault key and the key copy are in place.
 
-**Action Required:** The second host; the backup plan.
+**Action Required:** The other operator's host; the backup plan.

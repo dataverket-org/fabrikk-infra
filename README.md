@@ -195,8 +195,10 @@ the vault's `agePublicKey`, then `sops updatekeys` on every `*.enc.yaml` cluster
 `vaults/infra/`, with a YubiKey that is already a recipient. Removing one is the same with the key taken out.
 **Adding a swamp host** is the same on one store: the host's key, generated there as `swamp-fabrikk-infra.txt`, goes
 into the `vaults/infra/` rule as `swamp-fabrikk-infra.<host>` and into `agePublicKey`, then `sops updatekeys` on the
-files under `vaults/infra/`. The cluster files and `vaults/operator/` never gain a process key. Step by step:
-`docs/runbooks/second-swamp-host.md`.
+files under `vaults/infra/`. The cluster files and `vaults/operator/` never gain a process key. Removing a host is
+the same edits in reverse and the same re-encryption, which leaves git history readable by the removed key, so a
+key that may be in the wrong hands means rotating the secrets at their origin too. Both, step by step:
+`docs/runbooks/swamp-host-key.md`.
 
 Decision 006 said the same thing about two repositories: a credential the cluster uses is authored here and the
 software factory copies it, never the other way around. Inside this repository it reads as "origin first", which
