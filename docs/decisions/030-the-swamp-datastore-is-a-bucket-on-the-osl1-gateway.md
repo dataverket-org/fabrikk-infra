@@ -79,7 +79,7 @@ Follows 001, 002, 016 and 029. Makes the backup in 020's shape due for osl1.
 |---------|-------|------------|
 | Account and bucket on osl1 | `osl1-s3` inventory | done, `user.sh` on 2026-10-28 |
 | Key pair in the operator store, copied to the first host | `vaults/operator/osl1/swamp-fabrikk-infra.enc.json` | done |
-| The first host's own vault key, so unattended runs read the vault there | `swamp-fabrikk-infra.jubilato` in `.sops.yaml` | done, decision 002's audit |
+| The first host's own vault key, so unattended runs read the vault there | `swamp-fabrikk-infra-jubilato` in `.sops.yaml` | done, decision 002's audit |
 | Datastore set up, local data migrated, bucket healthy | `.swamp.yaml`, `swamp datastore status` | done; 5348 files pushed |
 | The other operator's host | `docs/runbooks/swamp-host-key.md`, then the key copy | pending, its owner's job |
 | Backup of the gateway | `docs/plans/2026-10-s3-osl1-backup.md` | due since this record |

@@ -89,15 +89,15 @@ the cluster key, and a file no rule covers.
 |---------|-------|------------|
 | A second swamp host for the same repository is a second decrypting process | `.sops.yaml`, README Secrets | its own key, generated on that host, never a copy of the first |
 | One file name on every host, `swamp-fabrikk-infra.txt`, since the vault config names the key by name | `vaults/@dataverket/sops/` | unchanged; the public key is what tells hosts apart |
-| Each host's public key listed as `swamp-fabrikk-infra.<host>`, a recipient of `vaults/infra/` only | `.sops.yaml` | the key of 2026-09-20 keeps its plain name: its file is on no host checked (jubilato, 2026-10-28), so its holder is to be confirmed or the entry removed by an operator; no recipient changed |
+| Each host's public key listed as `swamp-fabrikk-infra-<host>`, a recipient of `vaults/infra/` only | `.sops.yaml` | the key of 2026-09-20 is `-mio`, the one made on 2026-10-28 `-jubilato`; no recipient changed |
 
 **Summary:** The decision said a second repository gets its own key. A second host running the same repository, for
 the shared S3 datastore on osl1, follows the same rule: one key per process, and a host is a process. The copy the
 rule forbids was weighed and declined, because two hosts on one key cannot be revoked apart and the key would become
 material at rest in the repository.
 
-**Action Required:** The other operator's host, by its owner with their own YubiKey; the holder of the key of
-2026-09-20, or its removal.
+**Action Required:** The other operator's host, by its owner with their own YubiKey. The key of 2026-09-20 is
+mio's, settled later the same day.
 
 ### 2026-10-28 (later the same day)
 
@@ -107,9 +107,10 @@ material at rest in the repository.
 
 | Finding | Where | Assessment |
 |---------|-------|------------|
-| `swamp-fabrikk-infra.jubilato`, generated on the laptop, a recipient of `vaults/infra/` only | `.sops.yaml`, the vault config, nine files re-encrypted | done, `docs/runbooks/swamp-host-key.md` |
+| `swamp-fabrikk-infra-jubilato`, generated on the laptop, a recipient of `vaults/infra/` only | `.sops.yaml`, the vault config, nine files re-encrypted | done, `docs/runbooks/swamp-host-key.md` |
 | Vault reads on that host without a touch | `swamp vault audit-trail --vault infra` | verified: forgejo, codeberg and github from a non-interactive shell |
 
-**Summary:** The runbook was run once, on jubilato. The key of 2026-09-20 stays a recipient until its holder is found.
+**Summary:** The runbook was run once, on jubilato. The key of 2026-09-20 is mio's, so both of beddari's hosts read the
+vault unattended.
 
-**Action Required:** The other operator's host; the key of 2026-09-20.
+**Action Required:** The other operator's host.

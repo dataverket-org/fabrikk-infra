@@ -148,7 +148,7 @@ the file is safe to commit.
 | Setup | Files | Who decrypts | Recipients |
 |---|---|---|---|
 | Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | `cluster-dataverket-prod` (Secret `flux-system/sops-age`, generated in-cluster, decision 003), `beddari`, `linus` |
-| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/swamp-fabrikk-infra.txt` on each swamp host, named in the vault config; one key per host, listed in `.sops.yaml` as `swamp-fabrikk-infra.<host>`), `beddari`, `linus` |
+| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/swamp-fabrikk-infra.txt` on each swamp host, named in the vault config; one key per host, listed in `.sops.yaml` as `swamp-fabrikk-infra-<host>`), `beddari`, `linus` |
 | Operator values | `vaults/operator/**/*.enc.json` (and `.enc.yaml`) | Nothing automated. A person, with a touch | `beddari`, `linus`, and no process key at all |
 
 **Cluster files** are Secret manifests with only `data`/`stringData` encrypted, so kind, name and namespace stay
@@ -175,7 +175,7 @@ name, `ageKeyName`, and the vault type hands that file to its own `sops` calls w
 exported no `SOPS_AGE_KEY_FILE`. A name, not a path, so the config carries no operator's home and a clone needs no
 shell setup. Every swamp host has a key of its own under that one file name, generated on the host and never copied
 (decision 002), so one `ageKeyName` names all of them; what tells them apart is the public key, which `.sops.yaml`
-and `agePublicKey` list once per host as `swamp-fabrikk-infra.<host>`. `sops` from a terminal reads `keys.txt`, which holds the YubiKey identities and no plain key, so a
+and `agePublicKey` list once per host as `swamp-fabrikk-infra-<host>`. `sops` from a terminal reads `keys.txt`, which holds the YubiKey identities and no plain key, so a
 person always touches; swamp on a host without the file falls through to the same and shows up as a touch prompt,
 never as a silent read. A model whose output schema marks a field sensitive writes into this vault too, under a
 generated key; `swamp vault audit-trail --vault infra` shows who wrote what.
@@ -194,7 +194,7 @@ YubiKey is touched.
 the vault's `agePublicKey`, then `sops updatekeys` on every `*.enc.yaml` cluster file and every file under
 `vaults/infra/`, with a YubiKey that is already a recipient. Removing one is the same with the key taken out.
 **Adding a swamp host** is the same on one store: the host's key, generated there as `swamp-fabrikk-infra.txt`, goes
-into the `vaults/infra/` rule as `swamp-fabrikk-infra.<host>` and into `agePublicKey`, then `sops updatekeys` on the
+into the `vaults/infra/` rule as `swamp-fabrikk-infra-<host>` and into `agePublicKey`, then `sops updatekeys` on the
 files under `vaults/infra/`. The cluster files and `vaults/operator/` never gain a process key. Removing a host is
 the same edits in reverse and the same re-encryption, which leaves git history readable by the removed key, so a
 key that may be in the wrong hands means rotating the secrets at their origin too. Both, step by step:
