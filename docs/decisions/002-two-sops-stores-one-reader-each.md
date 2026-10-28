@@ -78,3 +78,22 @@ Follows 001. Refines 003 and 006.
 the cluster key, and a file no rule covers.
 
 **Action Required:** Wire the check into CI when this repository has any.
+
+### 2026-10-28
+
+**Status:** Clarified
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| A second swamp host for the same repository is a second decrypting process | `.sops.yaml`, README Secrets | its own key, generated on that host, never a copy of the first |
+| One file name on every host, `swamp-fabrikk-infra.txt`, since the vault config names the key by name | `vaults/@dataverket/sops/` | unchanged; the public key is what tells hosts apart |
+| Each host's public key listed as `swamp-fabrikk-infra.<host>`, a recipient of `vaults/infra/` only | `.sops.yaml` | the first host's entry renamed to `.jubilato`; no recipient changed |
+
+**Summary:** The decision said a second repository gets its own key. A second host running the same repository, for
+the shared S3 datastore on osl1, follows the same rule: one key per process, and a host is a process. The copy the
+rule forbids was weighed and declined, because two hosts on one key cannot be revoked apart and the key would become
+material at rest in the repository.
+
+**Action Required:** The second host's key, added by its owner with their own YubiKey.

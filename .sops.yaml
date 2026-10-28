@@ -7,10 +7,13 @@
 # - cluster-dataverket-prod  age1g3x9w...      Secret flux-system/sops-age, generated in-cluster 2026-09-17 by
 #                                              bootstrap/sops-age-keygen.yaml; never leaves the cluster. Decrypts
 #                                              the Flux files and nothing else.
-# - swamp-fabrikk-infra    age15d64...         ~/.config/sops/age/swamp-fabrikk-infra.txt on the swamp host, mode
-#                                              0600, its own file so that sops from a terminal never loads it.
-#                                              Decrypts the swamp vault unattended, never a cluster file. A second
-#                                              swamp repository gets its own swamp-<repo> key, never a copy.
+# - swamp-fabrikk-infra.<host>                 ~/.config/sops/age/swamp-fabrikk-infra.txt on each swamp host, mode
+#                                              0600, its own file so that sops from a terminal never loads it. One
+#                                              key per host, generated there and never copied; the file name is the
+#                                              same everywhere, since the vault config names it, and the entry here
+#                                              adds the host. Decrypts the swamp vault unattended, never a cluster
+#                                              file. A second swamp repository gets its own swamp-<repo> key.
+#     .jubilato            age15d64...         beddari's host, since 2026-09-20
 # - beddari                age1yubikey1q0d8... YubiKey serial 19668198 (PIN once, touch always)
 # - linus                  age1yubikey1qwt...  YubiKey, since 2026-09-20
 #
@@ -22,7 +25,7 @@
 # ignores this file; the second rule keeps `sops` from a terminal on the same set. sops ignores `identities`.
 identities:
   cluster-dataverket-prod: &cluster_dataverket_prod age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
-  swamp-fabrikk-infra: &swamp_fabrikk_infra age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
+  swamp-fabrikk-infra.jubilato: &swamp_fabrikk_infra_jubilato age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
   beddari: &beddari age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
   linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
 
@@ -44,7 +47,7 @@ creation_rules:
   - path_regex: vaults/infra/.*\.enc\.json(\.plain\.tmp)?$
     key_groups:
       - age:
-          - *swamp_fabrikk_infra
+          - *swamp_fabrikk_infra_jubilato
           - *beddari
           - *linus
   # Every other folder under vaults/: the operators alone, until a rule above names a process (decision 016).

@@ -22,7 +22,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `models/`, `workflows/`, `vaults/`, `extensions/` | `swamp` | The swamp repository: the instances a human uses to operate what is deployed here. See Operating models below. |
 | `vaults/operator/` | Nobody, by design | Values only a person reads, behind the two YubiKeys: plain sops with no process key and no swamp vault config (decision 016). `break-glass/` for when a login fails, `hov1/` for the hov1 gateway's CA key and root key pair. |
 | `talos/<cluster>/` | swamp's Omni and Talos models, never Flux | Talos machine config patches, one file each, applied to machines below Kubernetes; `workers-storage.yaml` is the workers' disk layout and kubelet thresholds (decisions 017, 019). |
-| `docs/decisions/`, `docs/plans/`, `docs/storage.md`, `docs/node-storage.md` | Nobody | Why the repository is shaped as it is, what is being changed next, where the cluster's data lives and how its workers are replaced, and how a disk on a node becomes a volume. `task decisions` lists the records with what is still pending. |
+| `docs/decisions/`, `docs/plans/`, `docs/runbooks/`, `docs/storage.md`, `docs/node-storage.md` | Nobody | Why the repository is shaped as it is, what is being changed next, how a rare job is done step by step, where the cluster's data lives and how its workers are replaced, and how a disk on a node becomes a volume. `task decisions` lists the records with what is still pending. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
 | `.githooks/` | `git`, after `task hooks` | The pre-commit hook: `bin/check-recipients`, so a commit cannot carry a file encrypted to the wrong readers. |
 
@@ -72,7 +72,7 @@ What a session writes, and what reads it by name:
 
 Every item shares the one lifetime, and `admin:start` renews them all when any has less than a quarter of it left.
 `task admin` reads each item's expiry from its own file or record. The two process keys of tier 3 never rotate on a
-schedule: `swamp-fabrikk-infra` lasts until the swamp host is rebuilt, `cluster-dataverket-prod` the cluster's life.
+schedule: a host's `swamp-fabrikk-infra` lasts until that host is rebuilt, `cluster-dataverket-prod` the cluster's life.
 
 The readers context's group, `fabrikk-readers`, has Kubernetes' `view` role cluster-wide (`infrastructure/readers/`):
 every workload, log, ConfigMap, event, Flux and cert-manager object, with Gateway API aggregated in, and never a
@@ -148,7 +148,7 @@ the file is safe to commit.
 | Setup | Files | Who decrypts | Recipients |
 |---|---|---|---|
 | Cluster files | `*.enc.yaml` under `apps/`, `artifacts/`, `infrastructure/` | Flux, on apply, with the cluster's own key | `cluster-dataverket-prod` (Secret `flux-system/sops-age`, generated in-cluster, decision 003), `beddari`, `linus` |
-| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/swamp-fabrikk-infra.txt` on the swamp host, named in the vault config), `beddari`, `linus` |
+| Swamp vault | `vaults/infra/<key>.enc.json`, one file per secret | The swamp models in `models/`, on every run | `swamp-fabrikk-infra` (`~/.config/sops/age/swamp-fabrikk-infra.txt` on each swamp host, named in the vault config; one key per host, listed in `.sops.yaml` as `swamp-fabrikk-infra.<host>`), `beddari`, `linus` |
 | Operator values | `vaults/operator/**/*.enc.json` (and `.enc.yaml`) | Nothing automated. A person, with a touch | `beddari`, `linus`, and no process key at all |
 
 **Cluster files** are Secret manifests with only `data`/`stringData` encrypted, so kind, name and namespace stay
@@ -173,7 +173,9 @@ so that scheduled runs decrypt unattended; it is never a recipient of a cluster 
 `swamp-fabrikk-infra.txt` beside `keys.txt`, and nothing loads it unless named: the vault config names it by file
 name, `ageKeyName`, and the vault type hands that file to its own `sops` calls when it exists and the caller has
 exported no `SOPS_AGE_KEY_FILE`. A name, not a path, so the config carries no operator's home and a clone needs no
-shell setup. `sops` from a terminal reads `keys.txt`, which holds the YubiKey identities and no plain key, so a
+shell setup. Every swamp host has a key of its own under that one file name, generated on the host and never copied
+(decision 002), so one `ageKeyName` names all of them; what tells them apart is the public key, which `.sops.yaml`
+and `agePublicKey` list once per host as `swamp-fabrikk-infra.<host>`. `sops` from a terminal reads `keys.txt`, which holds the YubiKey identities and no plain key, so a
 person always touches; swamp on a host without the file falls through to the same and shows up as a touch prompt,
 never as a silent read. A model whose output schema marks a field sensitive writes into this vault too, under a
 generated key; `swamp vault audit-trail --vault infra` shows who wrote what.
@@ -191,6 +193,10 @@ YubiKey is touched.
 **Adding an operator** is a few edits and one re-encryption: their key in all three rules of `.sops.yaml` and in
 the vault's `agePublicKey`, then `sops updatekeys` on every `*.enc.yaml` cluster file and every file under
 `vaults/infra/`, with a YubiKey that is already a recipient. Removing one is the same with the key taken out.
+**Adding a swamp host** is the same on one store: the host's key, generated there as `swamp-fabrikk-infra.txt`, goes
+into the `vaults/infra/` rule as `swamp-fabrikk-infra.<host>` and into `agePublicKey`, then `sops updatekeys` on the
+files under `vaults/infra/`. The cluster files and `vaults/operator/` never gain a process key. Step by step:
+`docs/runbooks/second-swamp-host.md`.
 
 Decision 006 said the same thing about two repositories: a credential the cluster uses is authored here and the
 software factory copies it, never the other way around. Inside this repository it reads as "origin first", which
@@ -278,3 +284,6 @@ task decisions:index  # rewrite docs/decisions/README.md from the records
 ```
 
 New shape, new record: a decision is not edited to change its meaning once accepted.
+
+`docs/runbooks/`: how a rare job is done on what exists now, one file per job, named after the job and edited as
+the job changes. The shape and the index are in `docs/runbooks/README.md`.
