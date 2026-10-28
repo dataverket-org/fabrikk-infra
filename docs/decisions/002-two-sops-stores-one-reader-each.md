@@ -96,4 +96,20 @@ the shared S3 datastore on osl1, follows the same rule: one key per process, and
 rule forbids was weighed and declined, because two hosts on one key cannot be revoked apart and the key would become
 material at rest in the repository.
 
-**Action Required:** The second host's key, added by its owner with their own YubiKey.
+**Action Required:** The other operator's host, by its owner with their own YubiKey; the holder of the key of
+2026-09-20, or its removal.
+
+### 2026-10-28 (later the same day)
+
+**Status:** Implemented for the first host
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| `swamp-fabrikk-infra.jubilato`, generated on the laptop, a recipient of `vaults/infra/` only | `.sops.yaml`, the vault config, nine files re-encrypted | done, `docs/runbooks/swamp-host-key.md` |
+| Vault reads on that host without a touch | `swamp vault audit-trail --vault infra` | verified: forgejo, codeberg and github from a non-interactive shell |
+
+**Summary:** The runbook was run once, on jubilato. The key of 2026-09-20 stays a recipient until its holder is found.
+
+**Action Required:** The other operator's host; the key of 2026-09-20.

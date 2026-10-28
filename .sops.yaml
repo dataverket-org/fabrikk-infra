@@ -16,6 +16,7 @@
 #     (no host)            age15d64...         made 2026-09-20 with the vault; the host that holds its file is to
 #                                              be confirmed (not jubilato, checked 2026-10-28). If none does, an
 #                                              operator removes it with sops updatekeys.
+#     .jubilato            age13ekym...        beddari's laptop, since 2026-10-28
 # - beddari                age1yubikey1q0d8... YubiKey serial 19668198 (PIN once, touch always)
 # - linus                  age1yubikey1qwt...  YubiKey, since 2026-09-20
 #
@@ -28,6 +29,7 @@
 identities:
   cluster-dataverket-prod: &cluster_dataverket_prod age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
   swamp-fabrikk-infra: &swamp_fabrikk_infra age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
+  swamp-fabrikk-infra.jubilato: &swamp_fabrikk_infra_jubilato age13ekym2x2qcelhvf6p6trs4h9e5u4v8z3hsrxpp3e5jchl7dxtp2q5qu0tn
   beddari: &beddari age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
   linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
 
@@ -50,6 +52,7 @@ creation_rules:
     key_groups:
       - age:
           - *swamp_fabrikk_infra
+          - *swamp_fabrikk_infra_jubilato
           - *beddari
           - *linus
   # Every other folder under vaults/: the operators alone, until a rule above names a process (decision 016).

@@ -1,8 +1,8 @@
 # Runbook: a process key for a swamp host
 
-Written 2026-10-28 ahead of the shared S3 datastore on osl1, for any host that runs swamp here. Not yet run. It
-applies to any host that runs swamp here and has no key file of its own, which on 2026-10-28 is every host: the
-key made with the vault on 2026-09-20 is on none of them.
+Written 2026-10-28 ahead of the shared S3 datastore on osl1, for any host that runs swamp here, and run on jubilato
+the same day. It applies to any host that runs swamp here and has no key file of its own; the key made with the
+vault on 2026-09-20 is on none of the hosts checked.
 
 ## Why
 
