@@ -7,6 +7,6 @@ config:
   # when the file is there (decision 002; README, Secrets). No path, no home.
   ageKeyName: swamp-fabrikk-infra
   agePublicKey: >-
-    age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v,age13ekym2x2qcelhvf6p6trs4h9e5u4v8z3hsrxpp3e5jchl7dxtp2q5qu0tn,age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+    age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v,age13ekym2x2qcelhvf6p6trs4h9e5u4v8z3hsrxpp3e5jchl7dxtp2q5qu0tn,age17g59fkctkr4um3lwkflt8vd94hakawx6sf22ylxlayrnel0xg9zsakccqz,age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
 auditReads: true
 createdAt: '2026-09-20T17:29:04.583Z'
