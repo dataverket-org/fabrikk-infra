@@ -43,7 +43,7 @@ jobs:
           modelIdOrName: registry
           methodName: digest
           inputs:
-            refs: ["nats:2.15.0-alpine"]
+            refs: ["registry.dataverket.org/mirror/docker.io/library/nats:2.15.0-alpine"]
       - name: mirror-digest-read
         description: This run read a digest for the mirror tag.
         dependsOn:
@@ -53,7 +53,7 @@ jobs:
         task:
           type: assert
           expr: >-
-            data.latest("registry", "digest-registry.dataverket.org-mirror-nats-2.15.0-alpine").attributes.digest.matches("^sha256:[0-9a-f]{64}$")
+            data.latest("registry", "digest-registry.dataverket.org-mirror-docker.io-library-nats-2.15.0-alpine").attributes.digest.matches("^sha256:[0-9a-f]{64}$")
           message: >-
-            The registry did not give a digest for mirror/nats:2.15.0-alpine: ${{ data.latest("registry", "digest-registry.dataverket.org-mirror-nats-2.15.0-alpine").attributes }}
+            The registry did not give a digest for mirror/docker.io/library/nats:2.15.0-alpine: ${{ data.latest("registry", "digest-registry.dataverket.org-mirror-docker.io-library-nats-2.15.0-alpine").attributes }}
           severity: high

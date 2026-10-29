@@ -4,6 +4,8 @@
 # through Zitadel (Secret zot-oidc); OIDC users are identified by email, so grant them in accessControl by email.
 # They mint API keys in the UI for docker/skopeo.
 # No delete for anyone yet: promotion retags, it never removes.
+# compat docker2s2 takes Docker's manifest media types as they are: zot refuses them by default, and a mirror copied
+# by digest must keep the upstream's bytes, so registry.k8s.io's lists and Docker Hub's older images stay as pushed.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,6 +28,7 @@ data:
         "externalUrl": "https://registry.dataverket.org",
         "readTimeout": "5m",
         "writeTimeout": "5m",
+        "compat": ["docker2s2"],
         "auth": {
           "htpasswd": { "path": "/secret/htpasswd" },
           "openid": {

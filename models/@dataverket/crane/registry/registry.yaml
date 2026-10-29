@@ -1,5 +1,5 @@
 type: '@dataverket/crane/registry'
-typeVersion: 2026.10.29.1
+typeVersion: 2026.10.29.2
 id: 85d372c4-7812-4ee9-bd06-6a7eab3b434f
 name: registry
 version: 1
@@ -7,9 +7,11 @@ tags: {}
 # The Dataverket registry as a mirror target, through @dataverket/crane: upstream images are copied here by
 # digest so nothing in a fragment or a manifest references an upstream location. Push credential from the infra
 # vault (owned by the cluster repo). A source names the digest to copy and the tag the mirror gets; the image lands
-# under mirror/<last path segment of the source>.
+# under mirror/<source registry>/<path>, mirror/docker.io/library/nats, the path a Talos or containerd registry
+# mirror asks for: one mirror per upstream, endpoint https://registry.dataverket.org/v2/mirror/<upstream>,
+# overridePath true.
 # Usage: swamp model method run registry copy --input 'sources:json=["docker.io/library/nats:2.15.0-alpine@sha256:<digest>"]'
-#        swamp model method run registry digest --input 'refs:json=["nats:2.15.0-alpine"]'   # read-only, under mirror/
+#        swamp model method run registry digest --input 'refs:json=["registry.dataverket.org/mirror/docker.io/library/nats:2.15.0-alpine"]'   # read-only
 globalArguments:
   registry: registry.dataverket.org
   namespace: mirror

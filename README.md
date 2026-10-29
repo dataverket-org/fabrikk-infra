@@ -258,7 +258,7 @@ swamp workflow run fleet-volumes                      # every node's disks, part
 swamp model method run runner-pods list               # context dataverket-prod-readers
 swamp model method run runner-events getWarnings      # the same namespace's warning events, same context
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
-swamp model method run registry copy --input 'sources:json=["<upstream>:<tag>@sha256:<digest>"]'   # into mirror/<name>, @dataverket/crane
+swamp model method run registry copy --input 'sources:json=["<upstream>:<tag>@sha256:<digest>"]'   # into mirror/<upstream registry>/<path>, @dataverket/crane
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
 swamp workflow run worker-join --input name=dataverket-wrkr-N   # one half of a worker swap, docs/storage.md
 swamp model method run hov1-s3 check                  # the hov1 gateway against its rules; inventory needs the root key, vaults/operator/README.md

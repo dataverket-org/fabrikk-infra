@@ -290,8 +290,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/crane": {
-    "version": "2026.10.29.1",
-    "pulledAt": "2026-10-29T10:03:56.692Z",
+    "version": "2026.10.29.2",
+    "pulledAt": "2026-10-29T21:11:01.954Z",
     "files": [
       ".agents/skills/crane",
       ".claude/skills/crane",
@@ -302,8 +302,8 @@
       ".swamp/pulled-extensions/@dataverket/crane/workflows/workflow-8cbf0907-ea6e-4a8f-8da9-5d7292478ffd.yaml",
       ".swamp/pulled-extensions/@dataverket/crane/workflows/workflow-a6bbc439-9318-42e8-8ae4-50c8d927ab11.yaml"
     ],
-    "checksum": "cb99a38cb165162140ea8d9d507cd1b118247e84cf8ec95dd69de56c898e584e",
-    "filesChecksum": "71607f86aa2b473ebc6e488c5b406456feeb8666a9276c3b0aa6488f33af4e0d",
+    "checksum": "e18ef31841ca08e9934f1444d5ab6a3696d6fee20f6f34a4a126362e8aa2a0a2",
+    "filesChecksum": "b3317e7edbda15584dc8315270cdfc4a20a3cefc088ce2a3a0226a8685b38611",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
