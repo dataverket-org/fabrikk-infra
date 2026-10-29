@@ -15,6 +15,7 @@
 #                                              file. A second swamp repository gets its own swamp-<repo> key.
 #     -mio                 age15d64...         beddari's mio, since 2026-09-20, made with the vault
 #     -jubilato            age13ekym...        beddari's laptop, since 2026-10-28
+#     -linuss-macbook-air  age17g59f...        linus's laptop, since 2026-10-29
 # - beddari                age1yubikey1q0d8... YubiKey serial 19668198 (PIN once, touch always)
 # - linus                  age1yubikey1qwt...  YubiKey, since 2026-09-20
 #
@@ -28,6 +29,7 @@ identities:
   cluster-dataverket-prod: &cluster_dataverket_prod age1g3x9w6x6wvskhtgn33wufdp2yn7vy8u3lf0f29r8nnkxuwrca4pscvydqy
   swamp-fabrikk-infra-mio: &swamp_fabrikk_infra_mio age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
   swamp-fabrikk-infra-jubilato: &swamp_fabrikk_infra_jubilato age13ekym2x2qcelhvf6p6trs4h9e5u4v8z3hsrxpp3e5jchl7dxtp2q5qu0tn
+  swamp-fabrikk-infra-linuss-macbook-air: &swamp_fabrikk_infra_linuss_macbook_air age17g59fkctkr4um3lwkflt8vd94hakawx6sf22ylxlayrnel0xg9zsakccqz
   beddari: &beddari age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
   linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
 
@@ -51,6 +53,7 @@ creation_rules:
       - age:
           - *swamp_fabrikk_infra_mio
           - *swamp_fabrikk_infra_jubilato
+          - *swamp_fabrikk_infra_linuss_macbook_air
           - *beddari
           - *linus
   # Every other folder under vaults/: the operators alone, until a rule above names a process (decision 016).
