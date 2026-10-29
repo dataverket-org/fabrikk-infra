@@ -242,13 +242,15 @@ Cinder volume; the zot image itself comes from ghcr.io, pinned by digest.
 ## Operating models (swamp)
 
 This repository is also a swamp repository: `models/` holds the instances a human uses to operate what is deployed
-here, `extensions/models/` their custom methods, `workflows/` the release runner, the forge-to-GitHub mirror and
-the fleet disk survey, and `vaults/infra/` the credentials, one file per secret (decision 005). They came from
+here, every one of a published `@dataverket` extension listed in `extensions/models/upstream_extensions.json`,
+`workflows/` the release runner, the forge-to-GitHub mirror,
+the fleet disk survey and the platform health check, and `vaults/infra/` the credentials, one file per secret (decision 005). They came from
 `fabrikk` on 2026-09-18 so that the factory holds no credential for this cluster. Run them from this checkout, with
 `_bin` on `PATH` for the Flux model and `omnictl` and `talosctl` on `PATH` for the Omni and Talos models:
 
 ```sh
-swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, hov1-s3, runner-pods, dataverket-prod-*, <namespace>-pods, forgejo-events
+swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, hov1-s3, www, forum, zitadel-oidc, registry-api, runner-pods, dataverket-prod-*, <namespace>-pods, forgejo-events
+swamp workflow run health                             # the forge, both S3 gateways, www, forum, Zitadel's OIDC document, zot's /v2/ and a mirror digest, asserted; under half a minute, read-only
 swamp model method run forgejo health
 swamp model method run omni discover                  # the Talos fleet, read-only
 swamp model method run dataverket-prod-kustomizations reconcile --input name=apps --input namespace=flux-system --input withSource=true
@@ -256,7 +258,7 @@ swamp workflow run fleet-volumes                      # every node's disks, part
 swamp model method run runner-pods list               # context dataverket-prod-readers
 swamp model method run runner-events getWarnings      # the same namespace's warning events, same context
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
-swamp model method run registry copy --input source=<upstream>@sha256:<digest> --input name=<image> --input tag=<tag>
+swamp model method run registry copy --input 'sources:json=["<upstream>:<tag>@sha256:<digest>"]'   # into mirror/<name>, @dataverket/crane
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
 swamp workflow run worker-join --input name=dataverket-wrkr-N   # one half of a worker swap, docs/storage.md
 swamp model method run hov1-s3 check                  # the hov1 gateway against its rules; inventory needs the root key, vaults/operator/README.md

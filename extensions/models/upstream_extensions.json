@@ -266,5 +266,51 @@
     "filesChecksum": "d89759302b57f64eb963894bd1dcf7f99dfaea52c8b19d8c5d1a658e9f41d8e1",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
+  },
+  "@dataverket/platform-health": {
+    "version": "2026.10.29.1",
+    "pulledAt": "2026-10-29T10:26:51.988Z",
+    "files": [
+      ".swamp/pulled-extensions/@dataverket/platform-health/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/platform-health/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/platform-health/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/platform-health/workflows/workflow-a360195c-7a3a-45ad-9cdf-473fbf6be70c.yaml"
+    ],
+    "checksum": "45675c64363b88c30fd6d166c798f2b0b8e05131e04846c8537f50b0ec8ed331",
+    "filesChecksum": "d47d3e083ae7b0ded0c982d190f6b1169885730aba30f7e8f22ad2798a5509c6",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
+  },
+  "@dataverket/crane": {
+    "version": "2026.10.29.1",
+    "pulledAt": "2026-10-29T10:03:56.692Z",
+    "files": [
+      ".agents/skills/crane",
+      ".claude/skills/crane",
+      ".swamp/pulled-extensions/@dataverket/crane/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/crane/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/crane/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/crane/models/registry.ts",
+      ".swamp/pulled-extensions/@dataverket/crane/workflows/workflow-8cbf0907-ea6e-4a8f-8da9-5d7292478ffd.yaml",
+      ".swamp/pulled-extensions/@dataverket/crane/workflows/workflow-a6bbc439-9318-42e8-8ae4-50c8d927ab11.yaml"
+    ],
+    "checksum": "cb99a38cb165162140ea8d9d507cd1b118247e84cf8ec95dd69de56c898e584e",
+    "filesChecksum": "71607f86aa2b473ebc6e488c5b406456feeb8666a9276c3b0aa6488f33af4e0d",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
+  },
+  "@dataverket/http": {
+    "version": "2026.10.29.1",
+    "pulledAt": "2026-10-29T10:26:31.798Z",
+    "files": [
+      ".swamp/pulled-extensions/@dataverket/http/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/http/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/http/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/http/models/endpoint.ts"
+    ],
+    "checksum": "2b7d605078b242dfc6eb8929fbe1dae7e75da15b88b163f0eed4337096d78e9a",
+    "filesChecksum": "01a96329dda982fca128d22b6a30081ea0ea8cbb4bc246844ab44b8c94e43cc3",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   }
 }

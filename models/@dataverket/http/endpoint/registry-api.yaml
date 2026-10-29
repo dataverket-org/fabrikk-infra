@@ -1,0 +1,18 @@
+type: '@dataverket/http/endpoint'
+typeVersion: 2026.10.29.1
+id: 548a73cc-a497-4a11-9694-013579b45224
+name: registry-api
+version: 1
+tags: {}
+# The registry, zot, at its API root; anonymous pull is on, so /v2/ answers 200 without a credential. The
+# `registry` model reads a mirror digest with the ci credential beside this, in the health workflow.
+globalArguments:
+  url: 'https://registry.dataverket.org/v2/'
+  expectStatus: 200
+  followRedirects: true
+  maxRedirects: 5
+  bodyContains: ''
+  timeoutMs: 10000
+  caFile: ''
+  userAgent: swamp @dataverket/http
+methods: {}

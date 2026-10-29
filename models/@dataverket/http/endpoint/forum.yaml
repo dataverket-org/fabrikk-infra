@@ -1,0 +1,17 @@
+type: '@dataverket/http/endpoint'
+typeVersion: 2026.10.29.1
+id: 991532fa-33b2-4638-82f4-d1617cfdf3fb
+name: forum
+version: 1
+tags: {}
+# The forum, Zulip, at its front page. Plain GET, no credential.
+globalArguments:
+  url: 'https://forum.dataverket.org/'
+  expectStatus: 200
+  followRedirects: true
+  maxRedirects: 5
+  bodyContains: ''
+  timeoutMs: 10000
+  caFile: ''
+  userAgent: swamp @dataverket/http
+methods: {}

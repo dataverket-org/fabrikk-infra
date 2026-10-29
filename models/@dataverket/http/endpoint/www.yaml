@@ -1,0 +1,18 @@
+type: '@dataverket/http/endpoint'
+typeVersion: 2026.10.29.1
+id: 625717f0-ab8e-428e-b8d0-0c5e12584fc1
+name: www
+version: 1
+tags: {}
+# The public site, served by nginx from the www-site image (artifacts/www). Plain GET, no credential; a redirect
+# is followed and the final answer judged.
+globalArguments:
+  url: 'https://www.dataverket.org/'
+  expectStatus: 200
+  followRedirects: true
+  maxRedirects: 5
+  bodyContains: ''
+  timeoutMs: 10000
+  caFile: ''
+  userAgent: swamp @dataverket/http
+methods: {}

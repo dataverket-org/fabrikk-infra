@@ -1,0 +1,59 @@
+id: 87cb366f-e836-43b8-a37d-5a612899db9a
+name: health
+description: >-
+  The morning check: the forge, both S3 gateways, the public endpoints and the registry answer, in under half a
+  minute and without writing anything, using only what swamp reads from its vault. Every check is milliseconds;
+  the time is swamp committing one record per step to the S3 datastore, one after another. This file holds our names; the work is
+  done by @dataverket/platform-health, whose README says what a run does and what it never does, and by one
+  crane digest. The forge is forgejo (git.dataverket.org), read with its vault token. The gateways are osl1-s3
+  (dataverket.s3.osl1.dvkt.no, unsigned GET on the S3 port) and hov1-s3 (the hov1 site by address, its private CA
+  pinned). The endpoints are www (the site), forum (Zulip), zitadel-oidc (the OIDC discovery document, which must
+  name its authorization endpoint) and registry-api (zot's /v2/, anonymous pull), each a plain GET with no
+  credential. The registry is read through the registry model with the vault's ci credential: the digest of the
+  nats mirror tag, which proves the login as well as the registry. A gateway or endpoint slower than two seconds
+  fails the run, as does a forge that answers unhealthy, a gateway or endpoint that does not answer, or a mirror
+  tag whose digest cannot be read. Each model's own status, health or digest record gets a new version per run,
+  so their history is the uptime log. Not checked here, by choice: Omni, OpenStack and the cluster's Flux, whose
+  credentials live on an operator's host and not in the vault. Run it by hand any time, and as the first thing
+  after a change to Envoy, the gateways, the forge, the registry or the site.
+tags:
+  factory: platform
+version: 1
+jobs:
+  - name: check
+    steps:
+      - name: platform
+        description: Every forge, gateway and endpoint this repository operates, by model name; nothing here carries a value.
+        task:
+          type: workflow
+          workflowIdOrName: "@dataverket/platform-health"
+          inputs:
+            forgeModels: [forgejo]
+            gatewayModels: [osl1-s3, hov1-s3]
+            endpointModels: [www, forum, zitadel-oidc, registry-api]
+            maxLatencyMs: 2000
+  - name: registry
+    steps:
+      - name: mirror-digest
+        description: >-
+          The digest the nats mirror tag points at, read with the ci credential from the vault; a login or a
+          registry that fails is a failed step, a moved tag is a record that says changed.
+        task:
+          type: model_method
+          modelIdOrName: registry
+          methodName: digest
+          inputs:
+            refs: ["nats:2.15.0-alpine"]
+      - name: mirror-digest-read
+        description: This run read a digest for the mirror tag.
+        dependsOn:
+          - step: mirror-digest
+            condition:
+              type: succeeded
+        task:
+          type: assert
+          expr: >-
+            data.latest("registry", "digest-registry.dataverket.org-mirror-nats-2.15.0-alpine").attributes.digest.matches("^sha256:[0-9a-f]{64}$")
+          message: >-
+            The registry did not give a digest for mirror/nats:2.15.0-alpine: ${{ data.latest("registry", "digest-registry.dataverket.org-mirror-nats-2.15.0-alpine").attributes }}
+          severity: high
