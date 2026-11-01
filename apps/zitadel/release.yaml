@@ -22,9 +22,22 @@ spec:
   values:
     zitadel:
       configmapConfig:
-        ExternalDomain: zitadel.dataverket.org
+        # The name the instance is moving to (docs/plans/2026-11-zitadel-auth-osl1.md). Setup adds it beside
+        # zitadel.dataverket.org and removes nothing, so both names serve until the old one is retired.
+        ExternalDomain: auth.osl1.dvkt.no
+        # The public port, so the console's redirect URIs and the login's audience carry no :8080.
+        ExternalPort: 443
         ExternalSecure: true
       masterkeySecretName: zitadel-masterkey
+    login:
+      # The chart's .env without X-Zitadel-Public-Host: with it every browser login would belong to ExternalDomain;
+      # without it the browser's own host is the public host, so each name keeps its passkeys and no trusted domain
+      # is needed. The audience stays right: the server checks it against ExternalDomain and ExternalPort.
+      customConfigmapConfig: |
+        ZITADEL_LOGINCLIENT_KEYFILE="/login-service-key/tls.key"
+        AUDIENCE="https://${ZITADEL_EXTERNALDOMAIN}"
+        ZITADEL_API_URL="http://zitadel:8080"
+        CUSTOM_REQUEST_HEADERS="Host:${ZITADEL_EXTERNALDOMAIN}"
     env:
       - name: ZITADEL_DATABASE_POSTGRES_DSN
         valueFrom:
