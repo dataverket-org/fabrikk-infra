@@ -2,7 +2,7 @@
 #
 # Every encrypted file in this repository is encrypted to the recipients its
 # rule in .sops.yaml names, and to nobody else. This says so out loud, so that
-# decision 009 does not depend on anyone remembering it: one key per decrypting
+# decision 002 does not depend on anyone remembering it: one key per decrypting
 # process, and neither store's key on the other store's files.
 #
 # It reads the identities and the creation rules from .sops.yaml, matches every
@@ -58,7 +58,7 @@ function rule_patterns()
 #
 # Prints the age recipients a rule names, one per line. key_groups is the form
 # this repository uses; a flat comma-separated `age` is accepted too, since
-# that is what sops writes by hand and what this file used before.
+# that is what sops writes by hand.
 #
 function rule_recipients()
 {
@@ -194,6 +194,9 @@ function check_vault_config()
 	return 0
 }
 
+#
+# Stops unless yq and jq are on PATH.
+#
 require_yq_and_jq()
 {
 	command -v yq >/dev/null || fail "yq is not on PATH"

@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 #
 # The password managers a reference can name, for any script in bin/. Sourced,
-# never run; needs logging.sh first. bin/with-secrets is how a task uses it.
+# never run; needs logging.sh first. bin/with-secrets is how a task uses it,
+# and human_login (share/admin/openstack.sh) for the OpenStack password.
 #
 # A reference says where a value lives and is not itself a secret, so it may
 # sit in a taskfile or your environment. By convention the reference for NAME

@@ -170,7 +170,6 @@ function zitadel_login()
 		return 1
 	fi
 
-	# The login UI the config names, when it names one, with the same code.
 	if [[ -n "$zitadel_login_url" ]]; then
 		url="$zitadel_login_url/device?user_code=$user_code"
 	fi

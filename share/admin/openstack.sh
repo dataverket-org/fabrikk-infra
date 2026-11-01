@@ -47,9 +47,8 @@ function require_human_cloud()
 #
 # Warns when the openstack on PATH is not Homebrew's, the one Brewfile
 # installs and these scripts are run with. A pipx install ahead of it on PATH
-# crashed with a TypeError on a credential Keystone no longer had, where
-# Homebrew's client says "not found", and the morning renewal failed on it
-# for two days.
+# crashes with a TypeError on a credential Keystone no longer has, where
+# Homebrew's client says "not found".
 #
 function warn_shadowed_openstack()
 {
@@ -89,7 +88,7 @@ function current_credential_id()
 # (ID, Name, Expires At, Roles as a list of objects) up to openstackclient 7,
 # lower case (id, name, expires_at, roles as one string) from 8, where the two
 # commands moved onto the SDK. `list` kept title case. Every reader below
-# accepts both, so operators on either client get the same answer.
+# accepts both.
 #
 function credential_record()
 {

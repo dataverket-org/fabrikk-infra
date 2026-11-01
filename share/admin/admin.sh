@@ -27,7 +27,7 @@
 #	OMNI_CONTEXT	The context in your omniconfig that reaches our Omni
 #	OS_CLOUD	The clouds.yaml entry you log in to our cloud with
 #	ZITADEL_CONTEXT	The context in your Zitadel config that reaches our Zitadel
-#	ZITADEL_PROJECTS	The Zitadel projects the operator key owns, space separated
+#	ZITADEL_PROJECTS	The projects the operator key owns, space separated
 #	ZITADEL_ORG	The name of the organization the operators are in
 #	ZITADEL_NAMESPACE	The namespace Zitadel runs in, for the bootstrap
 #	SWAMP_CLOUD	The clouds.yaml entry we write (default the repo name)
@@ -178,8 +178,8 @@ clock_slack=300                     # servers and this host disagree a little
 
 now="$(date +%s)"
 
-# RENEW=1 is what the renew step of `task admin:start` sets once it has found an item due, so
-# that the whole session is renewed together.
+# RENEW=1 is what the renew step of `task admin:start` sets once it has
+# found an item due, so that the whole session is renewed together.
 case "${RENEW:-0}" in
 	1|true|yes)	force_renew=1 ;;
 	*)		force_renew=0 ;;

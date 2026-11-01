@@ -2,9 +2,9 @@
 #
 # Whether the tier 2 session is due. Prints 1 on stdout when any item of ours
 # is due or absent and 0 when none is, and names what it found on stderr. The
-# renew step of admin:start reads that answer once and hands it to every item, so the
-# whole session is renewed together and expires together. Hand-made items are
-# never renewed, so they never make a session due either.
+# renew step of admin:start reads that answer once and hands it to every
+# item, so the whole session is renewed together and expires together.
+# Hand-made items are never renewed, so they never make a session due either.
 #
 
 # shellcheck source=share/admin/admin.sh

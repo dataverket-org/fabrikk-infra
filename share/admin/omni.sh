@@ -116,10 +116,9 @@ function omni_as_service_account()
 #
 # It answers "which accounts have a live key", not "which accounts exist". An
 # account whose keys have all expired drops out of it while its Identity stays
-# (seen 2026-09-29: swamp-fabrikk-infra-reader, the name in use then, created
-# 2026-09-28 with an 8h key, absent here, present in `omnictl get identities`,
-# and refused as AlreadyExists on create). Only create_service_account
-# concludes anything about existence.
+# (seen 2026-09-29: absent here, present in `omnictl get identities`, and
+# refused as AlreadyExists on create). Only create_service_account concludes
+# anything about existence.
 #
 function service_accounts()
 {
@@ -203,11 +202,11 @@ function write_key_file()
 }
 
 #
-# Creates the Reader service account and writes its key file. Omni refuses a
-# name it already holds even when `serviceaccount list` does not show it, which
-# is what an account with only expired keys looks like, so the refusal is taken
-# as "recreate it" rather than as a failure. `retried` stops that at one
-# destroy, so a name Omni keeps refusing fails loudly instead of looping.
+# Creates a service account with a role and writes its key file. Omni refuses
+# a name it already holds even when `serviceaccount list` does not show it,
+# which is what an account with only expired keys looks like, so the refusal
+# is taken as "recreate it" rather than as a failure. `retried` stops that at
+# one destroy, so a name Omni keeps refusing fails loudly instead of looping.
 #
 function create_service_account()
 {

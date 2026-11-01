@@ -56,8 +56,9 @@ env:
   # reference, never the secret. Export your own if yours is elsewhere, e.g.
   # passstore://nexthop/openstack or sops://~/.config/fabrikk/nexthop.enc.yaml.
   OS_PASSWORD_REF: pass://Personal/cloud.nexthop.no/password
-  # The roles the session's application credential carries: member for compute and networks, and Octavia's own
-  # load-balancer_member, without which the load balancer in front of Envoy cannot be read or repaired.
+  # The roles the session's application credential carries: member for
+  # compute and networks, and Octavia's own load-balancer_member, without
+  # which the load balancer in front of Envoy cannot be read or repaired.
   OS_ROLES: member load-balancer_member
   ZITADEL_CONTEXT: default
   # The projects the Zitadel operator key owns, and so the whole of what it can

@@ -3,7 +3,7 @@
 # Logging for every script in bin/, sourced and never run. Four functions print
 # their arguments as one line: log to stdout, warn and error to stderr, debug
 # only when enable_debug is 1; the first three show $HOME as ~. run calls
-# debug then the command, so --debug shows every external call. fail prints
+# debug then the command, so DEBUG=1 shows every external call. fail prints
 # and exits, and is the one function here that does.
 #
 
@@ -115,7 +115,7 @@ function error()
 	fi
 }
 
-# enable_debug is set from DEBUG in admin.sh.
+# The sourcing script sets enable_debug from DEBUG.
 
 #
 # Prints a debugging message, only if enable_debug is enabled.
