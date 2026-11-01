@@ -81,22 +81,11 @@ function require_zitadel_context()
 }
 
 #
-# Quotes one line of JSON for a double-quoted curl config line, which takes
-# \\ and \"; jq -c has already written any newline or tab inside a string as
-# an escape.
-#
-function curl_config_quote()
-{
-	local value="$1"
-
-	value="${value//\\/\\\\}"
-	printf '%s' "${value//\"/\\\"}"
-}
-
-#
 # Calls Zitadel with a bearer token and prints the response body. The token
 # and the body reach curl as config lines on stdin, so neither is in an
 # argument list or a debug line; a body may carry a password (zitadel-floor).
+# A curl config value is one double-quoted line with \\ and \" escaped, which
+# is what jq's tojson makes of the compacted body.
 #
 function zitadel_request()
 {
@@ -110,14 +99,13 @@ function zitadel_request()
 
 	if [[ -n "$body" ]]; then
 		args+=(-H "Content-Type: application/json")
-		body="$(jq -c . <<<"$body")" || return $?
+		body="$(jq -c tojson <<<"$body")" || return $?
 	fi
 
 	debug "curl $method $zitadel_url$path"
 	{
 		printf 'header = "Authorization: Bearer %s"\n' "$token"
-		[[ -z "$body" ]] ||
-			printf 'data = "%s"\n' "$(curl_config_quote "$body")"
+		[[ -z "$body" ]] || printf 'data = %s\n' "$body"
 	} | curl "${args[@]}" -K - "$zitadel_url$path"
 }
 
