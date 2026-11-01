@@ -81,15 +81,17 @@ function require_zitadel_context()
 }
 
 #
-# Quotes a value for a double-quoted curl config line, which takes \\ and \"
-# and nothing else that JSON needs.
+# Quotes a value for a double-quoted curl config line, which is one line and
+# takes the escapes \\ \" \n \t; jq prints bodies over several lines.
 #
 function curl_config_quote()
 {
 	local value="$1"
 
 	value="${value//\\/\\\\}"
-	printf '%s' "${value//\"/\\\"}"
+	value="${value//\"/\\\"}"
+	value="${value//$'\n'/\\n}"
+	printf '%s' "${value//$'\t'/\\t}"
 }
 
 #
