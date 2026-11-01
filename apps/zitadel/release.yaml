@@ -24,13 +24,6 @@ spec:
       configmapConfig:
         ExternalDomain: zitadel.dataverket.org
         ExternalSecure: true
-        FirstInstance:
-          Org:
-            Human:
-              UserName: "admin"
-              Email: "admin@dataverket.org"
-              Password: "nixdev-ziPrip-2tommo"
-              PasswordChangeRequired: true
       masterkeySecretName: zitadel-masterkey
     env:
       - name: ZITADEL_DATABASE_POSTGRES_DSN
