@@ -264,6 +264,22 @@ accounts, `zitadel-org managerList`.
 
 **Action Required:** Decide on the replica before goal D. Goal B asks for the floor.
 
+### 2026-11-01, goal B: the floor
+
+**Status:** Done, with the `iam-admin` check deferred.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| Nobody held the admin password | the operator | `bin/zitadel-floor` and `task admin:zitadel-floor` written: as you, through the device-flow login, the password in the Proton Pass item with the admin address in its email field is set on the account (`POST /v2/users/{id}/password`). Commits `17f5c4f`, `c7f4eed`, `53a5688` |
+| Two Proton Pass items share the title | `share/secrets.sh` | a `pass://` reference takes `?FIELD=VALUE`, matched by reading that field of each candidate |
+| A request body was an argument to curl | `share/admin/zitadel.sh` | every body now reaches curl as a config line on stdin, compacted by `jq -c` first; the first run failed on a multi-line body and was fixed |
+| The admin login works | `https://zitadel.dataverket.org/ui/console`, confirmed by you | the floor stands at the old name; it needs no passkey, so it will stand at the new one |
+| `task admin:zitadel-setup` as `iam-admin` | not run | deferred by your choice; the key is `IAM_OWNER` by the members list, so the machine floor is there in principle |
+| The install password left git | `apps/zitadel/release.yaml` | the `FirstInstance` block removed in its own commit. The ConfigMap changes, so this is the release's first helm upgrade: the `init` and `setup` hook Jobs run, and the pod rolls under a surge of one, which rehearses step 2's path |
+| Replica decision | you | re-clone `zitadel-db-2` before goal D, done by the agent |
+
+**Action Required:** Watch the first upgrade converge, then goal C.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
