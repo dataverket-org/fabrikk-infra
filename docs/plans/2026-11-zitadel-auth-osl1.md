@@ -220,10 +220,11 @@ the new name first and log in with it; Linus, the human `ORG_OWNER`, follows onl
 ## Goals to hand off
 
 Each goal is a scope that ends in a clean state: Flux converged, `swamp workflow run health` green, the change
-committed, and a dated line under the audit heading below. Work is local and commits are unsigned: the agent
-commits as you directly, with `--no-gpg-sign` since the repository's config asks for signatures, and pushes when
-you say. Stopping between goals is always safe. Rollback is one `git revert` unless the goal says otherwise, and
-what a revert leaves behind is named.
+committed, and a dated line under the audit heading below. The agent works on a branch, commits there unsigned
+and never pushes; you review, sign and merge to `main`, which is what Flux reads. Goals A to D ran under a one-off
+grant to commit and push `main` directly, and their fifteen commits were re-signed in place afterwards. Stopping
+between goals is always safe. Rollback is one `git revert` unless the goal says otherwise, and what a revert leaves
+behind is named.
 
 | # | Goal | Done when | Rollback | Needs a person for |
 |---|---|---|---|---|
