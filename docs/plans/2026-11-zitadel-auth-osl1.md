@@ -323,6 +323,19 @@ upgrade runs both Zitadel pods, and needs the Omni operator key; it gets its own
 **Action Required:** Goals E to G, one at a time, as people are ready: the registration links at the new name's
 console (you first, then Linus), the clients, the old name's retirement. The replica repair in its own window.
 
+### 2026-11-01, the replica
+
+**Status:** Done, 13:44 to 13:46 UTC, with no downtime and no drain.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| Instance 2 destroyed | `kubectl cnpg destroy zitadel-db 2`; the released PV `local-pv-47f3d4b8` deleted | the join pod was pending within seconds |
+| The slot came back by itself | the static provisioner republished the PV under the same name at 13:44:41, the new claim bound, and CNPG's join cleared the old directory and cloned from the primary | three instances healthy at LSN `3C/680154A8`, `ContinuousArchiving` True, cluster `Ready` |
+| The Talos reset | `dataverket-prod-talos-operator reset` on `10.0.0.141` with `u-pg-zitadel`: refused, `not authorized` | Omni's Operator role does not carry `os:admin`; the reset was not needed either, and you waived it with the outcome in hand. `docs/storage.md` corrected |
+| Zitadel | `zitadel` on `wrkr-8` and `zitadel-login` on `wrkr-6` untouched; health run green | nothing a user does changed |
+
+**Action Required:** None for the database. Goals E to G as above.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the

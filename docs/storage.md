@@ -82,8 +82,13 @@ kubectl cnpg destroy zitadel-db <instance> -n zitadel --context dataverket-prod-
   node that is gone. `kubectl cnpg destroy` that instance: CNPG joins a fresh replica on the new worker at once, under
   the same serial, cloned from the primary; measured at 68 seconds to three ready instances. Then delete the released
   `local` PV, which is cleanup. The `kubectl cnpg` plugin (Brewfile) needs the admin context.
-- **Destroying an instance on a worker that stays** is different: the class keeps a released PV's data, so reset the
-  partition first (`dataverket-prod-talos reset` with `u-pg-zitadel` named) before the PV is republished.
+- **Destroying an instance on a worker that stays** needs no reset. Done 2026-11-01 for `zitadel-db-2`, which had
+  looped for two weeks on a corrupt checkpoint: `kubectl cnpg destroy zitadel-db 2`, then delete the released
+  `local` PV. The static provisioner republishes the slot within seconds, the new claim binds to it, and CNPG's
+  join clears the old data directory itself before cloning from the primary: three ready instances at the same LSN
+  about a minute after the destroy, no pod moved. A Talos `reset` of the `u-pg-zitadel` partition, which this
+  section used to prescribe, is not available through Omni with the Operator key (`rpc error: ... not authorized`;
+  a reset needs `os:admin`, which only the break-glass talosconfig of decision 010 would carry) and is not needed.
 - **A Cinder volume can stay attached** to the retired server for about six minutes after Omni's wipe; the database
   on it is down for that long. A drain that waits for the volumes to detach is in `docs/plans/2026-10-talosctl-over-omni.md`.
 - **Check:** three workers in the group with three distinct `hostId`s, every node Ready, three ready Zitadel instances
