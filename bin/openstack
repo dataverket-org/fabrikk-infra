@@ -7,8 +7,8 @@
 # replaced or deleted; a hand-made entry is reported and left alone. Ours is
 # renewed with the rest or when due. An expired credential cannot read its
 # own record, so it is looked up as you before anything is decided. Safe to
-# rerun at any time. The OpenStack password comes from bin/with-secrets,
-# which the task runs this under, or is asked for once.
+# rerun at any time. The OpenStack password is resolved from OS_PASSWORD_REF,
+# or asked for once, only when a step logs in as you (human_login).
 #
 
 # shellcheck source=share/admin/admin.sh

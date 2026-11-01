@@ -85,8 +85,8 @@ it in `$EDITOR`; `decisions:index` rewrites the generated index.
 Settings are environment variables, not options: `RENEW=1`, `DEBUG=1`, `TIER2_TTL` for the shared lifetime,
 `OPERATOR` for the name a provider records you under, which defaults to `$USER`, and `OS_PASSWORD_REF` for where your
 OpenStack password lives: `pass://VAULT/ITEM/FIELD` (Proton Pass, active items only), `passstore://PATH` or
-`sops://FILE#FIELD`, resolved for one run at a time by `bin/with-secrets` (`share/secrets.sh`). Its default is in
-`taskfiles/admin.yml`.
+`sops://FILE#FIELD`, resolved for one run at a time (`share/secrets.sh`), and by the OpenStack step only when it logs
+in as you, so a run that keeps its credential opens no password manager. Its default is in `taskfiles/admin.yml`.
 
 A task prints one line per item: what it found, and what it did about it. `DEBUG=1` adds the files each script reads
 and may write, and every command it runs. Every line, debug included, also goes to

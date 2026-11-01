@@ -2,8 +2,8 @@
 #
 # Tier 1 session up. Opens Omni, whose login key lives a few hours, and Proton
 # Pass when OS_PASSWORD_REF is a pass:// reference, and checks the reference.
-# The openstack step resolves the password through bin/with-secrets for its
-# own run only, so no password stays in any environment. The first step of
+# The openstack step resolves the password for its own run only, and only
+# when it logs in as you, so no password stays in any environment. The first step of
 # `task admin:start`; `task admin:stop` closes what this opened.
 #
 

@@ -206,13 +206,18 @@ function credential_seconds_left()
 
 #
 # Makes sure the openstack CLI can log in as you without prompting on every
-# call: when neither OS_PASSWORD nor the entry carries a password, asks once
-# and exports it for the rest of the run. Call it at top level, not inside a
-# command substitution, or the export dies with the subshell. A password in
-# clouds.yaml is a tier 1 root credential on disk and is pointed out.
+# call: resolves OS_PASSWORD from OS_PASSWORD_REF, and when neither that nor
+# the entry carries a password, asks once and exports it for the rest of the
+# run. The one place the password manager is opened. Call it at top level,
+# not inside a command substitution, or the export dies with the subshell. A
+# password in clouds.yaml is a tier 1 root credential on disk and is pointed
+# out.
 #
 function human_login()
 {
+	[[ -n "$OS_PASSWORD" ]] && return
+
+	resolve_secret_into OS_PASSWORD
 	[[ -n "$OS_PASSWORD" ]] && return
 
 	if yq -e ".clouds.\"$human_cloud\".auth.password" "$clouds" \
@@ -304,10 +309,12 @@ function other_credentials()
 	local keep="$1"
 	local listing pairs credential name
 
-	listing="$(openstack --os-cloud "$os_cloud" application credential list \
-	           -f json 2>/dev/null)" ||
-	listing="$(openstack --os-cloud "$human_cloud" application credential \
-	           list -f json)" || return $?
+	if ! listing="$(openstack --os-cloud "$os_cloud" application credential \
+	                list -f json 2>/dev/null)"; then
+		human_login   # in a subshell: the password lasts this listing only
+		listing="$(openstack --os-cloud "$human_cloud" application \
+		           credential list -f json)" || return $?
+	fi
 
 	pairs="$(printf '%s' "$listing" |
 	         jq -r --arg keep "$keep" '

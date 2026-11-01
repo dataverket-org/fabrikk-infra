@@ -88,11 +88,17 @@ function proton_ref_by_id()
 
 	[[ "$rest" == */* ]] && field="/${rest#*/}"
 
+	# The listing is the session check too. On macOS every pass-cli call
+	# reads its key from the Keychain, which may ask for a password.
 	listing="$(pass-cli item list --vault-name "$vault" \
 	           --filter-state active --output json 2>/dev/null)" ||
 	listing="$(pass-cli item list --share-id "$vault" \
 	           --filter-state active --output json 2>/dev/null)" || {
-		warn "No vault $vault in Proton Pass, by name or by id"
+		if pass-cli info >/dev/null 2>&1; then
+			warn "No vault $vault in Proton Pass, by name or by id"
+		else
+			warn "pass-cli has no session, for $1"
+		fi
 		return 1
 	}
 
@@ -143,23 +149,9 @@ function sops_field()
 }
 
 #
-# Checks that a backend has a session to resolve with. A pass store needs
-# none of its own: gpg-agent asks for a passphrase or a touch when it decrypts,
-# and sops asks its age plugin or gpg-agent the same way.
-#
-function secret_session_open()
-{
-	case "$1" in
-		proton)		pass-cli info >/dev/null 2>&1 ;;
-		passstore)	return 0 ;;
-		sops)		return 0 ;;
-		*)		return 1 ;;
-	esac
-}
-
-#
-# Prints the secret a reference names. Prints nothing and fails when the
-# backend has no session or the entry is not there.
+# Prints the secret a reference names. Prints nothing, says why and fails
+# when the backend has no session or the entry is not there. Two pass-cli
+# calls: the listing and the value.
 #
 function resolve_secret()
 {
@@ -172,9 +164,11 @@ function resolve_secret()
 			pass-cli item view "$id_ref" 2>/dev/null
 			;;
 		passstore)
+			secret_present "$ref" || return 1
 			pass show "${ref#passstore://}" 2>/dev/null | head -n 1
 			;;
 		sops)
+			secret_present "$ref" || return 1
 			sops decrypt "$(sops_file "$ref")" 2>/dev/null |
 				yq -r -e "$(sops_field "$ref")" 2>/dev/null
 			;;
@@ -186,10 +180,10 @@ function resolve_secret()
 
 #
 # Checks that a reference names an entry that is there, without printing it
-# and, where the backend allows, without decrypting it: Proton Pass finds
-# the one active item in its listing, a pass store checks that the file
-# exists, and a sops file that the field is there, since sops leaves the keys
-# in clear.
+# and, where the backend allows, without decrypting it, and says why when it
+# is not: Proton Pass finds the one active item in its listing, a pass store
+# checks that the file exists, and a sops file that the field is there, since
+# sops leaves the keys in clear.
 #
 function secret_present()
 {
@@ -200,11 +194,13 @@ function secret_present()
 			proton_ref_by_id "$ref" >/dev/null
 			;;
 		passstore)
-			[[ -f "$(passstore_file "$ref")" ]]
+			[[ -f "$(passstore_file "$ref")" ]] ||
+				{ warn "$ref names nothing in pass"; return 1; }
 			;;
 		sops)
 			yq -e "$(sops_field "$ref")" "$(sops_file "$ref")" \
-				>/dev/null 2>&1
+				>/dev/null 2>&1 ||
+				{ warn "$ref names nothing in sops"; return 1; }
 			;;
 		*)
 			return 1
@@ -213,12 +209,10 @@ function secret_present()
 }
 
 #
-# Checks a reference without printing what it names, and says why when it is
-# no good: no backend for its scheme, that backend's CLI missing or without a
-# session, or no such entry. A pass store and a sops file are checked without
-# decrypting, so nothing asks for a touch here.
+# Checks that a reference's scheme names a backend whose CLI is on PATH, and
+# says why when not. Runs no CLI.
 #
-function secret_ref_usable()
+function secret_tool_usable()
 {
 	local ref="$1"
 	local backend tool
@@ -234,14 +228,20 @@ function secret_ref_usable()
 	if ! command -v "$tool" >/dev/null; then
 		warn "$tool is not on PATH, for $ref"
 		return 1
-	elif ! secret_session_open "$backend"; then
-		warn "$tool has no session, for $ref"
-		return 1
-	elif ! secret_present "$ref"; then
-		# Proton Pass has said why already.
-		[[ "$backend" == proton ]] || warn "$ref names nothing in $tool"
-		return 1
 	fi
+}
+
+#
+# Checks a reference without printing what it names, and says why when it is
+# no good: no backend for its scheme, that backend's CLI missing or without a
+# session, or no such entry. A pass store and a sops file are checked without
+# decrypting, so nothing asks for a touch here; Proton Pass is asked once.
+#
+function secret_ref_usable()
+{
+	local ref="$1"
+
+	secret_tool_usable "$ref" && secret_present "$ref"
 }
 
 #
@@ -266,7 +266,7 @@ function resolve_secret_into()
 
 	[[ -z "${!name:-}" && -n "$ref" ]] || return 0
 
-	if secret_ref_usable "$ref" &&
+	if secret_tool_usable "$ref" &&
 	   value="$(resolve_secret "$ref")" && [[ -n "$value" ]]; then
 		export "$name=$value"
 		log "$name from $ref, for this run"

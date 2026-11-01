@@ -14,8 +14,8 @@
 # The Omni login is a browser session. The OpenStack password reaches the
 # scripts as OS_PASSWORD: taken from the environment when set, else resolved
 # for that one run from the reference OS_PASSWORD_REF, in Proton Pass, a
-# passwordstore.org store or a sops file, by bin/with-secrets (share/
-# secrets.sh), which the openstack task runs it under, else typed once per run.
+# passwordstore.org store or a sops file (share/secrets.sh), when a step logs
+# in as you (human_login), else typed once per run.
 # Never a personal access token (invariant 1 of decision 001).
 #
 # Everything is an environment variable (decision 008). What this repository
@@ -121,9 +121,8 @@ os_role="${OS_ROLE:-member}"
 readers_group="fabrikk-readers"
 
 # Where your OpenStack password lives, as a reference whose scheme names the
-# password manager (share/secrets.sh). A reference, not a secret. The
-# openstack task resolves it into its own environment for the length of its
-# run, through bin/with-secrets.
+# password manager (share/secrets.sh). A reference, not a secret. human_login
+# resolves it into the openstack step's environment for the length of its run.
 os_password_ref="${OS_PASSWORD_REF:-}"
 
 omniconfig="${OMNICONFIG:-$HOME/.talos/omni/config}"

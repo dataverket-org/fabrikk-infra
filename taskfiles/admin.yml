@@ -28,7 +28,10 @@ version: '3'
 #
 # A task that needs a secret names it in front of its command, as
 # `bin/with-secrets NAME -- bin/<script>`, and finds it in NAME_REF: the
-# password manager is the wrapper's business, never the script's.
+# password manager is the wrapper's business, never the script's. The
+# openstack step is the exception: it resolves OS_PASSWORD_REF itself, through
+# the same share/secrets.sh, only when it logs in as you, so a run that keeps
+# its credential opens no password manager.
 #
 # What this repository administers is set below and nowhere else; the scripts
 # require every value and default none. A shell that exports one wins for that
@@ -135,10 +138,7 @@ tasks:
   zitadel-key:		{ cmds: [bin/zitadel-key],	env: { RENEW: '{{.RENEW}}' } }
   omni-operator-key:	{ cmds: [bin/omni-operator-key],	env: { RENEW: '{{.RENEW}}' } }
   zitadel-operator-key:	{ cmds: [bin/zitadel-operator-key],	env: { RENEW: '{{.RENEW}}' } }
-
-  openstack:
-    cmds: [bin/with-secrets OS_PASSWORD -- bin/openstack]
-    env:  { RENEW: '{{.RENEW}}' }
+  openstack:		{ cmds: [bin/openstack],	env: { RENEW: '{{.RENEW}}' } }
 
   # The account password for a zone is one value in the operator store, in
   # vaults/operator/nordhost/<zone, dots as _>.enc.json, unless
