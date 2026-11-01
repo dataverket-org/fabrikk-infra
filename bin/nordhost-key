@@ -69,8 +69,8 @@ case "${NORDHOST_DRY_RUN:-0}" in
 	*)		dry_run=0 ;;
 esac
 
-# fd 3 is the caller's stdout, for the key alone.
-exec 3>&1 1>&2
+# Everything this prints goes to stderr; the key goes only to the sops file.
+exec 1>&2
 
 #
 # Stops unless every named variable is set.

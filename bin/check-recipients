@@ -197,7 +197,7 @@ function check_vault_config()
 #
 # Stops unless yq and jq are on PATH.
 #
-require_yq_and_jq()
+function require_yq_and_jq()
 {
 	command -v yq >/dev/null || fail "yq is not on PATH"
 	command -v jq >/dev/null || fail "jq is not on PATH"
