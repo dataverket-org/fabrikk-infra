@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#
+# The floor under every Zitadel login: the human administrator the chart made
+# at install gets a password that a person holds, so that one account reaches
+# the console with no passkey, at whatever name the instance answers on. Runs
+# as you, through the browser login. The password is ZITADEL_ADMIN_PASSWORD,
+# filled by bin/with-secrets from ZITADEL_ADMIN_PASSWORD_REF, else asked for
+# once on the terminal; it goes to Zitadel in a request body on curl's stdin
+# and nowhere else. Safe to rerun: a run sets the password to what the entry
+# holds.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+#
+# Asks for the password once, on the terminal, when no reference filled it.
+#
+function ask_password()
+{
+	[[ -z "${ZITADEL_ADMIN_PASSWORD:-}" ]] || return 0
+
+	if [[ ! -t 0 ]]; then
+		error "ZITADEL_ADMIN_PASSWORD is empty and no terminal to ask on;" \
+		      "set ZITADEL_ADMIN_PASSWORD_REF to where it lives"
+		return 1
+	fi
+
+	read -rs -p "New password for $zitadel_admin_user (not echoed): " \
+		ZITADEL_ADMIN_PASSWORD || return $?
+	echo >&2
+	export ZITADEL_ADMIN_PASSWORD
+
+	if [[ -z "$ZITADEL_ADMIN_PASSWORD" ]]; then
+		error "No password given"
+		return 1
+	fi
+}
+
+#
+# Sets the named user's password, in your organization, to the one in
+# ZITADEL_ADMIN_PASSWORD. jq reads it from the environment: no argument.
+#
+function set_password()
+{
+	local name="$1"
+	local org user_id body
+
+	org="$(zitadel_org_id)" || return $?
+	user_id="$(zitadel_user_id "$name" "$org")" || return $?
+
+	if [[ -z "$user_id" ]]; then
+		error "No user $name in your organization"
+		return 1
+	fi
+
+	body="$(jq -n '{ newPassword: { password: env.ZITADEL_ADMIN_PASSWORD,
+	                                changeRequired: false } }')" || return $?
+	zitadel_api POST "/v2/users/$user_id/password" "$body" >/dev/null ||
+		return $?
+	log "Set the password of $name to the one in your password manager"
+}
+
+zitadel_admin_user="${ZITADEL_ADMIN_USER:-}"
+
+announce_files "$zitadelconfig" ""
+require_tools curl jq yq || exit $?
+require_zitadel_context || exit $?
+require_settings ZITADEL_ADMIN_USER
+
+warn "Sets the password of $zitadel_admin_user at $zitadel_url, as you"
+
+ask_password  || exit $?
+zitadel_login || fail "Could not log in to Zitadel as you!"
+
+set_password "$zitadel_admin_user"
+status=$?
+zitadel_logout
+ZITADEL_ADMIN_PASSWORD=""
+
+(( status == 0 )) || fail "The password of $zitadel_admin_user was not set!"
+log "Next: log in at $zitadel_url/ui/console as $zitadel_admin_user with it"

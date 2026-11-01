@@ -43,6 +43,17 @@ Three facts from the source decide the shape of the plan.
    (`internal/webauthn/webauthn.go`), so a passkey or U2F key registered at `zitadel.dataverket.org` is not usable
    at `auth.osl1.dvkt.no`. This is the one cost that lands on people, and the overlap exists so they can pay it at
    their own pace.
+4. **The login pod decides which name a browser login belongs to.** "Requested domain" means the public host when
+   one is sent, else the instance host (`internal/api/http/request_context.go`). The login pod sends both: the
+   browser's host as `x-zitadel-instance-host`, and whatever `CUSTOM_REQUEST_HEADERS` says as
+   `X-Zitadel-Public-Host`, which the chart sets to `ExternalDomain` (`configmap_login.yaml`). With the chart's
+   default a browser at the old name would, after step 2, present a public host of the new name: Zitadel refuses
+   that unless the new name is a trusted domain (`internal/query/instance.go`, `public domain not trusted`), and
+   if it were trusted every passkey would answer to the new name only. The login's own token is not the problem:
+   it is verified as a system token against the configured `ExternalDomain` (`cmd/start/start.go`), not against
+   the request. So step 2 overrides the login's `.env` with the chart's lines minus the public-host header. Then
+   the browser's host is both instance and public host, no trusted domain is needed, and each name keeps its own
+   passkeys. Read in the clones at `~/kode/zitadel` and `~/kode/zitadel-charts`, both at the running versions.
 
 ## Goals
 
@@ -89,7 +100,22 @@ is the whole need today.
 One file, one commit, the one step with a restart.
 
 `apps/zitadel/release.yaml`: `ExternalDomain: auth.osl1.dvkt.no` and, in the same change, `ExternalPort: 443`,
-so the console redirect URIs setup writes for the new name are the right ones and the `:8080` oddity ends.
+so the console redirect URIs setup writes for the new name are the right ones and the `:8080` oddity ends. And,
+for fact 4, the login's `.env` as the chart renders it today with one header fewer:
+
+```yaml
+    login:
+      customConfigmapConfig: |
+        ZITADEL_LOGINCLIENT_KEYFILE="/login-service-key/tls.key"
+        AUDIENCE="https://${ZITADEL_EXTERNALDOMAIN}"
+        ZITADEL_API_URL="http://zitadel:8080"
+        CUSTOM_REQUEST_HEADERS="Host:${ZITADEL_EXTERNALDOMAIN}"
+```
+
+The live ConfigMap `zitadel-login-config-dotenv` has the same four lines with `:8080` on the audience and
+`X-Zitadel-Public-Host:${ZITADEL_EXTERNALDOMAIN}` on the headers; the port goes because `ExternalPort` becomes 443,
+the header goes so that the browser's host decides which name a login belongs to. The audience stays right because
+the server checks the login's token against the same two values.
 
 What happens, in order: Flux reconciles the HelmRelease; the first helm upgrade of this release runs the `init`
 and `setup` hook Jobs; `config_change` adds `auth.osl1.dvkt.no` and `zitadel-obgyom.auth.osl1.dvkt.no` to the
@@ -140,8 +166,12 @@ When `authFactorList` shows every human with a usable factor at the new name and
 
 ## What is assumed and must be checked
 
-- `ExternalPort` is 8080 today, read from the console's redirect URIs and Zitadel's defaults, not from a config
-  dump. If a config read says otherwise, the `ExternalPort: 443` line is still right and changes less.
+- `ExternalPort` is 8080 today: the console's redirect URIs and the login's live audience,
+  `https://${ZITADEL_EXTERNALDOMAIN}:8080`, both say so. `ExternalPort: 443` changes the console URIs, the login's
+  audience and the server's system-token issuer together, all derived from the same two values.
+- There are no trusted domains today, and the instance's domains are `zitadel.dataverket.org` (primary) and the
+  generated `zitadel-obgyom.zitadel.dataverket.org`. Read with the reader key through `share/admin/zitadel.sh`,
+  since no swamp type reads them.
 - The hook Jobs run here for the first time. `--init-projections=true` on a three-instance CNPG inside 300 s is
   expected to be seconds; if the setup Job hits the deadline, raise `setupJob.activeDeadlineSeconds` and reset.
 - The Nordhost keys in `nordhost-config` are not near expiry (`task admin`); step 1 needs both a record and a
@@ -163,10 +193,11 @@ Read 2026-11-01 with `zitadel-user authFactorList` and `zitadel-org managerList`
 
 | Account | Holds | Works at the new name |
 |---|---|---|
-| `jibeddari@proton.me` | Two passkeys, nothing else; not a manager of `Operators` (instance roles are not readable through swamp yet) | No, until a passkey is registered there |
-| `linus@dataverket.org` | One passkey, nothing else; `ORG_OWNER` of `Operators` | No, until a passkey is registered there |
-| `admin@zitadel.zitadel.dataverket.org` | Password only, the install-time one in `release.yaml` unless it was changed; `ORG_OWNER` | Yes, a password is not bound to the name |
-| `iam-admin` | Machine, `ORG_OWNER`; its key is in the cluster Secret `task admin:zitadel-setup` reads | Yes, a signed JWT is not bound to the name |
+| `jibeddari@proton.me` | Two passkeys, nothing else; `IAM_OWNER` of the instance | No, until a passkey is registered there |
+| `linus@dataverket.org` | One passkey, nothing else; `IAM_OWNER`, and `ORG_OWNER` of `Operators` | No, until a passkey is registered there |
+| `admin@zitadel.zitadel.dataverket.org` | Password only, the install-time one in `release.yaml` unless it was changed, and nobody holds it elsewhere; `IAM_OWNER`, `ORG_OWNER` | Yes, once a password is known |
+| `iam-admin` | Machine, `IAM_OWNER`, `ORG_OWNER`; its key is in the cluster Secret `task admin:zitadel-setup` reads | Yes, a signed JWT is not bound to the name |
+| `fabrikk-infra-beddari-operator` | Machine, `PROJECT_OWNER` of the two projects in `ZITADEL_PROJECTS` and nothing else | Yes, but it can change no user and no setting |
 | `fabrikk-infra-beddari-reader` and `-operator` | Machine keys on the operator's host | Yes |
 | The cluster | Omni-issued kubeconfig; decision 015 is not built | Not Zitadel's business: a broken Zitadel login cannot stop a fix |
 
@@ -197,9 +228,9 @@ what a revert leaves behind is named.
 | # | Goal | Done when | Rollback | Needs a person for |
 |---|---|---|---|---|
 | A | **Baseline.** The read-only runs of step 0, `authFactorList` for all ten humans, the night's backup confirmed, this plan committed with the records' versions | Every record is dated today and the plan is pushed | Nothing to roll back | Confirming the Management Console login works today, and the barman backup through kubectl until a CNPG behavior exists |
-| B | **The floor.** The `admin@zitadel...` account logs in at the old name with a password that is not the git one, and `task admin:zitadel-setup` runs clean as `iam-admin` | Both are confirmed on the day, and the `FirstInstance` block has left `release.yaml` in its own commit | Nothing to roll back; the password change is not reverted | The console login and the password change |
+| B | **The floor.** Nobody holds the `admin@zitadel...` password, so it is set anew: `bin/zitadel-floor`, run as you through the same device-flow login `admin:start` uses (you are `IAM_OWNER`), reads a password you first put in Proton Pass through `bin/with-secrets` and sets it on the account; then you log in with it at the old name. `task admin:zitadel-setup` proving `iam-admin` is deferred by your choice | The login is confirmed, and the `FirstInstance` block has left `release.yaml` in its own commit | Nothing to roll back; the password change is not reverted | Creating the Proton Pass entry, running the task, the console login |
 | C | **The name.** Step 1: the listener, the certificate, the route, the second endpoint behavior | Certificate Ready, the A record resolves, the new name answers 404 with the `unable to set instance` text, the old name's health is unchanged | Revert. Left behind: the A record (external-dns is upsert-only) and the certificate Secret, both harmless; removing the record is by hand at Nordhost | Nothing |
-| D | **Tell Zitadel.** Step 2, after a fresh on-demand backup | Both endpoint checks 200 with their own issuer, the release reports an upgrade, the console's redirect URIs carry the new name, and `admin@zitadel...` has logged in at the new name with its password | Revert; setup reruns and the pods roll once more. Left behind: `auth.osl1.dvkt.no` as an extra instance domain, which cannot be removed without the System API and harms nothing. The old name never stops serving in either direction | The login check, and the backup until a CNPG behavior exists |
+| D | **Tell Zitadel.** Step 2, after the replica is re-cloned and a fresh on-demand backup taken: `ExternalDomain`, `ExternalPort: 443`, and the login's `.env` without the public-host header | Both endpoint checks 200 with their own issuer, the release reports an upgrade, the console's redirect URIs carry the new name, `admin@zitadel...` has logged in at the new name with its password, and you have logged in at the old name with your passkey as before | Revert; setup reruns and the pods roll once more. Left behind: `auth.osl1.dvkt.no` as an extra instance domain, which cannot be removed without the System API and harms nothing. The old name never stops serving in either direction | The two login checks, and the backup until a CNPG behavior exists |
 | E | **Passkeys at the new name.** At the new name's console, `admin@zitadel...` mints a passkey registration link for you; you register and log in with it; then the same for Linus. Each passkey is named for the name | `authFactorList` shows, for each of you, a passkey with an id newer than the setup run, and each has logged in with it | Nothing to roll back; the old passkeys stay valid at the old name until G | Both links, both registrations, both logins |
 | F | **The clients.** Step 3, one commit each: zot, Forgejo, Zulip, then the swamp definitions and the operator config files; `incus-01` is outside the repository and is yours | A login through Zitadel works at each client, and the swamp definitions answer at the new `apiUrl` | Revert the one client's commit; it restarts once more | One login per client; `incus-01` |
 | G | **Retire the old name.** Step 4, when every human who logs in has a factor at the new name and every client is moved | The old name answers 404 from Envoy, the health workflow carries only the new endpoint, the README and the deSEC plan name the new name | Revert; the old name works again within a minute as long as its A record and certificate exist, so the record is removed last, weeks later | The decision record's acceptance, and the record's removal at Nordhost |

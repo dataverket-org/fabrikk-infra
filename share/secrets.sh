@@ -11,7 +11,9 @@
 #
 #	pass://VAULT/ITEM/FIELD		Proton Pass, by name or by id, active
 #					items only; pass-cli keeps its own
-#					session (task admin:start)
+#					session (task admin:start). Two items
+#					with one title: add ?FIELD=VALUE, as in
+#					?email=me@example.org
 #	passstore://PATH		passwordstore.org, the first line of the
 #					entry; gpg-agent asks for what it needs
 #	sops://FILE#FIELD		A sops file's field (default value),
@@ -67,23 +69,60 @@ function passstore_file()
 }
 
 #
+# Keeps, of several Proton Pass items given as SHARE/ID lines, those whose
+# named field equals a value: the ?FIELD=VALUE selector of a reference, for
+# two items with one title. Reads that one field of each, compares, prints
+# nothing but the survivors.
+#
+function proton_select_by_field()
+{
+	local matches="$1"
+	local key="$2"
+	local value="$3"
+	local match
+
+	while read -r match; do
+		[[ -n "$match" ]] || continue
+		if [[ "$(pass-cli item view "pass://$match/$key" 2>/dev/null)" \
+		      == "$value" ]]; then
+			echo "$match"
+		fi
+	done <<<"$matches"
+}
+
+#
 # Prints a pass:// reference with its vault and item as ids, for one that may
 # name either by title. Only active items count: pass-cli resolves a title
-# against the trash as well, and may pick an item deleted long ago. Fails,
-# and says why, when no active item or more than one has the title. Reads
-# only the listing, which carries no field values.
+# against the trash as well, and may pick an item deleted long ago. Two active
+# items with one title are told apart by a ?FIELD=VALUE selector on the
+# reference, such as ?email=someone@example.org, matched against that field
+# of each. Fails, and says why, when no active item or more than one is left.
+# Reads the listing, which carries no field values, and the selector's field.
 #
 function proton_ref_by_id()
 {
 	local ref="${1#pass://}"
-	local vault="${ref%%/*}"
-	local rest="${ref#*/}"
-	local item="${rest%%/*}"
+	local selector=""
+	local vault rest item
 	local field=""
 	local listing matches
 
+	if [[ "$ref" == *\?* ]]; then
+		selector="${ref#*\?}"
+		ref="${ref%%\?*}"
+	fi
+
+	vault="${ref%%/*}"
+	rest="${ref#*/}"
+	item="${rest%%/*}"
+
 	if [[ "$rest" == "$ref" || -z "$vault" || -z "$item" ]]; then
 		warn "A Proton Pass reference is pass://VAULT/ITEM/FIELD: $1"
+		return 1
+	fi
+
+	if [[ -n "$selector" && "$selector" != *=?* ]]; then
+		warn "A Proton Pass selector is ?FIELD=VALUE: $1"
 		return 1
 	fi
 
@@ -107,12 +146,19 @@ function proton_ref_by_id()
 		select(.id == $item or .title == $item) |
 		.share_id + "/" + .id' <<<"$listing")" || return 1
 
+	if [[ -n "$selector" && "$(grep -c . <<<"$matches")" -gt 1 ]]; then
+		matches="$(proton_select_by_field "$matches" \
+		           "${selector%%=*}" "${selector#*=}")"
+	fi
+
 	case "$(grep -c . <<<"$matches")" in
 		1)	echo -n "pass://$matches$field" ;;
-		0)	warn "No active item $item in vault $vault"
+		0)	warn "No active item $item in vault $vault" \
+			     "${selector:+with $selector}"
 			return 1 ;;
 		*)	warn "More than one active item is $item in vault $vault"
-			warn "Name it by id: pass-cli item list $vault"
+			warn "Tell them apart with ?FIELD=VALUE, or name it by id:" \
+			     "pass-cli item list $vault"
 			return 1 ;;
 	esac
 }

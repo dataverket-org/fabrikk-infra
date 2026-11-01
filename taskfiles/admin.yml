@@ -66,6 +66,12 @@ env:
   ZITADEL_PROJECTS: fabrikk-infra-admin zulip
   ZITADEL_ORG: Operators
   ZITADEL_NAMESPACE: zitadel
+  # The human administrator the chart made at install, by its username, and
+  # where the password admin:zitadel-floor sets lives: the login item Proton
+  # Pass holds for the instance, picked by its email field since two items
+  # share the title. A reference, never the secret.
+  ZITADEL_ADMIN_USER: admin@zitadel.zitadel.dataverket.org
+  ZITADEL_ADMIN_PASSWORD_REF: pass://Personal/zitadel.dataverket.org/password?email=admin@zitadel.zitadel.dataverket.org
   # The zones whose Nordhost login keys the cluster holds, in
   # artifacts/cert-manager/nordhost-config.enc.yaml, and the name the keys
   # carry in Nordhost's panel before their expiry date. The cluster reaches
@@ -106,6 +112,11 @@ tasks:
   zitadel-setup:
     desc: "Once per Zitadel instance: its organization's name, the admin project, the login app"
     cmds: [bin/zitadel-bootstrap]
+
+  zitadel-floor:
+    desc: "The Zitadel admin account's password, set to the one in your password manager; the login that needs no passkey"
+    cmds:
+      - bin/with-secrets ZITADEL_ADMIN_PASSWORD -- bin/zitadel-floor
 
   # The steps. renew asks bin/due once and hands the answer to every item, so
   # the whole of tier 2 is renewed together and expires together.

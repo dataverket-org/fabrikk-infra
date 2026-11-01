@@ -81,8 +81,21 @@ function require_zitadel_context()
 }
 
 #
+# Quotes a value for a double-quoted curl config line, which takes \\ and \"
+# and nothing else that JSON needs.
+#
+function curl_config_quote()
+{
+	local value="$1"
+
+	value="${value//\\/\\\\}"
+	printf '%s' "${value//\"/\\\"}"
+}
+
+#
 # Calls Zitadel with a bearer token and prints the response body. The token
-# reaches curl on stdin, so it is in no argument list and no debug line.
+# and the body reach curl as config lines on stdin, so neither is in an
+# argument list or a debug line; a body may carry a password (zitadel-floor).
 #
 function zitadel_request()
 {
@@ -95,12 +108,15 @@ function zitadel_request()
 	args+=(-H "Accept: application/json")
 
 	if [[ -n "$body" ]]; then
-		args+=(-H "Content-Type: application/json" --data "$body")
+		args+=(-H "Content-Type: application/json")
 	fi
 
 	debug "curl $method $zitadel_url$path"
-	printf 'header = "Authorization: Bearer %s"\n' "$token" |
-		curl "${args[@]}" -K - "$zitadel_url$path"
+	{
+		printf 'header = "Authorization: Bearer %s"\n' "$token"
+		[[ -z "$body" ]] ||
+			printf 'data = "%s"\n' "$(curl_config_quote "$body")"
+	} | curl "${args[@]}" -K - "$zitadel_url$path"
 }
 
 #
