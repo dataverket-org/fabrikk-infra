@@ -285,6 +285,22 @@ through swamp.
 
 **Action Required:** Goal C.
 
+### 2026-11-01, goal C: the name
+
+**Status:** Done. Commit `ae11bb4`, applied by Flux at 12:49 UTC. Nothing a user does has changed.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The listener | `envoy-gateway`, `https-auth-osl1`: `Accepted`, `ResolvedRefs`, `Programmed` all True, one attached route | done |
+| The certificate | `auth-osl1-dvkt-no-tls`, Let's Encrypt, SAN `auth.osl1.dvkt.no`, valid to 2027-01-30; Ready two minutes after the push, through the Nordhost DNS-01 solver | done |
+| The record | `auth.osl1.dvkt.no` A `91.242.200.101` at `ns1.nordkapp.net` within a minute, from the route by external-dns | done |
+| The routes | `zitadel`: both parents `Accepted` and `ResolvedRefs`; `zitadel-redirect`: 301 to https at the new name | done |
+| Zitadel's answer at the new name | 404, `unable to set instance using origin &{auth.osl1.dvkt.no https} (ExternalDomain is zitadel.dataverket.org)`, TLS verified | the right answer before step 2 |
+| The new check | `zitadel-oidc-auth-osl1 health` v1: 404, TLS verified, body not matched | fails by design until D |
+| The old name | `zitadel-oidc health` v7: 200; health run `b6ebea08` green | unchanged |
+
+**Action Required:** Re-clone `zitadel-db-2`, then a fresh backup, then goal D.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
