@@ -55,3 +55,17 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    # Zitadel at the site's name (docs/plans/2026-11-zitadel-auth-osl1.md). One name and not a wildcard: a Gateway
+    # API wildcard spans more than one label and would overlap https-s3-osl1 on this port. The certificate comes
+    # from the annotation above, through DNS-01 on dvkt.no.
+    - name: https-auth-osl1
+      protocol: HTTPS
+      port: 443
+      hostname: "auth.osl1.dvkt.no"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: auth-osl1-dvkt-no-tls
+      allowedRoutes:
+        namespaces:
+          from: All

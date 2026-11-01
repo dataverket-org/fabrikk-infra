@@ -4,12 +4,18 @@ metadata:
   name: zitadel
   namespace: zitadel
 spec:
+  # Two names for one instance while it moves (docs/plans/2026-11-zitadel-auth-osl1.md): each attaches to the
+  # listener whose hostname it matches; external-dns makes the records from this route.
   parentRefs:
     - name: envoy-gateway
       namespace: envoy-system
       sectionName: https
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: https-auth-osl1
   hostnames:
     - "zitadel.dataverket.org"
+    - "auth.osl1.dvkt.no"
   rules:
     - matches:
         - path:
@@ -34,6 +40,7 @@ spec:
       sectionName: http
   hostnames:
     - "zitadel.dataverket.org"
+    - "auth.osl1.dvkt.no"
   rules:
     - filters:
         - type: RequestRedirect
