@@ -301,6 +301,27 @@ through swamp.
 
 **Action Required:** Re-clone `zitadel-db-2`, then a fresh backup, then goal D.
 
+### 2026-11-01, goal D: the instance is told
+
+**Status:** Done. Commit `0b3a9f4`, applied by Flux at 12:57 UTC; both names serve, nothing a user does has
+changed. The replica repair was deferred by your choice: it drains `dataverket-wrkr-6`, which since the first
+upgrade runs both Zitadel pods, and needs the Omni operator key; it gets its own window (`docs/storage.md`,
+"Destroying an instance on a worker that stays").
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The backup before | `Backup zitadel-db-before-rename-20261101`, method plugin, completed 12:56:00 to 12:56:06 UTC | applied from the ScheduledBackup's spec with kubectl; no CNPG behavior yet |
+| The upgrade | `dataverket-prod-helm`: `UpgradeSucceeded`, `zitadel.v3`; `zitadel-init` 4 s, `zitadel-setup` 10 s; both Deployments 1/1 updated; the only warnings are the new pods' startup and readiness probes | the roll under a surge of one, as rehearsed in B |
+| The names | instance domains read with the reader key: `zitadel.dataverket.org` (primary), `zitadel-obgyom.zitadel.dataverket.org`, `auth.osl1.dvkt.no`, `zitadel-obgyom.auth.osl1.dvkt.no`; no trusted domain | setup added, removed nothing, as fact 1 says |
+| The issuers | `https://zitadel.dataverket.org/.well-known/openid-configuration` says `https://zitadel.dataverket.org`; the same at `auth.osl1.dvkt.no` says `https://auth.osl1.dvkt.no`; `zitadel-oidc health` v9 and `zitadel-oidc-auth-osl1 health` v2 both 200 with the body matched | each name is its own issuer, as fact 2 says |
+| The console | redirect URIs v3: the two old `:8080` ones kept, `https://auth.osl1.dvkt.no/ui/console/auth/callback` and the generated one added, without a port | `ExternalPort: 443` did its work; the old URIs are harmless and leave with the old name |
+| The login pod | live `.env`: `AUDIENCE="https://${ZITADEL_EXTERNALDOMAIN}"`, `CUSTOM_REQUEST_HEADERS="Host:${ZITADEL_EXTERNALDOMAIN}"`, no public-host header; the login UI answers 200 at both names | fact 4 applied |
+| The two logins | `admin@zitadel...` with its password at `https://auth.osl1.dvkt.no/ui/console`; your passkey at `https://zitadel.dataverket.org/ui/console` as before, confirmed by you | the floor stands at the new name, and the overlap holds at the old |
+| The health workflow | carries `zitadel-oidc-auth-osl1` beside `zitadel-oidc` from now on; run `90523cc6` green | the uptime log covers both names |
+
+**Action Required:** Goals E to G, one at a time, as people are ready: the registration links at the new name's
+console (you first, then Linus), the clients, the old name's retirement. The replica repair in its own window.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
