@@ -274,7 +274,7 @@ accounts, `zitadel-org managerList`.
 | Two Proton Pass items share the title | `share/secrets.sh` | a `pass://` reference takes `?FIELD=VALUE`, matched by reading that field of each candidate |
 | A request body was an argument to curl | `share/admin/zitadel.sh` | every body now reaches curl as a config line on stdin, compacted by `jq -c` first; the first run failed on a multi-line body and was fixed |
 | The admin login works | `https://zitadel.dataverket.org/ui/console`, confirmed by you | the floor stands at the old name; it needs no passkey, so it will stand at the new one |
-| `task admin:zitadel-setup` as `iam-admin` | not run | deferred by your choice; the key is `IAM_OWNER` by the members list, so the machine floor is there in principle |
+| `task admin:zitadel-setup` as `iam-admin` | run by you after goal D, 2026-11-01: the key read from the cluster, the organization named `Operators`, project `fabrikk-infra-admin` and application `cli` there, nothing changed | the machine floor is proven, at the instance that now carries both names |
 | The install password left git | `apps/zitadel/release.yaml` | the `FirstInstance` block removed in its own commit. The ConfigMap changes, so this is the release's first helm upgrade: the `init` and `setup` hook Jobs run, and the pod rolls under a surge of one, which rehearses step 2's path |
 | Replica decision | you | re-clone `zitadel-db-2` before goal D, done by the agent |
 
