@@ -215,6 +215,24 @@ Plan written. Nothing applied. Baseline runs recorded through swamp: `zitadel-oi
 `dataverket-prod-helm list` (release `zitadel.v1`), `zitadel-user list` and `authFactorList` for the three admin
 accounts, `zitadel-org managerList`.
 
+### 2026-11-01, goal A: baseline
+
+**Status:** Done. Read-only; nothing in the cluster or in Zitadel changed.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The health workflow is green | run `e565ff82`, 11:59 UTC, 11 s; `zitadel-oidc health` v5, 200, TLS verified | baseline |
+| The release is at its first helm revision | `dataverket-prod-helm` `zitadel--zitadel` v4: `InstallSucceeded`, `zitadel.v1`, chart 10.0.4, app v4.15.3 | as the plan says: the pre-upgrade hooks have never run here |
+| The console's redirect URIs carry `:8080` | `zitadel-app` `app-zitadel-management-console` v2, both URIs | confirms `ExternalPort` is unset; step 2 sets 443 |
+| Apps listed in all six projects, settings read | `zitadel-app list` ×6, `zitadel-settings read` (`login-org` v2) | baseline |
+| Factors of all ten humans | `zitadel-user authFactorList` ×10; `frank_solli@icloud.com` is the login name, not the mail | seven have a passkey only (`jibeddari@proton.me` two, the rest one), `dataverket@km.krot.org` TOTP, and `admin@zitadel...`, `lars.solem.no@gmail.com`, `postmannen@gmail.com` have no factor at all, so a password or nothing. Every passkey holder needs goal E's link; the three without a factor are untouched by the move |
+| Org managers | `zitadel-org managerList` v1: `iam-admin`, `admin@zitadel...`, `linus@dataverket.org`, all `ORG_OWNER` | as the access table says |
+| The night's backup | `zitadel-db-daily-20261101033000`, `completed`, 03:30:00 to 03:30:05 UTC; the cluster's `LastBackupSucceeded` and `ContinuousArchiving` conditions True | confirmed, through kubectl: no CNPG behavior yet |
+| **The database runs on two of three instances** | `zitadel-db` phase `Failing over from zitadel-db-1 to zitadel-db-3`, unchanged since 2026-10-18 02:42 UTC; `zitadel-db-2` in `CrashLoopBackOff`, 4391 restarts, PostgreSQL `PANIC: could not locate a valid checkpoint record at 2A/7B000028` on every start; `Ready` False | pre-existing, not the move's. The primary `zitadel-db-3` and the replica `zitadel-db-1` are healthy and the backups come from the primary. The repair is a re-clone of instance 2 (its PVC removed, CNPG rebuilds it from the primary) and is a decision for a person before step 2, not part of goals A to D |
+| Stale pod records | `zitadel-pods` holds records for pods that no longer exist, so its latest set is not a live view | `dataverket-prod-deployments` is the live count: 1/1 for both |
+
+**Action Required:** Decide on the replica before goal D. Goal B asks for the floor.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
