@@ -1,0 +1,12 @@
+type: '@swamp/kubernetes/job'
+typeVersion: 2026.08.01.1
+id: f173a3c3-d279-4ddc-99c2-a16626a85889
+name: zitadel-jobs
+version: 1
+tags: {}
+# The chart's init and setup Jobs, pre-upgrade hooks that run zitadel setup before the pods change;
+# read here so that an upgrade's first act is visible without kubectl.
+globalArguments:
+  namespace: zitadel
+  context: dataverket-prod-admin
+methods: {}

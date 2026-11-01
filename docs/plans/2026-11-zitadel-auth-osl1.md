@@ -278,7 +278,12 @@ accounts, `zitadel-org managerList`.
 | The install password left git | `apps/zitadel/release.yaml` | the `FirstInstance` block removed in its own commit. The ConfigMap changes, so this is the release's first helm upgrade: the `init` and `setup` hook Jobs run, and the pod rolls under a surge of one, which rehearses step 2's path |
 | Replica decision | you | re-clone `zitadel-db-2` before goal D, done by the agent |
 
-**Action Required:** Watch the first upgrade converge, then goal C.
+| The first upgrade converged | `dataverket-prod-helm` v5 then ready: `UpgradeSucceeded`, `zitadel.v2`; `zitadel-jobs listJobs`: `zitadel-init` 11 s, `zitadel-setup` 36 s, both succeeded; new `zitadel` and `zitadel-login` pods at 12:44:57 UTC, 1/1 each; health run `5c4b07df` green, `zitadel-oidc health` v6 at 200 | the path step 2 takes is proven: hooks, then a roll under a surge of one, with the old name answering throughout |
+
+A behavior `zitadel-jobs` (`@swamp/kubernetes/job`, namespace `zitadel`) was added so the hook Jobs are read
+through swamp.
+
+**Action Required:** Goal C.
 
 ## Not in this plan
 
