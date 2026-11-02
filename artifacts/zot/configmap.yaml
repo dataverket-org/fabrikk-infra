@@ -48,7 +48,7 @@ data:
               "anonymousPolicy": ["read"],
               "defaultPolicy": ["read"],
               "policies": [
-                { "users": ["fabrikk-ci"], "actions": ["read", "create", "update"] }
+                { "users": ["fabrikk-ci", "linus@dataverket.org"], "actions": ["read", "create", "update"] }
               ]
             },
             "tools/**": {
