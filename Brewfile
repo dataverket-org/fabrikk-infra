@@ -8,6 +8,7 @@ tap "fluxcd/tap"
 
 brew "siderolabs/tap/omnictl"
 brew "talosctl"
+brew "kubelogin"
 brew "kubernetes-cli"
 brew "kubectl-cnpg"             # kubectl cnpg: promote, status and backup for CloudNativePG clusters
 brew "openstackclient"
