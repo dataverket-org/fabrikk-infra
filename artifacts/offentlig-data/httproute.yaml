@@ -1,0 +1,36 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: offentlig-data
+  namespace: offentlig-data
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: https
+  # Covered by the wildcard certificate; external-dns makes the record from this route.
+  hostnames:
+    - "offentlig-data.dataverket.org"
+  rules:
+    - backendRefs:
+        - name: offentlig-data
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: offentlig-data-redirect
+  namespace: offentlig-data
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: http
+  hostnames:
+    - "offentlig-data.dataverket.org"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

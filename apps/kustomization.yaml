@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - forgejo
   - forgejo-runners
+  - offentlig-data
   - www
   - versitygw
   - zitadel
