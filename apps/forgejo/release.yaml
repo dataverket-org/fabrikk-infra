@@ -12,9 +12,10 @@ spec:
     name: forgejo-helm
     namespace: flux-system
   values:
+    persistence:
+      enabled: true
+      size: 25Gi
     gitea:
-      persistence:
-        enabled: true
       admin:
         existingSecret: forgejo-admin
       oauth:
