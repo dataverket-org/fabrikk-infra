@@ -1,0 +1,19 @@
+type: '@dataverket/http/endpoint'
+typeVersion: 2026.10.29.1
+id: 1a02804c-b593-48ea-8a9b-50dc121423fe
+name: zitadel-oidc-id
+version: 1
+tags: {}
+# Identity: Zitadel's OIDC discovery document at id.dataverket.org, the name people and clients bind to (decision 031), which must name itself as
+# its issuer, so a route that answers but an instance not yet told about the name fails too
+# (docs/plans/2026-11-zitadel-auth-osl1.md, step 5). Plain GET, no credential.
+globalArguments:
+  url: 'https://id.dataverket.org/.well-known/openid-configuration'
+  expectStatus: 200
+  followRedirects: true
+  maxRedirects: 5
+  bodyContains: '"issuer":"https://id.dataverket.org"'
+  timeoutMs: 10000
+  caFile: ''
+  userAgent: swamp @dataverket/http
+methods: {}
