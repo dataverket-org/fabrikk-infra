@@ -5,6 +5,6 @@ name: zitadel-user
 version: 1
 tags: {}
 globalArguments:
-  apiUrl: 'https://zitadel.dataverket.org'
+  apiUrl: 'https://id.dataverket.org'
   keyJsonFile: '~/.config/zitadel/fabrikk-infra-reader.json'
 methods: {}

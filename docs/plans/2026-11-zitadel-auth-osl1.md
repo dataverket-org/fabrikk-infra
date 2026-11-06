@@ -477,6 +477,21 @@ Goal E is closed on the operator's side. Goal F, the clients, is next.
 
 **Action Required:** Goal F when Linus confirms; `authFactorList` for him first.
 
+### 2026-11-06, goal F1: the swamp definitions
+
+**Status:** Done on a branch. Goal F's first half, the one that waits on nobody: the eight definitions under `models/@dataverket/zitadel/` use keys, not passkeys, so they move before the clients do.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The move | `apiUrl: 'https://id.dataverket.org'` in `zitadel-action`, `-app`, `-app-operator`, `-grant`, `-org`, `-project`, `-settings`, `-user`; `zitadel-me`, `zitadel-settings-me` and `zitadel-system` were there already | every Zitadel definition now names the name people bind to (031); the `zitadel-oidc` check keeps the old name until G |
+| Validate | `swamp behavior validate` ×8: seven pass both checks at the new name | `zitadel-app-operator` fails `reachable` at either name, since `~/.config/zitadel/fabrikk-infra-operator.json` is not on this host (not elevated); not the move's doing |
+| One read each | `org list` 1, `project list` 6, `app list --arg project=zulip` 1, `grant list` 1, `action list` 0, `user list` 13, `settings read --arg instance=true` 19 records, each run reporting `apiUrl https://id.dataverket.org` | every type answers at the new name with the reader key; the same runs migrated their `typeVersion` to `2026.11.06.1`, swamp's lazy migration, attributes unchanged |
+| Health | run `6c92a70f` green, the three Zitadel checks included | nothing at the edge changed |
+
+Left of goal F, as F2: the other five passkey holders mailed when each is ready, then Forgejo, Zulip and zot one commit each, `incus-01` yours.
+
+**Action Required:** Merge this branch; F2 as people are ready.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
