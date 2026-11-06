@@ -460,6 +460,23 @@ Goal K is closed. Goals E to G run against `id.dataverket.org` with `id.osl1.dvk
 
 **Action Required:** Goal E: `task admin:zitadel-login`, then the link workflow for yourself, then Linus.
 
+### 2026-11-06, goal E: passkeys on `id.dataverket.org`, first half
+
+**Status:** Done on the operator's side, 2026-11-06. Your passkey is there; Linus's link is sent with the two-day code; his registration and login are his to do.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| Your login as you | `task admin:zitadel-login`, device flow confirmed by you; token file valid to 02:05 CET | the workflow ran with your name in the audit log (decision 033) |
+| Your link | `swamp workflow run zitadel-passkey-link --input user=jibeddari@proton.me`, mail sent by Zitadel; you registered a passkey on `id.dataverket.org` from it ("it worked for me") | `authFactorList` shows the new passkey `398415984416787129` ("Apple Macintosh, Mac OS, Chrome") beside the old ones; your login there with it is to be confirmed by you in words |
+| The code's lifetime | an hour, Zitadel's default for `SECRET_GENERATOR_TYPE_PASSWORDLESS_INIT_CODE` (`{length:12, expiry:3600s}`); you asked for two days before Linus is mailed | one amendment to "touch nothing else in Zitadel": the passkey code generator's expiry, set to 48h for every link made until set again, length and character set kept |
+| The method | `@dataverket/zitadel/settings` `secretGeneratorSet` (`generator`, `expirySeconds`, `length`), reading first because Zitadel's update replaces every field and a flag left out empties the character set; `read` stores `secret-generator-<kind>`; version `2026.11.06.1`, 122 tests, live-checked on a throwaway v4.15.3 | published by you from swamp-extensions and pulled here; every Zitadel definition is on `2026.11.06.1` |
+| The workflow | `zitadel-passkey-link` v2: `hours` input (1 to 48, default 48), an assert on the range, `secretGeneratorSet` through the new `zitadel-settings-me` (your token file, `iam.write`), an assert that Zitadel reports it, then the mail | run by you for `linus@dataverket.org` at 13:29 UTC: both asserts passed, `secret-generator-passwordlessinitcode` reads `172800s`, length 12, lower, upper and digits kept, `action: updated`; `passkey-registration-linus-dataverket-org` `created`, delivery email |
+| Linus | the mail is with him, its code good until 2026-11-08 13:29 UTC | when he has registered and logged in at `id.dataverket.org`, `swamp behavior run zitadel-user authFactorList --arg user=linus@dataverket.org` shows the passkey; run it again for him if the two days pass |
+
+Goal E is closed on the operator's side. Goal F, the clients, is next.
+
+**Action Required:** Goal F when Linus confirms; `authFactorList` for him first.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the

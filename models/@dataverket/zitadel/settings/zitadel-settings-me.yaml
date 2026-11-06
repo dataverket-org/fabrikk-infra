@@ -1,0 +1,15 @@
+type: '@dataverket/zitadel/settings'
+typeVersion: 2026.11.06.1
+id: 5e8d2b17-4c6a-4f93-b2e1-7a9c0d3f6b84
+name: zitadel-settings-me
+version: 1
+tags: {}
+# The settings definition that acts as the person running it (decision 033), the same token file
+# as zitadel-me: task admin:zitadel-login writes it from your own device-flow login, and this file
+# holds no credential. The zitadel-passkey-link workflow runs secretGeneratorSet through it, to set
+# how long the code in a registration link lives, with your rights (iam.write, the IAM_OWNER role)
+# and your name in Zitadel's audit log. zitadel-settings, with the reader key, stays for reads.
+globalArguments:
+  apiUrl: 'https://id.dataverket.org'
+  accessTokenFile: '~/.config/zitadel/fabrikk-infra-me.token'
+methods: {}

@@ -194,8 +194,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/zitadel": {
-    "version": "2026.11.02.1",
-    "pulledAt": "2026-11-06T11:37:04.592Z",
+    "version": "2026.11.06.1",
+    "pulledAt": "2026-11-06T13:29:42.955Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/zitadel/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/zitadel/files/README.md",
@@ -213,8 +213,8 @@
       ".swamp/pulled-extensions/@dataverket/zitadel/models/system.ts",
       ".swamp/pulled-extensions/@dataverket/zitadel/models/user.ts"
     ],
-    "checksum": "45f6f154e465f577f309f7b55544202852216aa9fba34b1529af13e6413f3a68",
-    "filesChecksum": "7ca0bdc6abe0d96a914304d2939cec4fced399a002ecbd9a45931a8f8d45c04c",
+    "checksum": "9eef974a7204306bb4b85094e20fded8ede75910f8f750c1a7d719a4664a4c71",
+    "filesChecksum": "4ea9a99ef8d093eb44625421fae340b9006a48b1c83b3697cbc61d8ef869c6f7",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
