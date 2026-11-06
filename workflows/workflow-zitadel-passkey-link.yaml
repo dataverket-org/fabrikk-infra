@@ -1,7 +1,7 @@
 id: 9d2e4f61-8b7a-4c35-a1d0-6e5f3b2c9a84
 name: zitadel-passkey-link
 description: >-
-  Mail one person a passkey registration link for Zitadel's current name, auth.osl1.dvkt.no. Run on demand by an
+  Mail one person a passkey registration link for Zitadel's name, id.dataverket.org (decision 031). Run on demand by an
   operator, for one user at a time, when that person says they are ready: the code in the link lives an hour.
   The person opens the link, registers a passkey on that name without logging in first, and logs in there with
   it; a passkey binds to the host it is made on, so this is how an account gets a passkey for a name it has none
@@ -34,4 +34,4 @@ jobs:
           inputs:
             user: ${{ inputs.user }}
             delivery: email
-            urlTemplate: "https://auth.osl1.dvkt.no/ui/v2/login/passkey/set?codeId={{.CodeID}}&code={{.Code}}&userId={{.UserID}}&organization={{.OrgID}}"
+            urlTemplate: "https://id.dataverket.org/ui/v2/login/passkey/set?codeId={{.CodeID}}&code={{.Code}}&userId={{.UserID}}&organization={{.OrgID}}"

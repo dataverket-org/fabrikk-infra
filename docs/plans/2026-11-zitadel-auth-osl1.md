@@ -419,6 +419,31 @@ alias added and made primary by this task, `auth.osl1.dvkt.no` removed by it.
 
 **Action Required:** A fresh on-demand backup, then 5.2.
 
+### 2026-11-06, step 5.2: the instance is told its name
+
+**Status:** Done. Backup `zitadel-db-before-pivot-20261106` completed 12:34:21 to 12:34:27 UTC on three healthy
+instances; commit `e8f7e1b` applied at 12:35, `zitadel.v5` upgraded by 12:36.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| `ExternalDomain: id.dataverket.org`, `zitadel-system`'s `apiUrl` with it | `apps/zitadel/release.yaml`, `models/@dataverket/zitadel/system/zitadel-system.yaml` | setup added `id.dataverket.org` and `zitadel-obgyom.id.dataverket.org` |
+| The names | `id.dataverket.org` 200 as its own issuer; `zitadel.dataverket.org` and `auth.osl1.dvkt.no` 200 as theirs; `id.osl1.dvkt.no` 404 until 5.3 | as the plan says |
+| The pods, the checks | both Deployments 1/1 updated; `zitadel-oidc`, `zitadel-oidc-auth-osl1`, `zitadel-oidc-id` 200; health run `395d4e42` green | nothing a user does changed |
+
+### 2026-11-06, step 5.3: the domain list
+
+**Status:** Done through `task admin:zitadel-domains`, typed into your session, one touch per run, 12:37 to
+12:41 UTC.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| `domainAdd id.osl1.dvkt.no` | record `created`; the alias answered 200 as its own issuer at once | done |
+| `domainSetPrimary id.osl1.dvkt.no` | record `updated`, `primary: true` | the primary names the site (032) |
+| `domainRemove auth.osl1.dvkt.no` | `dryRun` first, record `planned`, nothing changed; then `removed`; the name answers 404 `unable to set instance` | done |
+| `domainList` after each | six domains: `zitadel.dataverket.org`, `id.dataverket.org`, `id.osl1.dvkt.no` (primary) and the three generated twins | the done-when of 5.3; `zitadel-oidc-id-osl1` 200 |
+
+**Action Required:** 5.4, the cleanup.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the

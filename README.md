@@ -110,7 +110,7 @@ put there once, and no script here names one:
 |---|---|---|
 | `~/.talos/omni/config` | context `default` | `https://dataverket.eu-central-1.omni.siderolabs.io`, with `omnictl config new --url <that>` |
 | `~/.config/openstack/clouds.yaml` | cloud `nexthop` | `https://identity-api.nexthop.no:5000/v3`, your own Keystone login, never an application credential |
-| `~/.config/zitadel/config.yaml` | context `default` | `url: https://zitadel.dataverket.org` and `login_url: https://zitadel.dataverket.org/ui/v2/login` under `contexts.default`; `task admin:zitadel-bootstrap` adds `client_id` |
+| `~/.config/zitadel/config.yaml` | context `default` | `url: https://id.dataverket.org` and `login_url: https://id.dataverket.org/ui/v2/login` under `contexts.default` (the old name works until goal G); `task admin:zitadel-bootstrap` adds `client_id` |
 
 If your own config uses other names, export `OMNI_CONTEXT`, `OS_CLOUD` or `ZITADEL_CONTEXT`; a shell wins over the
 Taskfile.
@@ -138,6 +138,8 @@ they recognise a former name as ours, mint the new one, and remove what the old 
 | `registry.dataverket.org` | Everything that pushes or pulls artifacts: CI, developers, other clusters, cosign | The registry's identity (TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
 | `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 013) |
 | `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to GitHub | The source of record; `github.com/dataverket-org/fabrikk-infra` is Flux's source for a rebuild (decision 021) |
+| `id.dataverket.org` | People, Forgejo, Zulip, zot, the swamp Zitadel definitions, `zitadel-me` and the passkey link workflow | Zitadel, the name people and clients bind to (decision 031); `zitadel.dataverket.org` serves beside it until goal G of the Zitadel plan |
+| `id.osl1.dvkt.no` | The site's own: its health check, its cluster's API server when 015 is built, the primary instance domain, a rescue | Zitadel at this site, the alias of the name above (decisions 031, 032); kept with `task admin:zitadel-domains` |
 | `dataverket.s3.osl1.dvkt.no` | Zulip, for uploads and avatars; browsers fetching avatars; the `osl1-s3` model | Dataverket's S3 at the osl1 site, path-style, TLS through the gateway; the org is the leftmost label (decision 029) |
 | `versitygw.versitygw.svc.cluster.local:7070` | An in-cluster writer that serves every file itself; none yet | The same gateway without the public path, plain HTTP inside the cluster (decision 029) |
 | `213.128.185.82:443` | CNPG's Barman Cloud plugin, the backup writer; kopia later | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |

@@ -9,6 +9,6 @@ tags: {}
 # own. Every operator has this one definition and their own file. The zitadel-passkey-link
 # workflow runs through it, with your rights and your name in Zitadel's audit log.
 globalArguments:
-  apiUrl: 'https://zitadel.dataverket.org'
+  apiUrl: 'https://id.dataverket.org'
   accessTokenFile: '~/.config/zitadel/fabrikk-infra-me.token'
 methods: {}
