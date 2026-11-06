@@ -101,3 +101,19 @@ own logins.
 **Summary:** Written before the pivot so the pivot can remove what the rename left.
 
 **Action Required:** Mint the key, add the public half to the HelmRelease, build the type and the task.
+
+### 2026-11-06
+
+**Status:** The type exists; the key is not minted
+
+**Findings:**
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| `@dataverket/zitadel/system` with `domainList`, `domainAdd`, `domainRemove`, `domainSetPrimary` | `@dataverket/zitadel` 2026.11.02.1, published 2026-11-06 | done, proven live against v4.15.3 in podman with a `SystemAPIUsers` key |
+| A generated domain can be removed by nobody | `internal/command/instance_domain.go`, `GeneratedNotRemovable`; the type refuses it first | the Consequences above overstate: `auth.osl1.dvkt.no` goes, its generated twin stays; so does every generated twin, unrouted and harmless. The list is as clean as Zitadel allows, not cleaner |
+| The key, the HelmRelease entry, the task | not made | the pivot goal |
+
+**Summary:** The tool is there; what it cannot do is written down.
+
+**Action Required:** As above, less the generated twins.
