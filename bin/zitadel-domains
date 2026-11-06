@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#
+# Zitadel's domain list, kept with the System API key the operators hold
+# (decision 032): one method of the zitadel-system definition, run with the
+# key decrypted for this run and nothing else. This is `task
+# admin:zitadel-domains -- METHOD [--arg NAME=VALUE]...`:
+#
+#	bin/zitadel-domains domainList
+#	bin/zitadel-domains domainAdd --arg domain=id.example.org
+#	bin/zitadel-domains domainSetPrimary --arg domain=id.example.org
+#	bin/zitadel-domains domainRemove --arg domain=old.example.org \
+#		--arg confirm=old.example.org --arg dryRun=true
+#
+# sops decrypts the store entry into a temporary file for one command, with a
+# YubiKey touch, and that command is this script again, which hands the key
+# to swamp through a FIFO at the path the definition names: the key is never
+# on disk, and nothing but that one swamp run reads it. The store entry is
+# ZITADEL_SYSTEM_KEY_FILE, the key's name in Zitadel's configuration is
+# ZITADEL_SYSTEM_USER, both set in taskfiles/admin.yml.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+#
+# Runs one method of zitadel-system with the key from a decrypted store
+# entry, through a FIFO that exists for this run.
+#
+function run_with_key()
+{
+	local json="$1"
+	shift
+	local method="$1"
+	shift
+	local fifo="$zitadel_system_key_fifo"
+	local writer status
+
+	mkdir -p "${fifo%/*}" || return $?
+	rm -f "$fifo" || return $?
+	mkfifo -m 600 "$fifo" || return $?
+
+	# The writer waits until swamp opens the FIFO; a run that never does is
+	# ended below, so it cannot linger with the key.
+	jq -r ".$zitadel_system_key_field" "$json" >"$fifo" 2>/dev/null &
+	writer=$!
+
+	run swamp behavior run zitadel-system "$method" "$@"
+	status=$?
+
+	kill "$writer" 2>/dev/null
+	wait "$writer" 2>/dev/null
+	rm -f "$fifo"
+	return "$status"
+}
+
+if [[ "$1" == "--decrypted" ]]; then
+	shift
+	run_with_key "$@"
+	exit $?
+fi
+
+require_tools sops jq swamp mkfifo || exit $?
+require_settings ZITADEL_SYSTEM_KEY_FILE ZITADEL_SYSTEM_USER
+
+method="${1:-}"
+case "$method" in
+	domainList|domainAdd|domainRemove|domainSetPrimary) shift ;;
+	"")	fail "Usage: ${0##*/} METHOD [--arg NAME=VALUE]..." ;;
+	*)	fail "${0##*/}: not a zitadel-system method: $method" ;;
+esac
+
+store="$repo_dir/$ZITADEL_SYSTEM_KEY_FILE"
+[[ -f "$store" ]] || fail "No store entry $ZITADEL_SYSTEM_KEY_FILE; make the key first"
+
+announce_files "$store" "$zitadel_system_key_fifo (for this run)"
+warn "Zitadel domains as $ZITADEL_SYSTEM_USER, the System API user:" \
+     "$method, with the key decrypted for this run"
+
+# The inner invocation gets the arguments back as it was given them; %q keeps
+# a value with spaces whole through sops's shell.
+exec sops exec-file --input-type json "$store" \
+	"$(printf '%q ' "$0" --decrypted {} "$method" "$@")"

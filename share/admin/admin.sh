@@ -157,6 +157,13 @@ zitadel_operator_key_file="$HOME/.config/zitadel/$id-operator.json"
 zitadel_me_token_file="$HOME/.config/zitadel/$id-me.token"
 zitadel_token_expires=""             # epoch, set by zitadel_login
 
+# Where bin/zitadel-domains hands the System API key to swamp: a FIFO that
+# exists for one run, named by the zitadel-system definition (decision 032).
+# The key itself is in the operator store, ZITADEL_SYSTEM_KEY_FILE, under
+# this field.
+zitadel_system_key_fifo="$HOME/.config/zitadel/$id-system.pem"
+zitadel_system_key_field="ZITADEL_SYSTEM_KEY"
+
 # The one kubeconfig and the one talosconfig, for us and for the CLIs alike:
 # omnictl writes to KUBECONFIG when set, kubectl reads every path in it, and
 # talosctl honours TALOSCONFIG, so all three must mean the same single file.
