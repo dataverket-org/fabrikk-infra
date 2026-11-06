@@ -1,4 +1,4 @@
-swampVersion: 20261030.003603.0
+swampVersion: 20261106.094050.0
 initializedAt: "2026-09-18T09:41:10.774Z"
 repoId: 8cdfd6c7-87a0-45c7-ac14-2c02064ef270
 tools:
@@ -8,7 +8,7 @@ gitignoreManaged: true
 trustedCollectives:
   - swamp
   - dataverket
-upgradedAt: "2026-10-30T09:42:24.550Z"
+upgradedAt: "2026-11-06T13:41:37.268Z"
 datastore:
   type: "@swamp/s3-datastore"
   config:
