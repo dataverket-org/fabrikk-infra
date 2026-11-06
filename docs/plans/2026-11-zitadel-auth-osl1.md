@@ -444,6 +444,22 @@ instances; commit `e8f7e1b` applied at 12:35, `zitadel.v5` upgraded by 12:36.
 
 **Action Required:** 5.4, the cleanup.
 
+### 2026-11-06, step 5.4: the cleanup, and goal K closed
+
+**Status:** Done. Commit `1a5065e`, applied by Flux at 12:47 UTC.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The `auth` name at the edge | the `https-auth-osl1` listener, the route hostname and `zitadel-oidc-auth-osl1` gone; cert-manager removed the Certificate with the listener | `auth.osl1.dvkt.no` is refused at the TLS handshake, since no listener carries the name, a stronger "gone" than the 404 the plan wrote. Its Secret `auth-osl1-dvkt-no-tls` in `envoy-system` stayed, as cert-manager leaves them; deleting it is one `kubectl delete secret`, yours, since the agent's auto mode refuses secret writes |
+| The three names | `zitadel.dataverket.org`, `id.dataverket.org`, `id.osl1.dvkt.no`, each 200 as its own issuer; every listener Programmed; health runs `bd8ff14d` and `040eb26d` green with the three Zitadel checks | done |
+| What now names `id.dataverket.org` | the passkey link workflow's URL template, `zitadel-me`, the README's name table and the operator config row | done; the clients move in goal F |
+| The two logins | your passkey at the old name, the admin password at `id.dataverket.org`, confirmed by you | the overlap holds and the floor stands |
+| Left for you | the `auth` A record at Nordhost, and the orphaned Secret above | the plan touches no DNS by hand |
+
+Goal K is closed. Goals E to G run against `id.dataverket.org` with `id.osl1.dvkt.no` the site's alias and primary.
+
+**Action Required:** Goal E: `task admin:zitadel-login`, then the link workflow for yourself, then Linus.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
