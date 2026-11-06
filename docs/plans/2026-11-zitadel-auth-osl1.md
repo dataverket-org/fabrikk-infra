@@ -406,6 +406,19 @@ branch `zitadel-domains-fix` for your merge.
 **Action Required:** Merge the fix. Goal K, the pivot, is next: `ExternalDomain` to `id.dataverket.org`, the
 alias added and made primary by this task, `auth.osl1.dvkt.no` removed by it.
 
+### 2026-11-06, step 5.1: the edge
+
+**Status:** Done. Commit `dfaab6b`, applied by Flux at 12:31 UTC; nothing a user does has changed.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The names | `id.dataverket.org` and `id.osl1.dvkt.no` A `91.242.200.101` at `ns1.nordkapp.net` within a minute, from the routes | done |
+| The listener and certificate | `https-id-osl1`, `Programmed`, one route; `id-osl1-dvkt-no-tls` Ready two minutes after the push; `id.dataverket.org` under the wildcard | done |
+| Zitadel's answer | both names 404 `unable to set instance using origin … (ExternalDomain is auth.osl1.dvkt.no)`, TLS verified; `zitadel.dataverket.org` unchanged | the right answer before 5.2 |
+| The checks | `zitadel-oidc-id`, `zitadel-oidc-id-osl1` | fail by design until 5.2 and 5.3 |
+
+**Action Required:** A fresh on-demand backup, then 5.2.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
