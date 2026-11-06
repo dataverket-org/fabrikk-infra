@@ -168,6 +168,41 @@ function zitadel_key_row()
 }
 
 #
+# Prints the row for your Zitadel token file: who it authenticates as, and
+# what it has left by its sidecar.
+#
+function zitadel_token_row()
+{
+	local file="$1"
+	local account="$2"
+	local left holder
+
+	if [[ ! -s "$file" ]]; then
+		row "$(short_path "${file%/*}")/" "${file##*/}" absent - - \
+			"admin:zitadel-login writes it"
+		return
+	fi
+
+	left="$(token_file_seconds_left "$file")"
+
+	if (( left <= 0 )); then
+		row "$(short_path "${file%/*}")/" "${file##*/}" ours expired \
+			"$(expires_in "$left")" "$account"
+		return
+	fi
+
+	if ! zitadel_context_present; then
+		holder="no context $zitadel_context in $(short_path "$zitadelconfig")"
+	else
+		holder="$(token_file_username "$file")"
+	fi
+
+	row "$(short_path "${file%/*}")/" "${file##*/}" ours \
+		"$(humanize "$left")" "$(expires_in "$left")" \
+		"${holder:-does not authenticate}, acts as you through zitadel-me"
+}
+
+#
 # Prints the cloud entry the openstack models name, and the application
 # credential behind it.
 #
@@ -306,7 +341,8 @@ function tier2_status()
 		zitadel_key_row "$zitadel_reader_key_file" "$me-reader" \
 			"a session mints it"
 		zitadel_key_row "$zitadel_operator_key_file" "$me-operator" \
-			"an ordinary session has none")"
+			"an ordinary session has none"
+		zitadel_token_row "$zitadel_me_token_file" "$operator")"
 
 	echo "TIER 1  what you logged in with"
 	row PATH NAME OWNER LEFT EXPIRES DETAIL

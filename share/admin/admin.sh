@@ -147,9 +147,15 @@ zitadel_token=""
 
 # The two Zitadel key files, as with Omni: the reader in every session, the
 # operator minted deliberately and removed at logout. The zitadel models name
-# the first; only a definition that writes names the second.
+# the first; only a definition that writes names the second. The third file
+# is not a key but your own access token, written by admin:zitadel-login for
+# the definition that acts as you (decision 033): tier 2, since Zitadel's
+# token lifetime expires it, and removed at logout. Beside it, a sidecar
+# with the expiry, since the token itself is opaque.
 zitadel_reader_key_file="$HOME/.config/zitadel/$id-reader.json"
 zitadel_operator_key_file="$HOME/.config/zitadel/$id-operator.json"
+zitadel_me_token_file="$HOME/.config/zitadel/$id-me.token"
+zitadel_token_expires=""             # epoch, set by zitadel_login
 
 # The one kubeconfig and the one talosconfig, for us and for the CLIs alike:
 # omnictl writes to KUBECONFIG when set, kubectl reads every path in it, and

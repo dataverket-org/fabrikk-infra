@@ -357,6 +357,21 @@ console (you first, then Linus), the clients, the old name's retirement. The rep
 
 **Action Required:** None for the database. Goals E to G as above.
 
+### 2026-11-06, goal I: run as you
+
+**Status:** Done, on branch `zitadel-passkey-link`, rebuilt from `main` with only the workflow carried over; the
+users key, its task, its lifetime setting and its rows never reached `main`.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| Your login as a file | `bin/zitadel-login`, `task admin:zitadel-login`: the device-flow login, the token written 0600 to `~/.config/zitadel/fabrikk-infra-me.token` with its expiry in `.expires`; `admin:stop` removes both; `task admin` shows the row with who it authenticates as | run in your session at 12:48 UTC; `task admin` showed `fabrikk-infra-me.token ours 11 h 11-07 00:48 jibeddari@proton.me` |
+| The definition | `zitadel-me`, `@dataverket/zitadel/user` 2026.11.02.1 with `accessTokenFile`; `zitadel-passkey-link` runs through it | `swamp behavior run zitadel-me authFactorList --arg user=jibeddari@proton.me` succeeded as you and recorded your two passkeys, `initiatedBy: user:beddari` |
+| Without the file | after `task admin:stop` | the same run fails with `cannot read accessTokenFile ~/.config/zitadel/fabrikk-infra-me.token: No such file or directory`; `task admin:start` then brought the day back |
+| The scripts' own rule | `share/admin/zitadel.sh` | the comment now says one task writes the token, every other lets it die with the run (033) |
+| The extension | `@dataverket/zitadel` 2026.11.02.1, published 2026-11-06 and pulled | goal H |
+
+**Action Required:** Goal J, the system key. The workflow's URL template still says `auth.osl1.dvkt.no`; K moves it.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the

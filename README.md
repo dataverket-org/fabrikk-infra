@@ -53,9 +53,10 @@ rule behind it is decision 001. What comes after it, in order: the second door i
 | `task admin` | What you hold now: all three tiers as tables with the same columns, where each credential lives, the name it is selected by, who holds it and when it expires, then whether anything needs doing. Only tier 2 has anything in the lifetime columns, which is the design in one screen. `admin:status` is the same. |
 | `task admin:start` | The working day: the Omni login, the Proton Pass session when `OS_PASSWORD_REF` is `pass://` (and a check that the reference resolves), then every credential of ours, in order, when any one of them is due: the Omni Reader key, both kube contexts, the talos context, the OpenStack cloud entry and the Zitadel reader key. A Zitadel renewal logs you in through the browser; a current key opens nothing. `RENEW=1` renews them all now. Safe to rerun. |
 | `task admin:elevate` | The two keys that can change something, minted deliberately when you are about to: the Omni Operator key, and the Zitadel key that writes to the projects in `ZITADEL_PROJECTS` and nothing else. `admin:start` never mints them. After changing `ZITADEL_PROJECTS`, run it with `RENEW=1`. |
-| `task admin:stop` | The end of the day: closes the Proton Pass session, removes the Omni login key and both elevated keys. The rest of tier 2 expires by itself. |
+| `task admin:stop` | The end of the day: closes the Proton Pass session, removes the Omni login key, both elevated keys and your Zitadel token file. The rest of tier 2 expires by itself. |
 | `task admin:dns-keys` | New Nordhost login keys for the cluster's DNS zones, named `dataverketprod<expiry>` and written into `artifacts/cert-manager/nordhost-config.enc.yaml` with sops; then commit, `artifacts/cert-manager/push.sh`, and restart `external-dns` and `nordhost-webhook`, which read the keys only at start. `DRY_RUN=1` tests the current keys; `NORDHOST_DELETE_KEYS` removes old ones once the new are running. Each zone's account password comes from `vaults/operator/nordhost/`, a YubiKey touch each. |
 | `task admin:zitadel-setup` | Once per instance, and on a host whose config lacks the client id: the organization's name, the admin project and the application the browser login goes through. It acts as the machine user the chart made at install, whose key it reads from the cluster for that run and writes nowhere. |
+| `task admin:zitadel-login` | Your Zitadel login as a file: the device-flow login as you, the token written to `~/.config/zitadel/fabrikk-infra-me.token`, which the `zitadel-me` definition names, so a workflow such as `zitadel-passkey-link` acts as you. Nothing reads the value but swamp, at call time. Expires with Zitadel's token lifetime; `admin:stop` removes it. Safe to rerun. |
 | `task admin:zitadel-floor` | The Zitadel admin account's password, set as you through the browser login to the value in your password manager (`ZITADEL_ADMIN_PASSWORD_REF`, a `pass://` reference picked by title and, since two items share it, by its email field), so one account reaches the console with no passkey at whatever name the instance answers on. The value goes to Zitadel in a request body on curl's stdin and nowhere else. Safe to rerun. |
 | `task check-recipients` | Every encrypted file is encrypted to the recipients its rule names, and to nobody else. `bootstrap.sh` runs it first, `admin:start` before it mints anything. |
 
@@ -70,6 +71,7 @@ What a session writes, and what reads it by name:
 | `~/.talos/omni/fabrikk-infra-operator.key` | `omni-cluster` only | An Omni service account key, role Operator; `admin:elevate` mints it, `admin:stop` removes it | `TIER2_TTL` |
 | `~/.config/zitadel/fabrikk-infra-reader.json` | the zitadel models | A Zitadel machine key, `IAM_OWNER_VIEWER` | `TIER2_TTL` |
 | `~/.config/zitadel/fabrikk-infra-operator.json` | a definition that writes | A Zitadel machine key, owner of the projects in `ZITADEL_PROJECTS` and of nothing else | `TIER2_TTL` |
+| `~/.config/zitadel/fabrikk-infra-me.token` | `zitadel-me`, the definition that acts as you | Your own Zitadel access token, from the device-flow login; a workflow through `zitadel-me` runs with your rights and your name (decision 033). Beside it, `.expires` says when | Zitadel's token lifetime, 12h; `admin:stop` removes it |
 
 Every item shares the one lifetime, and `admin:start` renews them all when any has less than a quarter of it left.
 `task admin` reads each item's expiry from its own file or record. The two process keys of tier 3 never rotate on a
@@ -252,6 +254,7 @@ the fleet disk survey and the platform health check, and `vaults/infra/` the cre
 ```sh
 swamp model search --json | jq '.results[].name'     # forgejo, omni, registry, hov1-s3, www, forum, zitadel-oidc, registry-api, runner-pods, dataverket-prod-*, <namespace>-pods, forgejo-events
 swamp workflow run health                             # the forge, both S3 gateways, www, forum, Zitadel's OIDC document, zot's /v2/ and a mirror digest, asserted; under half a minute, read-only
+swamp workflow run zitadel-passkey-link --input user=someone@example.org   # Zitadel mails that person a link to register a passkey; runs as you through zitadel-me after task admin:zitadel-login, one person per run, when they are ready
 swamp model method run forgejo health
 swamp model method run omni discover                  # the Talos fleet, read-only
 swamp model method run dataverket-prod-kustomizations reconcile --input name=apps --input namespace=flux-system --input withSource=true

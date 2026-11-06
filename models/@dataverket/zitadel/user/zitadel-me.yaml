@@ -1,0 +1,14 @@
+type: '@dataverket/zitadel/user'
+typeVersion: 2026.11.02.1
+id: 7c3e9a52-1b84-4f6d-a0c7-2d5e8b9f3a61
+name: zitadel-me
+version: 1
+tags: {}
+# The definition that acts as the person running it (decision 033): it names the token file
+# task admin:zitadel-login writes from your own device-flow login, and holds no credential of its
+# own. Every operator has this one definition and their own file. The zitadel-passkey-link
+# workflow runs through it, with your rights and your name in Zitadel's audit log.
+globalArguments:
+  apiUrl: 'https://zitadel.dataverket.org'
+  accessTokenFile: '~/.config/zitadel/fabrikk-infra-me.token'
+methods: {}

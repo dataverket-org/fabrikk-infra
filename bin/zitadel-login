@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#
+# Your Zitadel login as a file: the device-flow login as you, and the access
+# token it leaves written to the file the zitadel-me definition names, so that
+# a workflow runs as you (decision 033). Tier 2: Zitadel's own token lifetime
+# expires it, task admin shows when, and task admin:stop removes it. Nothing
+# reads the value but swamp, at call time. Safe to rerun: a run replaces the
+# token with a fresh one.
+#
+
+# shellcheck source=share/admin/admin.sh
+source "${0%/*}/../share/admin/admin.sh" || exit $?
+
+announce_files "$zitadelconfig" "$zitadel_me_token_file"
+require_tools curl jq yq || exit $?
+require_zitadel_context || exit $?
+
+warn "Writes your Zitadel login to $(tilde "$zitadel_me_token_file"):" \
+     "a definition that names it acts as you until it expires"
+
+zitadel_login || fail "Could not log in to Zitadel as you!"
+write_zitadel_token_file "$zitadel_me_token_file" ||
+	fail "Could not write $zitadel_me_token_file!"
+zitadel_token=""                    # the file holds it now; this process forgets it
+
+# GNU and BSD date read an epoch differently; try both, as bin/status does.
+expires="$(cat "$zitadel_me_token_file.expires")"
+when="$(date -d "@$expires" '+%H:%M %Z' 2>/dev/null ||
+        date -r "$expires" '+%H:%M %Z' 2>/dev/null || echo "its lifetime")"
+log "Wrote $(tilde "$zitadel_me_token_file"): you, until $when"
+log "Next: a workflow through zitadel-me; task admin:stop removes the file"

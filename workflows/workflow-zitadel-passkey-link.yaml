@@ -1,0 +1,37 @@
+id: 9d2e4f61-8b7a-4c35-a1d0-6e5f3b2c9a84
+name: zitadel-passkey-link
+description: >-
+  Mail one person a passkey registration link for Zitadel's current name, auth.osl1.dvkt.no. Run on demand by an
+  operator, for one user at a time, when that person says they are ready: the code in the link lives an hour.
+  The person opens the link, registers a passkey on that name without logging in first, and logs in there with
+  it; a passkey binds to the host it is made on, so this is how an account gets a passkey for a name it has none
+  for (docs/plans/2026-11-zitadel-auth-osl1.md). Zitadel sends the mail itself, from noreply@dataverket.org, with
+  its own "Add Passkey Login" text; nothing of the code passes through here.
+  The step runs through zitadel-me, as you: task admin:zitadel-login writes your own login to the file that
+  definition names, Zitadel's audit log carries your name, and a run without that file fails at once and changes
+  nothing (decision 033). Zitadel refuses a machine user, so a service account cannot be mailed by mistake. Run it
+  again for the same person if the hour passed: a new code replaces the old. Afterwards,
+  swamp behavior run zitadel-user authFactorList --arg user=<login name> shows the new passkey.
+tags:
+  factory: platform
+version: 1
+inputs:
+  properties:
+    user:
+      type: string
+      description: The person's login name, e.g. someone@example.org, or their user id
+  required:
+    - user
+jobs:
+  - name: mail
+    steps:
+      - name: link
+        description: One registration link, mailed by Zitadel to the person's verified address, pointing at the new name.
+        task:
+          type: model_method
+          modelIdOrName: zitadel-me
+          methodName: passkeyRegistrationLinkCreate
+          inputs:
+            user: ${{ inputs.user }}
+            delivery: email
+            urlTemplate: "https://auth.osl1.dvkt.no/ui/v2/login/passkey/set?codeId={{.CodeID}}&code={{.Code}}&userId={{.UserID}}&organization={{.OrgID}}"

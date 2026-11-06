@@ -21,8 +21,10 @@
 #
 # The login is the device authorization grant: the script prints an address
 # and a code, you confirm in the browser as yourself, and the access token
-# that comes back lives in this process and is never written. No refresh
-# token is asked for, which would be a login with nobody present.
+# that comes back lives in this process. One task, admin:zitadel-login, writes
+# it to a file a definition names, so that a workflow runs as you (decision
+# 033); every other task lets it die with the run. No refresh token is asked
+# for, which would be a login with nobody present.
 #
 
 zitadel_scope="openid urn:zitadel:iam:org:project:id:zitadel:aud"
@@ -198,6 +200,8 @@ function zitadel_login()
 		            "grant_type=urn:ietf:params:oauth:grant-type:device_code")"
 		zitadel_token="$(printf '%s' "$response" |
 		                 jq -r '.access_token // empty' 2>/dev/null)"
+		zitadel_token_expires=$(( $(date +%s) + $(printf '%s' "$response" |
+		                          jq -r '.expires_in // 43200' 2>/dev/null) ))
 
 		if [[ -n "$zitadel_token" ]]; then
 			log "Logged in to Zitadel; the token stays in this process"
@@ -237,6 +241,52 @@ function zitadel_logout()
 		warn "Could not revoke the Zitadel login token; it expires by itself"
 
 	zitadel_token=""
+}
+
+#
+# Writes the login's token to the file a definition names, 0600, with the
+# expiry beside it in <file>.expires, as epoch seconds. The token goes from
+# this process to that file and nowhere else.
+#
+function write_zitadel_token_file()
+{
+	local file="$1"
+
+	[[ -n "$zitadel_token" ]] || return 1
+	mkdir -p "${file%/*}" || return $?
+	printf '%s\n' "$zitadel_token" >"$file.tmp" || return $?
+	chmod 600 "$file.tmp" || return $?
+	mv "$file.tmp" "$file" || return $?
+	printf '%s\n' "$zitadel_token_expires" >"$file.expires" || return $?
+}
+
+#
+# Prints the seconds a token file has left, from its sidecar; 0 when there
+# is none.
+#
+function token_file_seconds_left()
+{
+	local file="$1"
+	local expires
+
+	expires="$(cat "$file.expires" 2>/dev/null)"
+	[[ "$expires" =~ ^[0-9]+$ ]] || { echo -n 0; return; }
+	echo -n $(( expires - $(date +%s) ))
+}
+
+#
+# Prints the login name a token file authenticates as; nothing when it does
+# not. One request, as the status table asks.
+#
+function token_file_username()
+{
+	local file="$1"
+	local token
+
+	token="$(head -n 1 "$file" 2>/dev/null)"
+	[[ -n "$token" ]] || return 1
+	zitadel_request "$token" GET /auth/v1/users/me 2>/dev/null |
+		jq -r '.user.preferredLoginName // empty' 2>/dev/null
 }
 
 #

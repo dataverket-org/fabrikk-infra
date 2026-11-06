@@ -3,8 +3,9 @@
 # Tier 1 session down. Closes the Proton Pass session, if pass-cli is here,
 # and removes the Omni login key from this host; a pass store or a sops file
 # has no session of its own. Of tier 2 it removes the Omni Operator and the
-# Zitadel operator keys, which admin:elevate made; the rest is left to expire
-# within its lifetime. This is `task admin:stop`.
+# Zitadel operator keys, which admin:elevate made, and your Zitadel token
+# file, which admin:zitadel-login wrote; the rest is left to expire within its
+# lifetime. This is `task admin:stop`.
 #
 
 # shellcheck source=share/admin/admin.sh
@@ -12,7 +13,7 @@ source "${0%/*}/../share/admin/admin.sh" || exit $?
 
 key="$(omni_login_key)"
 announce_files "$omniconfig" \
-	"$key, $operator_key_file and $zitadel_operator_key_file (removed)"
+	"$key, $operator_key_file, $zitadel_operator_key_file and $zitadel_me_token_file (removed)"
 require_tools yq || exit $?
 
 if ! command -v pass-cli >/dev/null; then
@@ -44,6 +45,14 @@ if [[ -f "$zitadel_operator_key_file" ]]; then
 	log "Removed the Zitadel operator key; nothing here can write to Zitadel now"
 else
 	log "No Zitadel operator key on this host"
+fi
+
+if [[ -f "$zitadel_me_token_file" ]]; then
+	rm -f "$zitadel_me_token_file" "$zitadel_me_token_file.expires" ||
+		fail "Could not remove $zitadel_me_token_file!"
+	log "Removed your Zitadel token file; nothing here acts as you now"
+else
+	log "No Zitadel token file on this host"
 fi
 
 log "The rest expires by itself; task admin shows when"
