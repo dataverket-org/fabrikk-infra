@@ -10,6 +10,7 @@
 #	bin/zitadel-domains domainSetPrimary --arg domain=id.example.org
 #	bin/zitadel-domains domainRemove --arg domain=old.example.org \
 #		--arg confirm=old.example.org --arg dryRun=true
+#	bin/zitadel-domains validate      # the definition's checks, key present
 #
 # sops decrypts the store entry into a temporary file for one command, with a
 # YubiKey touch, and that command is this script again, which hands the key
@@ -33,7 +34,16 @@ function run_with_key()
 	local method="$1"
 	shift
 	local fifo="$zitadel_system_key_fifo"
-	local writer status
+	local key writer status
+
+	# sops hands over a FIFO of its own, readable once: the field is read into
+	# this process here, and nothing reads the path again. A missing field
+	# fails before our FIFO exists, rather than handing swamp an empty key.
+	key="$(jq -r ".$zitadel_system_key_field // empty" "$json" 2>/dev/null)"
+	if [[ "$key" != "-----BEGIN"* ]]; then
+		error "The decrypted store entry has no PEM in $zitadel_system_key_field"
+		return 1
+	fi
 
 	mkdir -p "${fifo%/*}" || return $?
 	rm -f "$fifo" || return $?
@@ -41,10 +51,15 @@ function run_with_key()
 
 	# The writer waits until swamp opens the FIFO; a run that never does is
 	# ended below, so it cannot linger with the key.
-	jq -r ".$zitadel_system_key_field" "$json" >"$fifo" 2>/dev/null &
+	printf '%s\n' "$key" >"$fifo" 2>/dev/null &
 	writer=$!
+	key=""
 
-	run swamp behavior run zitadel-system "$method" "$@"
+	if [[ "$method" == validate ]]; then
+		run swamp behavior validate zitadel-system "$@"
+	else
+		run swamp behavior run zitadel-system "$method" "$@"
+	fi
 	status=$?
 
 	kill "$writer" 2>/dev/null
@@ -64,7 +79,7 @@ require_settings ZITADEL_SYSTEM_KEY_FILE ZITADEL_SYSTEM_USER
 
 method="${1:-}"
 case "$method" in
-	domainList|domainAdd|domainRemove|domainSetPrimary) shift ;;
+	domainList|domainAdd|domainRemove|domainSetPrimary|validate) shift ;;
 	"")	fail "Usage: ${0##*/} METHOD [--arg NAME=VALUE]..." ;;
 	*)	fail "${0##*/}: not a zitadel-system method: $method" ;;
 esac
@@ -76,7 +91,9 @@ announce_files "$store" "$zitadel_system_key_fifo (for this run)"
 warn "Zitadel domains as $ZITADEL_SYSTEM_USER, the System API user:" \
      "$method, with the key decrypted for this run"
 
-# The inner invocation gets the arguments back as it was given them; %q keeps
-# a value with spaces whole through sops's shell.
+# The inner invocation gets the arguments back as it was given them: %q keeps
+# a value with spaces whole through sops's shell, and the {} that sops
+# replaces with the decrypted file's path stays bare, since %q would escape
+# its braces and sops would leave it be.
 exec sops exec-file --input-type json "$store" \
-	"$(printf '%q ' "$0" --decrypted {} "$method" "$@")"
+	"$(printf '%q ' "$0" --decrypted) {} $(printf '%q ' "$method" "$@")"

@@ -372,6 +372,22 @@ users key, its task, its lifetime setting and its rows never reached `main`.
 
 **Action Required:** Goal J, the system key. The workflow's URL template still says `auth.osl1.dvkt.no`; K moves it.
 
+### 2026-11-06, goal J: the system key
+
+**Status:** Done. The public half is on `main` (`9ebb891`, upgrade `zitadel.v4`); the task's two fixes are on
+branch `zitadel-domains-fix` for your merge.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The key pair | made at your prompt: `openssl genpkey` piped into `sops`, never on disk; `vaults/operator/osl1/zitadel-system.enc.json`, field `ZITADEL_SYSTEM_KEY`, the two YubiKeys; the public half derived once with a touch into `apps/zitadel/zitadel-system-operators.pub.pem` | done, 4096 bit |
+| Zitadel knows it | `apps/zitadel/release.yaml`, `SystemAPIUsers.operators`, `KeyData` base64 of the PEM (the config loader decodes it), `SYSTEM_OWNER`; the chart merged it beside its login client | `zitadel.v4` upgraded 12:01 UTC, hooks 5 s and 10 s, both names 200 with their own issuer, health run `6338f053` green |
+| The task | `bin/zitadel-domains`, `task admin:zitadel-domains -- <method>`: `sops exec-file` decrypts the entry for one command, which is the script again; it reads the field once into memory and hands it to swamp through a FIFO at the path `zitadel-system` names, removed after the run | two bugs found by running it: `printf %q` had escaped sops's `{}` placeholder, so the writer opened a file named `\{\}` and swamp got an empty key; then a guard read sops's own FIFO, which is readable once, and the run hung. Both fixed on `zitadel-domains-fix` |
+| The checks with the key present | `task admin:zitadel-domains -- validate`, one touch | `zitadel-system` ten of ten, `reachable` included; outside a run the live check cannot pass, since the key exists only inside one |
+| The list | `task admin:zitadel-domains -- domainList`, one touch, 12:12 UTC | the four domains, `zitadel.dataverket.org` primary, two generated; recorded under `zitadel-system`, `initiatedBy: user:beddari`; the FIFO gone and no process left |
+
+**Action Required:** Merge the fix. Goal K, the pivot, is next: `ExternalDomain` to `id.dataverket.org`, the
+alias added and made primary by this task, `auth.osl1.dvkt.no` removed by it.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
