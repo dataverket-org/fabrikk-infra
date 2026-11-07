@@ -507,6 +507,22 @@ The clients move as their people register: each of Forgejo, Zulip and zot points
 
 **Action Required:** Merge this branch. Then, as `authFactorList` shows the new passkeys: Forgejo, Zulip, zot, one commit each; `incus-01` yours.
 
+### 2026-11-07, goal F2, the clients
+
+**Status:** Done, 16:26 to 16:31 UTC, by your decision not to wait for the registrations: a passkey holder who has not used their link logs in through these clients only after they do; the links are out and are mailed again on request. Your own login is through.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| Forgejo | `fbdc951`, `autoDiscoverUrl` to `id.dataverket.org`; Flux `apps` reconciled, HelmRelease `UpgradeSucceeded`, release v18 | `GET /user/oauth2/Zitadel` answers 307 to `https://id.dataverket.org/oauth/v2/authorize?client_id=389917569856898338…`: moved |
+| zot | `7008e9b`, the `issuer` in `artifacts/zot/configmap.yaml`; pushed by you as `platform/zot-config@sha256:20c45eb…`, Kustomization `zot` applied it; `zot-0` restarted by `zot-pods restart` (a ConfigMap file changes in place, and zot reads `openid` at start), back at 16:31 UTC | `GET /zot/auth/login?provider=oidc` answers 302 to `https://id.dataverket.org/oauth/v2/authorize?client_id=395211726…`: moved; pulls retried through the restart (013) |
+| Zulip | `039c60e`, `oidc_url` in the StatefulSet and the organization Job; pushed by you as `platform/zulip-config@sha256:2d3fa14…`, Kustomization `zulip` applied it, `zulip-0` rolled at 16:26 UTC on the template change and is ready | the login is a CSRF-protected form, so the redirect was not read from outside; the template's one change was the URL and the pod rolled on it. Your login there is the check |
+| The S3 plan | `b3a6994`, `docs/plans/2026-10-s3-zitadel.md` names `id.dataverket.org` as the issuer and in the `:aud`/`:sub` conditions | done |
+| Left of F | `incus-01`'s `oidc.issuer`, yours, outside this repository; the five registrations, which `authFactorList` shows as a second, newer id | then G |
+
+Every client in this repository names `id.dataverket.org`; only the HTTPRoute and the `zitadel-oidc` check still carry the old name, for G to remove.
+
+**Action Required:** `incus-01` when you are at it; a login at forum.dataverket.org with your new passkey; then goal G when the five have registered, or when you decide not to wait.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
