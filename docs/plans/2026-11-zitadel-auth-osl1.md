@@ -263,7 +263,8 @@ behind is named.
 
 Goals A to D are done (audit below). The goals that follow were reset on 2026-11-02 by decisions 031 to 033. The
 first three build; the pivot applies; E to G then run against `id.dataverket.org`. Each is one branch, squash-merged
-and signed by you.
+and signed by you. All of them are done as of 2026-11-07 (audit below); E to G went ahead of the registrations by
+your decision, the link workflow being the way in for anyone who missed theirs.
 
 | # | Goal | Done when | Rollback | Needs a person for |
 |---|---|---|---|---|
@@ -275,8 +276,8 @@ and signed by you.
 | F | **The clients.** The other five passkey holders first, each mailed by a run when they say they are ready, mailed again if `authFactorList` still shows them without a new passkey. Then one commit each: zot, Forgejo, Zulip, the swamp definitions' `apiUrl` and the operator config files, each to `https://id.dataverket.org`; `incus-01` is yours. A client moves only when every human who logs in through it has a passkey at `id.dataverket.org`: there the login offers a passkey-only user no other way in | A login through Zitadel works at each client; the swamp definitions answer at the new `apiUrl` | Revert the one client's commit; it restarts once more | One login per client; `incus-01`; running the mail when people are present |
 | G | **Retire the old name.** When every human who logs in has a passkey at `id.dataverket.org` and every client is moved: `zitadel.dataverket.org` leaves the routes, `domainRemove` takes it out of the instance (its generated twin stays, as every generated domain does), `zitadel-oidc` is deleted, the README and the deSEC plan name the two new names, and the rescue playbook is drafted with the flip as `domainAdd`, `domainSetPrimary`, `domainRemove` | The old name answers 404 from Envoy; `domainList` shows the two names and the three generated twins that remain; health green | Revert the routes; re-add the domain by the task; the old name works again within a minute while its record and certificate exist, so the record is removed last | Removing the record at Nordhost; the playbook's review |
 
-H, I and J touch no user; K changes what the instance answers on but nothing anyone has bound to; E to G wait on
-people and can be given one at a time.
+H, I and J touch no user; K changes what the instance answers on but nothing anyone has bound to; E to G were
+meant to wait on people and were run ahead of them instead, 2026-11-06 and 07.
 
 ## Audit
 
@@ -522,6 +523,23 @@ The clients move as their people register: each of Forgejo, Zulip and zot points
 Every client in this repository names `id.dataverket.org`; only the HTTPRoute and the `zitadel-oidc` check still carry the old name, for G to remove.
 
 **Action Required:** `incus-01` when you are at it; a login at forum.dataverket.org with your new passkey; then goal G when the five have registered, or when you decide not to wait.
+
+### 2026-11-07, goal G: the old name retired
+
+**Status:** Done, 17:08 to 17:23 UTC, by your decision not to wait for the five registrations: a passkey made at the old name has no host to work at now, and the link workflow, which needs no login, is how such a person gets in. The plan is complete but for what is yours and outside it.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The edge | `aca8c16`, merged and pushed by you (the agent's auto mode refused the push as a production deploy): `zitadel.dataverket.org` off both routes, `zitadel-oidc` deleted, health on the two names; Flux `apps` reconciled | the old name answers 404 from Envoy (the wildcard listener still terminates it), `id.dataverket.org` and `id.osl1.dvkt.no` 200 |
+| The instance | `task admin:zitadel-domains -- domainRemove --arg domain=zitadel.dataverket.org --arg confirm=…`, `dryRun` first (`planned`, not primary, not generated), then for real at 17:22 UTC: `removed` | `domainList`: `id.dataverket.org`, `id.osl1.dvkt.no` primary, and the three generated twins `zitadel-obgyom.{zitadel.dataverket.org,auth.osl1.dvkt.no,id.dataverket.org}`, as the plan wrote |
+| A datastore error | after the removal, `@swamp/s3-datastore` failed to delete `instance-domain-zitadel-dataverket-org/4/metadata.yaml` (S3 `NoSuchKey`) and to release its locks | the `removed` record is stored (version 1, the tombstone having reset the history) and `swamp run doctor` shows no stale run; a non-idempotent delete in the datastore's cleanup, noted for a swamp issue, not data loss |
+| Health | run `67acff9a` green with `zitadel-oidc-id` and `zitadel-oidc-id-osl1` | done |
+| The documents | README's name row says retired; the deSEC plan's osl1 inventory carries `id.osl1.dvkt.no` and its certificate and the org zone names `id`; `docs/runbooks/zitadel-rescue.md` drafts the flip as `domainAdd`, `domainSetPrimary`, `domainRemove` with the database from the hov1 archive, marked a draft until a second cluster exists | the decision step 4 asked for is 031, taken 2026-11-02 |
+| Left for you | the `zitadel` and `auth` A records at Nordhost (external-dns is upsert-only); `incus-01`'s issuer; the five registrations, each a link away | the certificate for `*.dataverket.org` is untouched; the old name's record is removed last, as the goal says |
+
+The move is done: Zitadel is `id.dataverket.org`, the name people and clients bind to, with `id.osl1.dvkt.no` the site's alias and primary. Goals A to K are closed.
+
+**Action Required:** Remove the two A records at Nordhost; `incus-01`; mail again anyone whose link lapses.
 
 ## Not in this plan
 
