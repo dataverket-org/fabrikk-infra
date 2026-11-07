@@ -22,7 +22,7 @@ spec:
   values:
     zitadel:
       configmapConfig:
-        # The name people and clients bind to (decision 031; docs/plans/2026-11-zitadel-auth-osl1.md, step 5).
+        # The name people and clients bind to, the upstream's (decisions 031, 034).
         # Setup adds it beside the names the instance has and removes nothing; the site alias and the removals
         # go through task admin:zitadel-domains. Also the audience the login's and the System API user's tokens
         # are checked against.

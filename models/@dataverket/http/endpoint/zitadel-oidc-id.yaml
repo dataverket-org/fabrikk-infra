@@ -6,7 +6,7 @@ version: 1
 tags: {}
 # Identity: Zitadel's OIDC discovery document at id.dataverket.org, the name people and clients bind to (decision 031), which must name itself as
 # its issuer, so a route that answers but an instance not yet told about the name fails too
-# (docs/plans/2026-11-zitadel-auth-osl1.md, step 5). Plain GET, no credential.
+# (decisions 031 and 034). Plain GET, no credential.
 globalArguments:
   url: 'https://id.dataverket.org/.well-known/openid-configuration'
   expectStatus: 200

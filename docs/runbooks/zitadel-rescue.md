@@ -1,6 +1,6 @@
 # Runbook: serve `id.dataverket.org` from another site
 
-Draft, written 2026-11-07 at the end of goal G of `docs/plans/2026-11-zitadel-auth-osl1.md`. Never run for real:
+Draft, written 2026-11-07 when Zitadel's move to its two names was done. Never run for real:
 there is no second cluster to run it against yet, so the steps that need one are marked as such and the exact
 commands for them come when it exists. The domain steps have each been run once, in the move of 2026-11-06.
 
@@ -76,7 +76,7 @@ passkey refused, which is a request reaching Zitadel under a host other than `id
 ## Not part of this
 
 - Making the second cluster, or the CNPG replica cluster that would make step 1 a promotion rather than a
-  restore. Both are in `docs/plans/2026-11-zitadel-auth-osl1.md`, "Not in this plan".
+  restore. Neither exists yet.
 - Re-keying anything. The sops store and the System API user's key are the same before and after; a new
   operator is a human step with a YubiKey (operator rules).
 - Moving `dataverket.org` itself to deSEC; `docs/plans/2026-10-dns-desec.md`.

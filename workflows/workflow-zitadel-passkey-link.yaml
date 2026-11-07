@@ -7,7 +7,7 @@ description: >-
   lifetime on the instance's passkey code generator, for every link made until it is set again, and the mail
   goes only once the generator reports it. The person opens the link, registers a passkey on that name without
   logging in first, and logs in there with it; a passkey binds to the host it is made on, so this is how an
-  account gets a passkey for a name it has none for (docs/plans/2026-11-zitadel-auth-osl1.md). Zitadel sends the
+  account gets a passkey for a name it has none for, and how a person who missed a link gets in. Zitadel sends the
   mail itself, from noreply@dataverket.org, with its own "Add Passkey Login" text; nothing of the code passes
   through here.
   Both steps run as you: task admin:zitadel-login writes your own login to the file that zitadel-settings-me and

@@ -135,11 +135,12 @@ they recognise a former name as ours, mint the new one, and remove what the old 
 
 | Name | Used by | Why |
 |---|---|---|
-| `registry.dataverket.org` | Everything that pushes or pulls artifacts: CI, developers, other clusters, cosign | The registry's identity (TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
+| `registry.dataverket.org` | The registry of record: pushes from CI, developers and the push scripts, cosign, the zot UI and its login; another site's mirror | The upstream's name (decision 034; TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
+| `registry.osl1.dvkt.no` | This site's workloads: the kubelet's pulls, the mirror paths Talos asks for | The same zot by the site's name, so site manifests carry the site as a variable and another site's copy is a mirror (decision 034) |
 | `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 013) |
 | `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to GitHub | The source of record; `github.com/dataverket-org/fabrikk-infra` is Flux's source for a rebuild (decision 021) |
-| `id.dataverket.org` | People, Forgejo, Zulip, zot, the swamp Zitadel definitions, `zitadel-me` and the passkey link workflow | Zitadel, the name people and clients bind to (decision 031); `zitadel.dataverket.org` retired 2026-11-07 |
-| `id.osl1.dvkt.no` | The site's own: its health check, its cluster's API server when 015 is built, the primary instance domain, a rescue | Zitadel at this site, the alias of the name above (decisions 031, 032); kept with `task admin:zitadel-domains` |
+| `id.dataverket.org` | People, Forgejo, Zulip, zot, the swamp Zitadel definitions, `zitadel-me` and the passkey link workflow | Zitadel, the upstream's name: the organization's people and its services' logins (decisions 031, 034) |
+| `id.osl1.dvkt.no` | The site's own: its health check, its cluster's API server when 015 is built, the site's services and the tenants they see as organizations | Zitadel at this site; today a second name of the upstream's instance and its primary domain, to become the site's own instance (decisions 031, 032, 034; `docs/plans/2026-11-site-names.md`); kept with `task admin:zitadel-domains` |
 | `dataverket.s3.osl1.dvkt.no` | Zulip, for uploads and avatars; browsers fetching avatars; the `osl1-s3` model | Dataverket's S3 at the osl1 site, path-style, TLS through the gateway; the org is the leftmost label (decision 029) |
 | `versitygw.versitygw.svc.cluster.local:7070` | An in-cluster writer that serves every file itself; none yet | The same gateway without the public path, plain HTTP inside the cluster (decision 029) |
 | `213.128.185.82:443` | CNPG's Barman Cloud plugin, the backup writer; kopia later | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |

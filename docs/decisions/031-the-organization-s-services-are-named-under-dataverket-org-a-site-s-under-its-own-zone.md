@@ -22,7 +22,8 @@ related:
 
 ## Status
 
-Accepted 2026-11-02. Nothing renamed yet; the first case is Zitadel, `docs/plans/2026-11-zitadel-auth-osl1.md`.
+Accepted 2026-11-02. Applied to Zitadel 2026-11-06 and 07: `id.dataverket.org` and `id.osl1.dvkt.no`, the old name
+retired. Extended by 034, which names the upstream layer the "organization's services" of this record belong to.
 
 ## Context
 
@@ -84,10 +85,16 @@ rule for S3. 032 puts the rule into Zitadel's own domain list.
 
 | Finding | Where | Assessment |
 |---------|-------|------------|
-| Zitadel answers on `zitadel.dataverket.org` and `auth.osl1.dvkt.no`; nothing has bound to the second | `docs/plans/2026-11-zitadel-auth-osl1.md`, audit of goal D | the pivot to `id.` is the plan's next goal |
+| Zitadel answers on `zitadel.dataverket.org` and `auth.osl1.dvkt.no`; nothing has bound to the second | the move's plan, since discarded (its history is in git) | the pivot to `id.` was the plan's next goal |
 | The other services | `git.`, `registry.`, `forum.`, `www.dataverket.org` | already in the form; no site alias yet, none needed until a second site runs one |
 | S3 | `dataverket.s3.osl1.dvkt.no` | the stated exception, unchanged |
 
 **Summary:** Written after the first rename showed the cost of a site name. The pivot applies it.
 
 **Action Required:** The pivot goal in the Zitadel plan.
+
+### 2026-11-07
+
+Applied in full: Zitadel is `id.dataverket.org` and `id.osl1.dvkt.no`, every client and definition names the first,
+`zitadel.dataverket.org` is off the routes and out of the instance. The plan that carried the move was discarded once
+done; what it taught lives in 032, 033, 034, the rescue runbook and the passkey-link workflow.
