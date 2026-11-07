@@ -21,7 +21,7 @@ spec:
       oauth:
         - name: Zitadel
           provider: "openidConnect"
-          autoDiscoverUrl: "https://zitadel.dataverket.org/.well-known/openid-configuration"
+          autoDiscoverUrl: "https://id.dataverket.org/.well-known/openid-configuration"
           existingSecret: forgejo-zitadel-oauth-secret
       config:
         # The page title and header; the chart's default is "Forgejo: Beyond coding. We forge."
