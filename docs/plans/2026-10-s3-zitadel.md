@@ -33,10 +33,10 @@ The two are mutually exclusive on one gateway and share no data: moving to stand
 The federation flow:
 
 1. An OIDC provider is registered once with its issuer URL and the client ids it accepts, here
-   `https://zitadel.dataverket.org` and the client id of a Zitadel application made for S3. The service fetches
+   `https://id.dataverket.org` and the client id of a Zitadel application made for S3. The service fetches
    the discovery document and JWKS from the issuer at assume time and caches keys five minutes.
 2. A role carries a trust policy: `Principal.Federated` is the provider, the action is
-   `sts:AssumeRoleWithWebIdentity`, and conditions scope `zitadel.dataverket.org:aud`, `zitadel.dataverket.org:sub`
+   `sts:AssumeRoleWithWebIdentity`, and conditions scope `id.dataverket.org:aud`, `id.dataverket.org:sub`
    and any other top-level scalar or scalar-array claim of the token. Nested object claims are dropped, so Zitadel's
    default `urn:zitadel:iam:org:project:roles` claim, an object, is not usable as a condition. A Zitadel action that
    adds a flat `groups` array claim to the token makes `ForAnyValue:StringEquals` on it work.
