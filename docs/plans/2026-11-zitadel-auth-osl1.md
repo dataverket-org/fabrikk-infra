@@ -492,6 +492,21 @@ Left of goal F, as F2: the other five passkey holders mailed when each is ready,
 
 **Action Required:** Merge this branch; F2 as people are ready.
 
+### 2026-11-07, goal F2, the mails
+
+**Status:** Every passkey holder is mailed; the clients wait for the registrations.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The holders | the stored `auth-factor` records: six people with a passkey (`jibeddari@proton.me` three, now, the rest one) — you, Linus, `bard@kvidder.com`, `frank_solli@icloud.com`, `lars@nerox.no`, `me@mindtooth.no`; the goals table said five others, there are four | the three with no factor and the TOTP user are not moved by a name change |
+| The mails | `zitadel-passkey-link` run by you, after `task admin:zitadel-login` (token to 05:09 CET), for the four at 16:11, 16:12, 16:13 and 16:13 UTC; each run `succeeded`, the generator reported `172800s`, each registration `created`, delivery email | with your run of 11-06 and Linus's of 11-06 13:29 UTC, all six are mailed; the four codes last until 11-09 16:13 UTC, Linus's until 11-08 13:29 |
+| Who has registered | `authFactorList` for the five, 16:15 UTC: one passkey each, the old id (`392757015635558952`, `389920537360467234`, `395955808577258794`, `396793876821574954`, Linus `389916942321845538`) | nobody yet; a second, newer id is the sign. A person whose code lapses is mailed again by the same run, a new code replacing the old; the old passkeys work at the old name until G, so nobody is locked out by waiting |
+| The operator login | `~/.config/zitadel/config.yaml` (outside this repository): `url` and `login_url` to `id.dataverket.org`, the old file kept as `config.yaml.bak-2026-11-07` | `task admin:zitadel-login` opens the device page at the new name from now on; you have a passkey there |
+
+The clients move as their people register: each of Forgejo, Zulip and zot points at the new name only when every human who logs in through it shows a newer passkey, since the login there offers a passkey-only user no other way in. The check is `swamp behavior run zitadel-user authFactorList --arg user=<login>` for each, or one `list` of the six.
+
+**Action Required:** Merge this branch. Then, as `authFactorList` shows the new passkeys: Forgejo, Zulip, zot, one commit each; `incus-01` yours.
+
 ## Not in this plan
 
 - Moving `dataverket.org` or `osl1.dvkt.no` to deSEC; this plan adds one record and one certificate under the
