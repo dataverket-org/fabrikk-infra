@@ -21,7 +21,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: nginx
-          image: registry.dataverket.org/sites/offentlig-data:latest
+          image: registry.${SITE}.dvkt.no/dataverket/offentlig-data:latest
           imagePullPolicy: Always
           ports:
             - name: http

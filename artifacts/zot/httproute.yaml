@@ -4,12 +4,18 @@ metadata:
   name: zot
   namespace: zot
 spec:
+  # Two names of one zot (decision 034): registry.dataverket.org, the registry of record on the wildcard listener,
+  # and registry.osl1.dvkt.no, the site's name on its own listener, what this site's workloads pull by.
   parentRefs:
     - name: envoy-gateway
       namespace: envoy-system
       sectionName: https
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: https-registry-osl1
   hostnames:
     - "registry.dataverket.org"
+    - "registry.osl1.dvkt.no"
   rules:
     - backendRefs:
         - name: zot
@@ -30,6 +36,7 @@ spec:
       sectionName: http
   hostnames:
     - "registry.dataverket.org"
+    - "registry.osl1.dvkt.no"
   rules:
     - filters:
         - type: RequestRedirect

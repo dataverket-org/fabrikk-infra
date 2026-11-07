@@ -203,7 +203,7 @@ Each line was learned while setting Zulip up. The first column is the fact, the 
 
 ## Change the Postgres image
 
-The database runs `platform/postgresql-zulip`, which is CNPG's Postgres image plus Zulip's three search files:
+The database runs `dataverket/postgresql-zulip` (pushed to the registry of record, pulled by the site's name, decision 034), which is CNPG's Postgres image plus Zulip's three search files:
 `en_us.dict` and `en_us.affix` from Debian's `hunspell-en-us`, and `zulip_english.stop` from Zulip's source.
 `postgres-image.sh` builds it. Every input is pinned by sha256, so the same inputs always give the same digest.
 

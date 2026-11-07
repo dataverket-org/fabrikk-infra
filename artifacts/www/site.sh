@@ -18,7 +18,11 @@ for tool in crane bsdtar; do
   command -v "$tool" >/dev/null || { echo "$tool not on PATH" >&2; exit 1; }
 done
 
-repo=registry.dataverket.org/platform/www-site
+repo=registry.dataverket.org/dataverket/www-site
+# What deployment.yaml names: the same image by the site's registry name, with ${SITE} for Flux to fill in
+# (decision 034, clusters/production/cluster-vars.yaml). Literal here: sed sees it as text, not a variable.
+pull_repo='registry.${SITE}.dvkt.no/dataverket/www-site'
+pull_re='registry\.\${SITE}\.dvkt\.no/dataverket/www-site'
 
 tmp=$(mktemp -d)
 reg_pid=
@@ -58,22 +62,23 @@ crane append --oci-empty-base -f "$tmp/site.tar" -t "$local_repo:build" >/dev/nu
 built=$(crane mutate --set-platform linux/amd64 -t "$local_repo:site" "$local_repo:build" 2>/dev/null)
 digest=${built#*@}
 ref=$repo@$digest
+pull_ref=$pull_repo@$digest
 
-committed=$(sed -n "s#^ *reference: \($repo@sha256:[0-9a-f]*\)\$#\1#p" deployment.yaml)
+committed=$(sed -n "s#^ *reference: \($pull_re@sha256:[0-9a-f]*\)\$#\1#p" deployment.yaml)
 
 case "${1:-}" in
   "")
-    if [ "$committed" = "$ref" ]; then
-      echo "deployment.yaml already names $ref"
+    if [ "$committed" = "$pull_ref" ]; then
+      echo "deployment.yaml already names $pull_ref"
     else
-      sed -i.bak "s#^\( *reference: \)$repo@sha256:[0-9a-f]*\$#\1$ref#" deployment.yaml
+      sed -i.bak "s#^\( *reference: \)$pull_re@sha256:[0-9a-f]*\$#\1$pull_ref#" deployment.yaml
       rm -f deployment.yaml.bak
-      grep -q "reference: $ref\$" deployment.yaml || { echo "no site reference in deployment.yaml to update" >&2; exit 1; }
-      echo "deployment.yaml now names $ref; commit it"
+      grep -qF "reference: $pull_ref" deployment.yaml || { echo "no site reference in deployment.yaml to update" >&2; exit 1; }
+      echo "deployment.yaml now names $pull_ref; commit it"
     fi
     ;;
   --check|--push)
-    if [ "$committed" != "$ref" ]; then
+    if [ "$committed" != "$pull_ref" ]; then
       echo "site/ builds to $digest, deployment.yaml names ${committed:-nothing}; run site.sh and commit" >&2
       exit 1
     fi

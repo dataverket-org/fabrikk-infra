@@ -18,7 +18,11 @@ for tool in crane curl bsdtar; do
   command -v "$tool" >/dev/null || { echo "$tool not on PATH" >&2; exit 1; }
 done
 
-repo=registry.dataverket.org/platform/postgresql-zulip
+repo=registry.dataverket.org/dataverket/postgresql-zulip
+# What postgres.yaml names: the same image by the site's registry name, with ${SITE} for Flux to fill in
+# (decision 034, clusters/production/cluster-vars.yaml). Literal here: sed sees it as text, not a variable.
+pull_repo='registry.${SITE}.dvkt.no/dataverket/postgresql-zulip'
+pull_re='registry\.\${SITE}\.dvkt\.no/dataverket/postgresql-zulip'
 # CNPG reads the Postgres version from the tag and refuses a reference by digest alone.
 tag=18.4-system-trixie
 # ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie, its linux/amd64 manifest; the major is in tsearch below.
@@ -77,25 +81,26 @@ local_repo=127.0.0.1:$port/postgresql-zulip
 built=$(crane append -b "$base" -f "$tmp/layer.tar" -t "$local_repo:build" 2>/dev/null)
 digest=${built#*@}
 ref=$repo:$tag@$digest
+pull_ref=$pull_repo:$tag@$digest
 
 committed=
-[ -f postgres.yaml ] && committed=$(sed -n "s#^ *imageName: \($repo:$tag@sha256:[0-9a-f]*\)\$#\1#p" postgres.yaml)
+[ -f postgres.yaml ] && committed=$(sed -n "s#^ *imageName: \($pull_re:$tag@sha256:[0-9a-f]*\)\$#\1#p" postgres.yaml)
 
 case "${1:-}" in
   "")
     if [ ! -f postgres.yaml ]; then
       echo "built $ref; no postgres.yaml yet to write it into"
-    elif [ "$committed" = "$ref" ]; then
-      echo "postgres.yaml already names $ref"
+    elif [ "$committed" = "$pull_ref" ]; then
+      echo "postgres.yaml already names $pull_ref"
     else
-      sed -i.bak "s#^\( *imageName: \)$repo:$tag@sha256:[0-9a-f]*\$#\1$ref#" postgres.yaml
+      sed -i.bak "s#^\( *imageName: \)$pull_re:$tag@sha256:[0-9a-f]*\$#\1$pull_ref#" postgres.yaml
       rm -f postgres.yaml.bak
-      grep -q "imageName: $ref\$" postgres.yaml || { echo "no imageName for $repo in postgres.yaml" >&2; exit 1; }
-      echo "postgres.yaml now names $ref; commit it"
+      grep -qF "imageName: $pull_ref" postgres.yaml || { echo "no imageName for $pull_repo in postgres.yaml" >&2; exit 1; }
+      echo "postgres.yaml now names $pull_ref; commit it"
     fi
     ;;
   --check|--push)
-    if [ "$committed" != "$ref" ]; then
+    if [ "$committed" != "$pull_ref" ]; then
       echo "the image builds to $digest, postgres.yaml names ${committed:-nothing}; run postgres-image.sh and commit" >&2
       exit 1
     fi
