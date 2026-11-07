@@ -50,8 +50,8 @@ password. DNSSEC is automatic.
 | Site | Zone | Egress | What depends on it today |
 |---|---|---|---|
 | hov1, a future cluster at the hov1 site | `hov1.dvkt.no` | the site's public address | Nothing. The backup endpoint stays an address (decision 020); `s3.hov1.dvkt.no` is the first name the zone would carry, when the endpoint gets one |
-| osl1, dataverket-prod | `osl1.dvkt.no` | `91.242.200.102`, the project router's SNAT address | `dataverket.s3.osl1.dvkt.no`, the wildcard certificate `*.s3.osl1.dvkt.no` |
-| the organization's names | `dataverket.org`, the whole zone | as osl1 | `git`, `registry`, `zitadel`, `signal`; names at the zone's own level cannot be delegated, so the zone moves whole |
+| osl1, dataverket-prod | `osl1.dvkt.no` | `91.242.200.102`, the project router's SNAT address | `dataverket.s3.osl1.dvkt.no`, the wildcard certificate `*.s3.osl1.dvkt.no`; `id.osl1.dvkt.no`, Zitadel's site alias and primary domain, with its certificate `id-osl1-dvkt-no-tls` (decision 031) |
+| the organization's names | `dataverket.org`, the whole zone | as osl1 | `git`, `registry`, `id` (Zitadel, the name people bind to), `signal`; names at the zone's own level cannot be delegated, so the zone moves whole |
 
 ## Steps, for the first site
 

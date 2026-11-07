@@ -27,6 +27,7 @@ environment variable, as the operator rules require.
 | Runbook | The job | Rests on |
 |---|---|---|
 | [swamp-host-key.md](swamp-host-key.md) | Give a host that runs swamp here its own process key for `vaults/infra/`, or take a host's key away | decisions 001, 002, 016 |
+| [zitadel-rescue.md](zitadel-rescue.md) | Serve `id.dataverket.org` from another site: the database from the hov1 archive, the new alias in and the old out through the System API user. A draft until a second cluster exists | decisions 031, 032 |
 
 Procedures that live beside what they operate stay there for now: reading the osl1 gateway
 (`artifacts/versitygw/README.md`), a restore of a database (`backup/README.md`), signing an artifact

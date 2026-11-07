@@ -4,10 +4,10 @@ metadata:
   name: zitadel
   namespace: zitadel
 spec:
-  # The names of one instance while it moves (docs/plans/2026-11-zitadel-auth-osl1.md, step 5): each attaches
-  # to the listener whose hostname it matches, the two dataverket.org names to the wildcard listener; external-dns
-  # makes the records from this route. id.dataverket.org is the name people bind to and id.osl1.dvkt.no this
-  # site's alias (decision 031); zitadel.dataverket.org retires with goal G.
+  # The two names of one instance (docs/plans/2026-11-zitadel-auth-osl1.md): id.dataverket.org is the name people
+  # and clients bind to, on the wildcard listener, and id.osl1.dvkt.no this site's alias, on its own (decision
+  # 031); external-dns makes the records from this route. zitadel.dataverket.org retired with goal G; its A
+  # record at Nordhost is removed by hand, since external-dns is upsert-only.
   parentRefs:
     - name: envoy-gateway
       namespace: envoy-system
@@ -16,7 +16,6 @@ spec:
       namespace: envoy-system
       sectionName: https-id-osl1
   hostnames:
-    - "zitadel.dataverket.org"
     - "id.dataverket.org"
     - "id.osl1.dvkt.no"
   rules:
@@ -42,7 +41,6 @@ spec:
       namespace: envoy-system
       sectionName: http
   hostnames:
-    - "zitadel.dataverket.org"
     - "id.dataverket.org"
     - "id.osl1.dvkt.no"
   rules:

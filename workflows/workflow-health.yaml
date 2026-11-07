@@ -7,10 +7,9 @@ description: >-
   done by @dataverket/platform-health, whose README says what a run does and what it never does, and by one
   crane digest. The forge is forgejo (git.dataverket.org), read with its vault token. The gateways are osl1-s3
   (dataverket.s3.osl1.dvkt.no, unsigned GET on the S3 port) and hov1-s3 (the hov1 site by address, its private CA
-  pinned). The endpoints are www (the site), forum (Zulip), the three names of Zitadel, each its own issuer in its
-  OIDC discovery document: zitadel-oidc (zitadel.dataverket.org, until goal G of
-  docs/plans/2026-11-zitadel-auth-osl1.md retires it), zitadel-oidc-id (id.dataverket.org, the name people bind
-  to) and zitadel-oidc-id-osl1 (id.osl1.dvkt.no, this site's alias and the primary domain), and registry-api
+  pinned). The endpoints are www (the site), forum (Zulip), the two names of Zitadel, each its own issuer in its
+  OIDC discovery document: zitadel-oidc-id (id.dataverket.org, the name people bind to) and zitadel-oidc-id-osl1
+  (id.osl1.dvkt.no, this site's alias and the primary domain; decision 031), and registry-api
   (zot's /v2/, anonymous pull), each a plain GET with no credential. The registry is read through the registry model with the vault's ci credential: the digest of the
   nats mirror tag, which proves the login as well as the registry. A gateway or endpoint slower than two seconds
   fails the run, as does a forge that answers unhealthy, a gateway or endpoint that does not answer, or a mirror
@@ -32,7 +31,7 @@ jobs:
           inputs:
             forgeModels: [forgejo]
             gatewayModels: [osl1-s3, hov1-s3]
-            endpointModels: [www, forum, zitadel-oidc, zitadel-oidc-id, zitadel-oidc-id-osl1, registry-api]
+            endpointModels: [www, forum, zitadel-oidc-id, zitadel-oidc-id-osl1, registry-api]
             maxLatencyMs: 2000
   - name: registry
     steps:
