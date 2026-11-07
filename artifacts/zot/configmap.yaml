@@ -35,7 +35,7 @@ data:
             "providers": {
               "oidc": {
                 "name": "Zitadel",
-                "issuer": "https://zitadel.dataverket.org",
+                "issuer": "https://id.dataverket.org",
                 "credentialsFile": "/oidc/credentials.json",
                 "scopes": ["openid", "profile", "email"]
               }
