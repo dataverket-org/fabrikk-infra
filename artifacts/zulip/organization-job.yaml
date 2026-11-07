@@ -136,7 +136,7 @@ spec:
               value: EmailAuthBackend,GenericOpenIdConnectBackend
             - name: SETTING_SOCIAL_AUTH_OIDC_ENABLED_IDPS
               value: >-
-                {"zitadel": {"oidc_url": "https://zitadel.dataverket.org", "display_name": "Dataverket",
+                {"zitadel": {"oidc_url": "https://id.dataverket.org", "display_name": "Dataverket",
                 "client_id": "395237846727787789", "secret": get_secret("social_auth_oidc_secret"),
                 "auto_signup": True}}
             - name: SECRETS_social_auth_oidc_secret
