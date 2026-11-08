@@ -106,34 +106,25 @@ Written 2026-11-08 after the day's work, for whoever continues, person or agent.
 | readers, kata-containers, cnpg, occm, cinder-csi-provider | zot | moved today; `infrastructure/<name>/source.yaml` is the pointer; `bootstrap/foundation-from-git.yaml` carries occm and cinder-csi-provider at bootstrap |
 | forgejo, forgejo-runners | zot | moved today, through an incident; rendered from charts vendored under `recipe/charts/`; no HelmRelease left |
 | envoy, zitadel | git: a HelmRelease each, their charts from zot (`mirror/…`) | the plan's two exceptions, done |
-| local-static-provisioner | git: a HelmRelease, every object marked `keep` | **step B on branch `gitless-2d`** (`684a1e3`, 2026-11-08 evening): rendered, `kubectl diff` empty against the cluster, pointer written with `release.yaml`, `repo.yaml` and `storageclass.yaml` still in place. Waits for the operator's push and merge |
+| local-static-provisioner | zot | moved 2026-11-08 evening, by the recipe's order: pushed, adopted with the StorageClass, Helm path removed; no pod replaced |
 | the root, `clusters/production` | git | untouched |
 
-`bin/artifact --check` passes for every artifact on `gitless-2d`; on `main` forgejo-theme's fails, since its
-renderer read the chart from `apps/forgejo/repo.yaml`, gone with `cc89f43`, fixed on the branch (`4e1effd`).
+`bin/artifact --check` passes for every artifact on `main` (forgejo-theme's renderer read the chart from
+`apps/forgejo/repo.yaml`, gone with `cc89f43`, until `4e1effd`).
 `swamp workflow run health` was green after the recovery. The `apps` Kustomization is resumed. Nothing is
 suspended, nothing carries a migration annotation.
 
 ### What is left of goal 2, in order
 
-1. **local-static-provisioner.** On `gitless-2d`, the handover in the recipe's order: `bin/artifact
-   local-static-provisioner --push` from the branch; merge; `reconcile` `infrastructure` with source, then see the
-   five objects and the StorageClass adopt (`kustomize.toolkit.fluxcd.io/name=local-static-provisioner` on them);
-   then a second commit removes `release.yaml`, `repo.yaml` and `storageclass.yaml` from
-   `infrastructure/local-static-provisioner/`, leaving `source.yaml`, and infrastructure's prune touches nothing
-   relabelled. Three PVs are bound through `pg-zitadel-storage` (`zitadel-db-1..3`); a bound PV does not need its
-   StorageClass object, and the adoption keeps it anyway. The chart: the index's digest for 2.8.0 is stale, the
-   release asset was replaced on 2026-03-06; the tarball GitHub serves is byte-identical to the git tag's
-   templates and values (the recipe comment). It is unpacked under the gitignored `recipe/charts/`, as Forgejo's is.
-2. **Zitadel's pointer artifact.** `artifacts/zitadel/` holding what `apps/zitadel/` holds today, HelmRelease
+1. **Zitadel's pointer artifact.** `artifacts/zitadel/` holding what `apps/zitadel/` holds today, HelmRelease
    included; pointer in `apps/zitadel/source.yaml`. The HelmRelease object itself is just another manifest in the
    artifact; nothing is uninstalled. The database `Cluster` is in there: push first, `prune: disabled` on
    everything moved, as for CNPG today.
-3. **The root.** `clusters/production` becomes `platform/cluster-production`; `gotk-sync.yaml`'s `Kustomization
+2. **The root.** `clusters/production` becomes `platform/cluster-production`; `gotk-sync.yaml`'s `Kustomization
    flux-system` sources it from an `OCIRepository`; `bootstrap.sh` becomes a from-checkout sequence (foundation,
    zot, the artifacts in dependency order, then Flux pointed at the root artifact) with no `GitRepository`. Design
    it before touching it; it is the step that changes how a rebuild works.
-4. **CI.** A Forgejo Actions workflow beside `.forgejo/workflows/check.yaml` running `bin/artifact <name> --push`
+3. **CI.** A Forgejo Actions workflow beside `.forgejo/workflows/check.yaml` running `bin/artifact <name> --push`
    for each `artifacts/<name>/` a push to `main` changed, with the `fabrikk-ci` credential as a repository secret.
    Until then every push is an operator's, one YubiKey touch each.
 
@@ -194,6 +185,18 @@ for the extension.
 | Recovery | from the artifact, since git was the forge itself: `forgejo-postgres` with `bootstrap.recovery` from `hov1/forgejo-postgres-2`, archiving to `-3`; the PVC bound to the retained PV by `volumeName`; the HelmReleases and chart sources out of git; `apps` suspended until that commit was on `main` (`cc89f43`) | CNPG restored the database in about a minute; the forge answered 200 at 13:08 CET with all sixteen repositories and `main` at the last push; the runner re-registered. A base backup taken after |
 | Written down | the handover recipe in `artifacts/cert-manager/README.md` gains step 0: push first, adopt, then remove; or `prune: disabled` on everything that moves | the rule the morning's first five followed and the sixth did not |
 
-Left of goal 2: local-static-provisioner (recipe written, chart pull waits for GitHub; its `keep` is live), Zitadel's
-pointer artifact, the root. Left of this incident: nothing on the cluster; the restored database's
+Left of goal 2: Zitadel's pointer artifact, the root. Left of this incident: nothing on the cluster; the restored database's
 `ScheduledBackup` runs on its schedule.
+
+### 2026-11-08, evening, local-static-provisioner
+
+**Status:** Done, by the recipe's order.
+
+| Finding | Where | Assessment |
+|---|---|---|
+| The chart | GitHub's release asset for 2.8.0 was replaced on 2026-03-06; its digest `5a54ef18…` is GitHub's own for the asset, the index still says `ad8ab12e…`; templates and values byte-identical to the git tag | used, the fact in the recipe comment; a stale index digest is what the mirror plan's intake would catch |
+| Rendered | 5 objects, `kubectl diff` empty against the release, the StorageClass beside them | `684a1e3` |
+| Pushed, then merged | `current@sha256:550ed5dc…` from the branch, the pointer merged with the Helm path in place | step 0 of the recipe, kept |
+| Adopted | every object and the StorageClass labelled `local-static-provisioner`, DaemonSet generation 1, pods of 2026-10-16 untouched | nothing recreated |
+| Helm path removed | `release.yaml`, `repo.yaml`, `storageclass.yaml` out of `infrastructure/local-static-provisioner/` | the second commit |
+| Beside it | `bin/artifact forgejo-theme --check` had failed on `main` since `cc89f43`; the renderer reads the chart from the forgejo recipe now | `4e1effd` |

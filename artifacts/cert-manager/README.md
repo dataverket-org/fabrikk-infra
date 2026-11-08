@@ -105,9 +105,10 @@ are the same; what changes is which controller owns them. What was done, and wha
    `infrastructure` Kustomization prunes the HelmRelease and HelmRepository objects and nothing of what the
    `cert-manager` Kustomization relabelled in step 1; the CRDs are additionally `prune: disabled`. Read again:
    every Certificate `Ready`, every pod `Ready` and, with step 2 done right, none restarted.
-4. **Afterwards.** helm-controller stays for the charts still on it (envoy, zitadel, forgejo, CNPG, the static
-   provisioner) until each has had this treatment; the hooks of envoy and zitadel are the known obstacle
-   (`docs/research/2026-10-rendered-manifests-over-oci.md`). Record the outcome in decision 028's audit.
+4. **Afterwards.** Forgejo, its runner and the static provisioner had this treatment on 2026-11-08, CNPG's
+   manifests were vendored instead (035); helm-controller stays for envoy and zitadel, whose hook Jobs keep them
+   HelmReleases with their charts mirrored into zot (`docs/research/2026-10-rendered-manifests-over-oci.md`,
+   `docs/plans/2026-11-gitless.md`). Record each outcome in decision 028's audit.
 
 What can go wrong, and the way back: if Flux deletes a CRD the Certificates go with it, so step 3 is done only after
 step 1 is read as healthy and the `prune: disabled` annotation is seen on the live CRDs. The way back from a bad

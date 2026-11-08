@@ -116,3 +116,20 @@ zot hosts its own config (011) and is plain manifests (012); the cluster fetches
 helm-controller still runs envoy, zitadel, forgejo, CNPG and the static provisioner.
 
 **Action Required:** The chart mirror in zot, images by digest, the site signing key, and the next chart.
+
+### 2026-11-08
+
+**Status:** Implemented for every chart that renders
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| One tool for every artifact | `bin/artifact`, `share/artifact.sh` | render, check, push, sign, tag; the per-directory scripts retired |
+| forgejo-theme, forgejo, forgejo-runners | `artifacts/<name>/` | rendered from their charts; Forgejo's handover lost the namespace to a prune for an hour, step 0 of the handover recipe since (`docs/plans/2026-11-gitless.md`, audit) |
+| local-static-provisioner | `artifacts/local-static-provisioner/` | rendered, 5 objects, `kubectl diff` empty against the release; pushed `current@sha256:550ed5dc…`, adopted with the StorageClass, no pod replaced, the Helm path removed the same evening |
+| CNPG | `artifacts/cnpg/` | not rendered: the upstream manifests vendored and pinned (035) |
+| envoy, zitadel | `infrastructure/envoy/`, `apps/zitadel/` | stay HelmReleases for their hook Jobs; their charts come from zot, `mirror/…`, by the Service name |
+
+**Summary:** Every chart without hooks is rendered in the factory. helm-controller runs envoy and zitadel, from charts
+in zot.
+
+**Action Required:** Signing (gitless goal 3); Zitadel's HelmRelease into its own artifact; the root.

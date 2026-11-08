@@ -40,7 +40,7 @@ machine as `500-<hostname>-storage`:
 About 1 GiB of each disk stays unused. The patch also sets the kubelet's budget: image collection from 80 percent of
 EPHEMERAL and of images unused for a week, logs capped per container, and `evictionHard` written out in full with the
 kubelet's defaults, since a partial map may replace them rather than merge. The patch is applied only to a machine
-before it joins; Talos sizes volumes once, at provisioning. `infrastructure/local-static-provisioner/` publishes every worker's mount as a
+before it joins; Talos sizes volumes once, at provisioning. `artifacts/local-static-provisioner/` publishes every worker's mount as a
 `local` PV of class `pg-zitadel-storage` (`Retain`, `WaitForFirstConsumer`), reported as 10Gi; the kubelet sets the
 pod's `fsGroup` on the mount, so the database needs no init container. The flavor caps the root disk at 500 IOPS and
 100 MiB/s each way, which the database shares with image pulls and CI; Zitadel writes a few events per login and has

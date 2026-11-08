@@ -103,7 +103,7 @@ which is when this lands; one redundancy layer per kind of data (018); sizes sta
 | Finding | Where | Assessment |
 |---------|-------|------------|
 | Slots named by tier and number | `talos/dataverket-prod/workers-storage.yaml` | not done: `pg-zitadel` on all three workers |
-| Classes `local-fast`, `fast`, `large` | `infrastructure/local-static-provisioner/`, `infrastructure/cinder-csi-provider/` | not done: `pg-zitadel-storage` and the two Cinder names |
+| Classes `local-fast`, `fast`, `large` | `artifacts/local-static-provisioner/`, `artifacts/cinder-csi-provider/` | not done: `pg-zitadel-storage` and the two Cinder names |
 | Block slots for Kata | nowhere | not done: the runner store is a Cinder Block claim, which stays valid; the mechanism passed on the lab cluster |
 | Reservation by label | the PVs | not needed: one workload uses the class |
 | Raw disks left to Rook | bare-metal nodes | no such node yet |

@@ -60,7 +60,7 @@ init container to own its directory.
 | Finding | Where | Assessment |
 |---------|-------|------------|
 | EPHEMERAL capped, user volumes carved | `talos/dataverket-prod/workers-storage.yaml` | done: EPHEMERAL 14 GiB, not 16, and `u-pg-zitadel` 11 GiB on every worker (019) |
-| Mounts published as `local` PVs | `infrastructure/local-static-provisioner/` | done: three PVs of `pg-zitadel-storage`, all bound by Zitadel's database |
+| Mounts published as `local` PVs | `artifacts/local-static-provisioner/`, applied from zot since 2026-11-08 | done: three PVs of `pg-zitadel-storage`, all bound by Zitadel's database |
 | No init container for ownership | `zitadel-db` pods | done: the kubelet sets group 26 on the mount, which is what "chowns" means here; the owner stays root |
 
 **Summary:** Applied 2026-10-01 with the worker swaps (017) and the provisioner; the layout is `docs/storage.md`. The EPHEMERAL figure is 019's.
