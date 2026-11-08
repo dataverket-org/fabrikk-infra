@@ -114,3 +114,22 @@ refused. Rollback: remove the `verify` block from the one source that fails; sig
 
 Not a swamp type: Flux's `HelmRepository`, `HelmChart` and `OCIRepository` state, read with `kubectl` this once; noted
 for the extension.
+
+### 2026-11-08, goal 2, with an incident
+
+**Status:** Eleven of the eighteen components are artifacts; Forgejo's handover took the forge down for an hour.
+
+| Finding | Where | Assessment |
+|---|---|---|
+| Tooling | `bin/artifact` and `share/artifact.sh` (`009a075`): render, check, push, sign, tag; the per-directory scripts retired; `prepush.sh`, `.sourceignore`, `recipe/plain-secrets` and a values file as conventions | proven first on forgejo-theme, then on every artifact since |
+| The five plain components | readers, kata-containers, cnpg, occm, cinder-csi-provider, in three commits: `prune: disabled` on the live objects, the move with the pointers and the pushes, the annotations off (`e87f0fe`, `a307c77`, `975b152`, `f3c2ea5`) | adopted without a deletion; the CNPG CRDs changed owner with every database healthy. B for the foundation: `bootstrap/foundation-from-git.yaml` and the steps in `bootstrap.sh` |
+| Envoy and Zitadel | charts in zot, `HelmRepository` by the Service name (`9a0c59f`, `bb2259d`); both stay HelmReleases for their hook Jobs | the two exceptions of the plan |
+| Forgejo and the runner, step A | every object of both releases `keep` (`1963e23`, then the runner's patch in its existing post-renderer) | read back on every kind |
+| **Forgejo, step B: the incident** | `6c2a5ad` moved `namespace.yaml`, `postgres.yaml`, the backup objects and the Secrets out of `apps/forgejo` and added the pointer in one commit; the artifact pushes typed after the merge did not run (the shell was in `apps/`); `apps` prunes | Flux garbage-collected the `forgejo` and `forgejo-runners` Namespaces and the `forgejo-postgres` Cluster, 12:57 to 13:00 CET. The guard used for the five infrastructure components, `prune: disabled` first, was not applied here. The agent's error |
+| What was saved | the repositories' PV `pvc-b7554609…` patched to `Retain` by you while the Namespace terminated, its claim released after | the Cinder volume `cf90978b…` survived; the Postgres volume did not |
+| Recovery | from the artifact, since git was the forge itself: `forgejo-postgres` with `bootstrap.recovery` from `hov1/forgejo-postgres-2`, archiving to `-3`; the PVC bound to the retained PV by `volumeName`; the HelmReleases and chart sources out of git; `apps` suspended until that commit was on `main` (`cc89f43`) | CNPG restored the database in about a minute; the forge answered 200 at 13:08 CET with all sixteen repositories and `main` at the last push; the runner re-registered. A base backup taken after |
+| Written down | the handover recipe in `artifacts/cert-manager/README.md` gains step 0: push first, adopt, then remove; or `prune: disabled` on everything that moves | the rule the morning's first five followed and the sixth did not |
+
+Left of goal 2: local-static-provisioner (recipe written, chart pull waits for GitHub; its `keep` is live), Zitadel's
+pointer artifact, the root. Left of this incident: nothing on the cluster; the restored database's
+`ScheduledBackup` runs on its schedule.

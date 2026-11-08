@@ -46,6 +46,16 @@ is off for that reason, and the certificate check it did is what `kubectl get ce
 Both charts ran as HelmReleases in `infrastructure/`; on 2026-10-06 they were handed to the artifact. The objects
 are the same; what changes is which controller owns them. What was done, and what it taught, in order.
 
+0. **Nothing leaves a pruning Kustomization before its artifact is in zot.** On 2026-11-08 Forgejo's handover
+   moved `namespace.yaml`, `postgres.yaml` and the Secrets from `apps/forgejo` into the artifact in the same commit
+   that added the pointer, and the pushes that would have let the new Kustomization adopt them did not run. The
+   `apps` Kustomization, `prune: true`, garbage-collected the Namespace and with it the database Cluster; the forge
+   was down an hour and the database came back from the hov1 archive (`docs/plans/2026-11-gitless.md`, audit).
+   So, in order and never together: push the artifact first, from the branch, so zot holds it; merge the pointer
+   while the old path still carries the objects; see the new Kustomization adopt them (`kustomize.toolkit.fluxcd.io/name`
+   on the live objects is the new name); only then remove them from the old path. When the old path must lose them
+   in the same commit, every moved object carries `kustomize.toolkit.fluxcd.io/prune: disabled` first, as the five
+   infrastructure components did the same morning without incident.
 1. **Ship the artifact beside the releases.** `bin/artifact cert-manager --push`, with `infrastructure/cert-manager/source.yaml` already in
    git. Both paths apply the same objects, and helm-controller's drift detection is off, so they do not fight.
    Server-side apply moves the objects' Flux labels to the `cert-manager` Kustomization. Read: every object and
