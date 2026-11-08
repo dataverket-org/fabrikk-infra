@@ -10,7 +10,7 @@ signed merge; Flux reads `main`. Audit lines go under the heading at the end.
 |---|---|---|
 | R1, the site-local registry name | listener, certificate, zot's route, the A record, the health check (audit below) | the Talos mirror entry `registry.dataverket.org` → `https://registry.osl1.dvkt.no`, the operator's through Omni |
 | R3, tenant-first paths | the three images under `dataverket/`, every pod running from them; the mirror plan's layout | `sites/offentlig-data`, `platform/www-site`, `platform/postgresql-zulip`, `mirror/nats` and `mirror/static` still exist in the registry (read 2026-11-08 evening); whether the offentlig-data builder in its own repository pushes to the new path is not verified from here |
-| R4, the site's own identity | nothing | steps 1 to 4; `@dataverket/zitadel/system` has the four domain methods and no instance methods yet |
+| R4, the site's own identity | step 1: `@dataverket/zitadel` 2026.11.08.1 published and pulled, with `instanceList`, `instanceCreate` and a new `instance` type; the `zitadel-instance` definition reads this instance with the reader key (audit below) | steps 2 to 4 |
 
 ## What is already as 034 wants it
 
@@ -88,3 +88,16 @@ Left of R1: the Talos mirror entry (`registry.dataverket.org` → `https://regis
 until then the kubelet pulls from the registry of record directly, which at this site is the same zot.
 
 **Action Required:** The Talos mirror entry; delete the three old repositories when the offentlig-data builder has moved.
+
+### 2026-11-08, R4 step 1
+
+**Status:** Done, in `@dataverket/zitadel` 2026.11.08.1 (swamp-extensions `0b7c774`, published to the registry and pulled here); this branch adds one definition.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The instance methods | `zitadel-system` type: `instanceList`, and `instanceCreate` with a first organization and a machine owner whose token or key is emitted once into a sensitive spec; the domain methods already took `instanceId` | the extension's smoke suite ran two instances on a throwaway v4.19.3 and listed both, scoped `domainList` to the second by `instanceId`, and found the custom domain given at creation already primary. The owner is a machine user on purpose: a human owner needs a password in the request. Step 2 therefore makes the site instance with a machine owner and adds you afterwards with the user type as that owner |
+| A read that was a bypass | new type `@dataverket/zitadel/instance`, definition `zitadel-instance` with the reader key: `read` stores the instance (v4.15.3, five domains, `id.osl1.dvkt.no` primary, no trusted domain), `memberList` the five holders of an instance role | what `share/admin/zitadel.sh` read with `zitadel_request` on 2026-11-01 is a swamp read now; the script's membership write stays, since the type does not add members |
+| Two more reads | `zitadel-settings read instance=true` stores `email-provider-nordhost-noreply` (sender, host, TLS, no password) and `notification-instance`; `zitadel-user authFactorList` with no user stores an `auth-summary` per human | ten humans; seven have a ready passkey or TOTP, three have nothing ready, which is the passkey audit the rename plan wanted in one run |
+| Types migrated | `zitadel-settings` and `zitadel-user` moved to 2026.11.08.1 on their first run after the pull; the other six move on theirs | nothing to do |
+
+**Action Required:** none for step 1; step 2 needs the System API key through `task admin:zitadel-domains`'s pattern, yours.
