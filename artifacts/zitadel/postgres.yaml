@@ -1,0 +1,49 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: zitadel-db
+  namespace: zitadel
+  # Handover to the artifact (the gitless plan): never pruned while two Kustomizations carry it; off afterwards.
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  # Three instances on the workers' local partitions (decisions 014 and 018; docs/storage.md).
+  instances: 3
+  # Recovery needs the archive's Postgres major; the same image the cluster ran before.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+  # The PV reports the filesystem's capacity rounded down, 10Gi on an 11 GiB partition; a larger claim never binds.
+  storage:
+    storageClass: pg-zitadel-storage
+    size: 10Gi
+  affinity:
+    podAntiAffinityType: required
+  postgresql:
+    # One replica acknowledges each commit, whichever is first, so a failover loses no acknowledged commit.
+    synchronous:
+      method: any
+      number: 1
+    parameters:
+      max_wal_size: 1GB
+      max_slot_wal_keep_size: 512MB
+  enableSuperuserAccess: true
+  # Archiving to the hov1 site (backup.yaml, backup/README.md); serverName is this cluster's own folder.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: hov1
+        serverName: zitadel-db-2
+  # Bootstrap from the hov1 archive, read by CNPG only at creation; a rebuild moves serverName first
+  # (decision 021, docs/storage.md).
+  bootstrap:
+    recovery:
+      source: hov1-archive
+      database: zitadel
+      owner: zitadel
+  externalClusters:
+    - name: hov1-archive
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: hov1
+          serverName: zitadel-db-2

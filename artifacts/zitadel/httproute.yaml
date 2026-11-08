@@ -1,0 +1,52 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zitadel
+  namespace: zitadel
+spec:
+  # The two names of one instance (decisions 031, 034): id.dataverket.org is the name people
+  # and clients bind to, on the wildcard listener, and id.osl1.dvkt.no this site's alias, on its own (decision
+  # 031); external-dns makes the records from this route. zitadel.dataverket.org retired with goal G; its A
+  # record at Nordhost is removed by hand, since external-dns is upsert-only.
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: https
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: https-id-osl1
+  hostnames:
+    - "id.dataverket.org"
+    - "id.osl1.dvkt.no"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ui/v2/login
+      backendRefs:
+        - name: zitadel-login
+          port: 3000
+    - backendRefs:
+        - name: zitadel
+          port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zitadel-redirect
+  namespace: zitadel
+spec:
+  parentRefs:
+    - name: envoy-gateway
+      namespace: envoy-system
+      sectionName: http
+  hostnames:
+    - "id.dataverket.org"
+    - "id.osl1.dvkt.no"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+

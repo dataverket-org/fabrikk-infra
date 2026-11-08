@@ -1,0 +1,17 @@
+# Zitadel, delivered as a config artifact (decisions 013, 028; the gitless plan): platform/zitadel-config. Nothing
+# renders: the plan's exception keeps Zitadel a HelmRelease, since its init and setup Jobs are Helm hooks, and the
+# HelmRelease is a manifest here like the others, its chart from zot (repo.yaml). Beside it the namespace, the
+# database Cluster on the workers' local partitions and its backup to hov1, the routes and the encrypted Secrets.
+# zitadel-system-operators.pub.pem is the System API user's public half, carried in release.yaml as base64.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - repo.yaml
+  - postgres.yaml
+  - hov1-s3.yaml
+  - s3-cnpg-zitadel.enc.yaml
+  - backup.yaml
+  - zitadel-masterkey.enc.yaml
+  - release.yaml
+  - httproute.yaml

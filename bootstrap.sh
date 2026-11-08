@@ -132,13 +132,14 @@ fi
 
 # A restored cluster's ScheduledBackup may fire during recovery and fail, and the -first Backups in git were taken
 # for the old clusters (021), so every CNPG cluster git names gets a base backup here unless it has a completed one
-# since it was created. The list comes from git, since on a fresh cluster Flux may not have made the Clusters yet.
-# Rerunning skips what is done.
+# since it was created. The list comes from git, since on a fresh cluster Flux may not have made the Clusters yet;
+# from apps/ and artifacts/ both, as the Clusters moved into artifacts with the gitless plan. Rerunning skips what
+# is done.
 step "A first base backup of every CNPG cluster that has none since it was created"
-clusters=$(find apps -name '*.yaml' ! -name '*.enc.yaml' -exec yq -r \
+clusters=$(find apps artifacts -path '*/recipe' -prune -o -name '*.yaml' ! -name '*.enc.yaml' -exec yq -r \
   'select(.kind == "Cluster" and (.apiVersion // "" | test("^postgresql.cnpg.io/"))) |
-   .metadata.namespace + " " + .metadata.name' {} + | grep -v '^---$' | sort -u)
-[ -n "$clusters" ] || echo "git names no CNPG cluster under apps/"
+   .metadata.namespace + " " + .metadata.name' {} + \; | grep -v '^---$' | sort -u)
+[ -n "$clusters" ] || echo "git names no CNPG cluster under apps/ or artifacts/"
 while read -r ns name; do
   [ -n "$name" ] || continue
   created=$(k -n "$ns" get "cluster.postgresql.cnpg.io/$name" -o jsonpath='{.metadata.creationTimestamp}' \

@@ -3,6 +3,9 @@ kind: Cluster
 metadata:
   name: zitadel-db
   namespace: zitadel
+  # Handover to the artifact (the gitless plan): never pruned while two Kustomizations carry it; off afterwards.
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   # Three instances on the workers' local partitions (decisions 014 and 018; docs/storage.md).
   instances: 3

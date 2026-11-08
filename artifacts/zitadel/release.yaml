@@ -1,0 +1,60 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: zitadel
+  namespace: zitadel
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: zitadel
+      version: "10.0.4"
+      sourceRef:
+        kind: HelmRepository
+        name: zitadel-repo
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    zitadel:
+      configmapConfig:
+        # The name people and clients bind to, the upstream's (decisions 031, 034).
+        # Setup adds it beside the names the instance has and removes nothing; the site alias and the removals
+        # go through task admin:zitadel-domains. Also the audience the login's and the System API user's tokens
+        # are checked against.
+        ExternalDomain: id.dataverket.org
+        # The public port, so the console's redirect URIs and the login's audience carry no :8080.
+        ExternalPort: 443
+        ExternalSecure: true
+        # The System API user the operators hold (decision 032): the public half of
+        # vaults/operator/osl1/zitadel-system.enc.json, base64 of zitadel-system-operators.pub.pem beside this
+        # file, which the config loader decodes. The chart merges it beside its own login client. SYSTEM_OWNER
+        # is the only system role with system.domain.write; task admin:zitadel-domains uses it for the domain
+        # list and nothing else.
+        SystemAPIUsers:
+          operators:
+            KeyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FnOEFNSUlDQ2dLQ0FnRUF6UmdPTGRuK2ZlUkZETEFUVGVkagpkQlRVOXVvNHhnR2hxM0V4Nzl4K1pISFh3SzJtS2Uvcy8zVnB1aVltWHZlZ2dZSld6ZlRmRDBhYytERjlsQnAzCnJiY05jZkdXQ0x1RDRtSHpHb3p3OWhmR3c3SXVoWkhjTVl0VElnK09YbDlDSzIzSXA2VXdnL1p2ZmhxUjljWmEKUEhObk5CaGZuYVd1dThlZmNWbStZdURkUDM1eUxaS2huTDFjS2dqZWtHeVR1ZXYwREt0YUt4bzRJMVdxbm9ZKwpQdXN6Nm5VaFpEQS8wMC83MmREUlk2NFlldzdrRUQrTjFOWVlvSmxvVE95ZnhXTDc1UHlpMXhWU20rTmJabTZOCjQwSVlXcGM4eC9mMEtFbHVTWnVGUmtrMGg0dlc4VFRidGgzZ0tmYkdNNjhpcXVTbWZPQ3BaOXI0TFBlaXVJUHoKVURKSEFvYTFDWnZOemJxYzRrRCtPOExGd2lqSjBuRnVKT0FPdWxKK3NTalQzQnNycTArSDB6MjFFZCtmZ2RvcQoxMmRwSzVwUHRxaisvVkJiVGJLMEZmRFQyaVdxd1E1L1h0TGc5eTRXaEdpVVNzdXVhNDFWVVpmNGMzc29jdFZICldvbzVLajI2bWJUbnlzRk5WclJaMXVaUVMzZTArZ0lSdXZiR0doNnlvRDh4YndpcG1UVDN0d2U2ZWNoRXprOFIKdG1WQWVBYXJseEF3VlZyeWlwS3ZiR1ZBcVFyeE1UaGRVbUxYOVRVdmZYVUVHRzBMdFM0aVU5ZW9UK2pYMDRCbAo5MWJ0bzlsY2VBS0RlQ3NkVytWUnF5REJYSVNHVDRUZ3hQbFViQ1ZxREJSemNONTJqeFk3b0t3cGFuRVFYc0VtCmRQZ3JEUmlOUTdidk1GUmR6UnI2WHY4Q0F3RUFBUT09Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=
+            Memberships:
+              - MemberType: System
+                Roles:
+                  - SYSTEM_OWNER
+      masterkeySecretName: zitadel-masterkey
+    login:
+      # The chart's .env without X-Zitadel-Public-Host: with it every browser login would belong to ExternalDomain;
+      # without it the browser's own host is the public host, so each name keeps its passkeys and no trusted domain
+      # is needed. The audience stays right: the server checks it against ExternalDomain and ExternalPort.
+      customConfigmapConfig: |
+        ZITADEL_LOGINCLIENT_KEYFILE="/login-service-key/tls.key"
+        AUDIENCE="https://${ZITADEL_EXTERNALDOMAIN}"
+        ZITADEL_API_URL="http://zitadel:8080"
+        CUSTOM_REQUEST_HEADERS="Host:${ZITADEL_EXTERNALDOMAIN}"
+    env:
+      - name: ZITADEL_DATABASE_POSTGRES_DSN
+        valueFrom:
+          secretKeyRef:
+            name: zitadel-db-app
+            key: uri
