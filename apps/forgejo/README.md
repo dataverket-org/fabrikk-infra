@@ -46,8 +46,20 @@ exists is a no-op, so Flux may recreate the Job; the force annotation lets it re
 The Role allows `exec` on the namespace's pods, since `exec` cannot be limited to one pod by name. The Job is
 applied with the release, so it waits for the forge to answer. The bot's password is random and kept by nobody.
 
-A lost Secret while the token lives is a state a person resolves: delete the token in the bot's settings on the
-forge, then let the Job rerun. A second token of the same name is refused.
+A lost Secret while the token lives is a state a person resolves, since a second token of the same name is
+refused, the CLI has no command to delete one, and the API deletes a token only as its user under basic
+authentication, which `ENABLE_BASIC_AUTHENTICATION=false` turns off here. It happened on 2026-11-08, when the
+namespace was garbage-collected and the database came back from the archive with the token in it. Delete the row
+in the database through the CNPG plugin, remove the failed Job and let Flux recreate it; the Kustomization is not
+`Ready` until the Job succeeds:
+
+```sh
+kubectl cnpg psql forgejo-postgres -n forgejo --context dataverket-prod-admin -- -d forgejo \
+  -c "SELECT id, uid, name, scope FROM access_token WHERE name = 'actions-mirror';" \
+  -c "DELETE FROM access_token WHERE name = 'actions-mirror' AND uid = (SELECT id FROM \"user\" WHERE lower_name = 'actions-mirror');"
+kubectl --context dataverket-prod-admin -n forgejo delete job actions-mirror-bootstrap --ignore-not-found
+swamp behavior run dataverket-prod-kustomizations reconcile --arg name=forgejo
+```
 
 **The CronJob `actions-mirror`** runs daily and keeps the org a frozen copy of `code.forgejo.org/actions`,
 promoted after a quarantine (decision 023). No mirror has a sync interval of its own. A repository is created here,
