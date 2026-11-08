@@ -106,26 +106,25 @@ Written 2026-11-08 after the day's work, for whoever continues, person or agent.
 | readers, kata-containers, cnpg, occm, cinder-csi-provider | zot | moved today; `infrastructure/<name>/source.yaml` is the pointer; `bootstrap/foundation-from-git.yaml` carries occm and cinder-csi-provider at bootstrap |
 | forgejo, forgejo-runners | zot | moved today, through an incident; rendered from charts vendored under `recipe/charts/`; no HelmRelease left |
 | envoy, zitadel | git: a HelmRelease each, their charts from zot (`mirror/…`) | the plan's two exceptions, done |
-| local-static-provisioner | git: a HelmRelease, every object marked `keep` | **parked** on branch `gitless-2d` (`75573e7`): recipe and kustomization written, the chart tarball not vendored because GitHub's release downloads were down. Not merged |
+| local-static-provisioner | git: a HelmRelease, every object marked `keep` | **step B on branch `gitless-2d`** (`684a1e3`, 2026-11-08 evening): rendered, `kubectl diff` empty against the cluster, pointer written with `release.yaml`, `repo.yaml` and `storageclass.yaml` still in place. Waits for the operator's push and merge |
 | the root, `clusters/production` | git | untouched |
 
-`bin/artifact --check` passes for every artifact on `main`. `swamp workflow run health` was green after the
-recovery. The `apps` Kustomization is resumed. Nothing is suspended, nothing carries a migration annotation.
+`bin/artifact --check` passes for every artifact on `gitless-2d`; on `main` forgejo-theme's fails, since its
+renderer read the chart from `apps/forgejo/repo.yaml`, gone with `cc89f43`, fixed on the branch (`4e1effd`).
+`swamp workflow run health` was green after the recovery. The `apps` Kustomization is resumed. Nothing is
+suspended, nothing carries a migration annotation.
 
 ### What is left of goal 2, in order
 
-1. **local-static-provisioner.** On `gitless-2d`: fetch `local-static-provisioner-2.8.0.tgz` (the index at
-   `kubernetes-sigs.github.io/sig-storage-local-static-provisioner` points at a GitHub release asset; when the
-   download CDN fails, the API asset endpoint `api.github.com/repos/<owner>/<repo>/releases/tags/<tag>` →
-   `.assets[].url` with `Accept: application/octet-stream` worked today), check its digest against the index,
-   untar it to `artifacts/local-static-provisioner/recipe/charts/local-static-provisioner-2.8.0/`, render with
-   `bin/artifact local-static-provisioner`, `kubectl diff -k artifacts/local-static-provisioner/rendered` against the
-   cluster (expect only a `helm.sh/chart` label if anything). Then the handover in the recipe's order: push the
-   artifact first; merge the pointer (`infrastructure/local-static-provisioner/source.yaml`, the shape of the others,
-   `dependsOn: zot`) with `release.yaml` and `repo.yaml` still in place; see the objects adopt; then a second commit
-   removes `release.yaml`, `repo.yaml` and the chart source. `pg-zitadel-storage` StorageClass moves with it and is
-   owned by `infrastructure` today: either `prune: disabled` on it first or accept its one-second re-creation (no
-   PV is bound through it at the moment; check with `kubectl get pv`).
+1. **local-static-provisioner.** On `gitless-2d`, the handover in the recipe's order: `bin/artifact
+   local-static-provisioner --push` from the branch; merge; `reconcile` `infrastructure` with source, then see the
+   five objects and the StorageClass adopt (`kustomize.toolkit.fluxcd.io/name=local-static-provisioner` on them);
+   then a second commit removes `release.yaml`, `repo.yaml` and `storageclass.yaml` from
+   `infrastructure/local-static-provisioner/`, leaving `source.yaml`, and infrastructure's prune touches nothing
+   relabelled. Three PVs are bound through `pg-zitadel-storage` (`zitadel-db-1..3`); a bound PV does not need its
+   StorageClass object, and the adoption keeps it anyway. The chart: the index's digest for 2.8.0 is stale, the
+   release asset was replaced on 2026-03-06; the tarball GitHub serves is byte-identical to the git tag's
+   templates and values (the recipe comment). It is unpacked under the gitignored `recipe/charts/`, as Forgejo's is.
 2. **Zitadel's pointer artifact.** `artifacts/zitadel/` holding what `apps/zitadel/` holds today, HelmRelease
    included; pointer in `apps/zitadel/source.yaml`. The HelmRelease object itself is just another manifest in the
    artifact; nothing is uninstalled. The database `Cluster` is in there: push first, `prune: disabled` on
