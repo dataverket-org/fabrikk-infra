@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: local-static-provisioner
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: local-static-provisioner
+    helm.sh/chart: local-static-provisioner-2.8.0
+  name: local-static-provisioner
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: local-static-provisioner
+      app.kubernetes.io/name: local-static-provisioner
+  template:
+    metadata:
+      annotations:
+        checksum/config: 6142d22e409e4b99091464a9d11be4b92ec8cbc94cbcd5aae1af34ce5aab9980
+      labels:
+        app.kubernetes.io/instance: local-static-provisioner
+        app.kubernetes.io/name: local-static-provisioner
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
+      containers:
+      - env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: JOB_CONTAINER_IMAGE
+          value: registry.k8s.io/sig-storage/local-volume-provisioner:v2.8.0
+        image: registry.k8s.io/sig-storage/local-volume-provisioner:v2.8.0
+        name: provisioner
+        ports:
+        - containerPort: 8080
+          name: metrics
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /etc/provisioner/config
+          name: provisioner-config
+          readOnly: true
+        - mountPath: /dev
+          name: provisioner-dev
+        - mountPath: /var/mnt
+          mountPropagation: HostToContainer
+          name: pg-zitadel-storage
+      hostPID: false
+      nodeSelector:
+        kubernetes.io/os: linux
+      serviceAccountName: local-static-provisioner
+      volumes:
+      - configMap:
+          name: local-static-provisioner-config
+        name: provisioner-config
+      - hostPath:
+          path: /dev
+        name: provisioner-dev
+      - hostPath:
+          path: /var/mnt
+        name: pg-zitadel-storage
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate

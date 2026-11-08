@@ -1,0 +1,9 @@
+# A Talos user volume at /var/mnt/<name>, published as a local PV behind <name>-storage (decision 014). Retain: a
+# released PV still holds a database's files (docs/storage.md).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pg-zitadel-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain

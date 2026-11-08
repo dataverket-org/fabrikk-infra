@@ -1,7 +1,11 @@
 # The recipe: what bin/artifact local-static-provisioner turns into ../rendered/ (decision 028). The chart and
 # values that were the HelmRelease in infrastructure/ until the gitless plan's goal 2; the names are the release's,
-# so the rendered objects are the ones Helm made and marked keep at the handover. kubectl pulls the chart from its
-# repository at render time, on the laptop or in CI, never on the cluster.
+# so the rendered objects are the ones Helm made and marked keep at the handover. kubectl inflates the chart from
+# charts/ when the tarball is unpacked there, and pulls it from the repository otherwise, on the laptop or in CI,
+# never on the cluster. The repository's index still carries the digest of the asset first published on
+# 2025-07-01, ad8ab12e…; the release asset was replaced on 2026-03-06 and is 5a54ef18… since, the digest GitHub
+# records for it. Its templates and values are byte-identical to the chart at the git tag
+# local-static-provisioner-2.8.0, checked 2026-11-08.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 helmCharts:

@@ -1,0 +1,9 @@
+# Written by bin/artifact; do not edit. One file per object, in the order kustomize emitted them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - apps_v1_daemonset_local-static-provisioner.yaml
+  - rbac.authorization.k8s.io_v1_clusterrole_local-static-provisioner-node-clusterrole.yaml
+  - rbac.authorization.k8s.io_v1_clusterrolebinding_local-static-provisioner-node-binding.yaml
+  - v1_configmap_local-static-provisioner-config.yaml
+  - v1_serviceaccount_local-static-provisioner.yaml

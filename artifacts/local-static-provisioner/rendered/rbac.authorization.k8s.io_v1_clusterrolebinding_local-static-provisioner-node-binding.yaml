@@ -1,0 +1,17 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: local-static-provisioner
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: local-static-provisioner
+    helm.sh/chart: local-static-provisioner-2.8.0
+  name: local-static-provisioner-node-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: local-static-provisioner-node-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: local-static-provisioner
+  namespace: kube-system
