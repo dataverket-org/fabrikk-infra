@@ -1,3 +1,7 @@
+# Envoy Gateway's chart from zot (docs/plans/2026-11-gitless.md, goal 1): gateway-helm is copied by digest into
+# mirror/docker.io/envoyproxy with the registry definition and read by zot's Service name, so a chart fetch needs
+# nothing from docker.io. Plain HTTP inside the cluster (decision 013). Envoy stays a HelmRelease, as Zitadel does:
+# its control-plane certificate Jobs are Helm hooks, which a rendered artifact cannot run again.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
@@ -5,5 +9,6 @@ metadata:
   namespace: envoy-system
 spec:
   type: oci
-  url: oci://docker.io/envoyproxy
+  url: oci://zot.zot.svc.cluster.local:5000/mirror/docker.io/envoyproxy
+  insecure: true
   interval: 1h
