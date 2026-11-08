@@ -11,4 +11,6 @@ spec:
   resources:
     requests:
       storage: 25Gi
+  storageClassName: csi-cinder-sc-delete
   volumeMode: Filesystem
+  volumeName: pvc-b7554609-bc99-46f4-9293-d946ab4ac6bb

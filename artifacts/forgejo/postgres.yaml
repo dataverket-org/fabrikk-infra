@@ -23,7 +23,7 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: hov1
-        serverName: forgejo-postgres-2
+        serverName: forgejo-postgres-3
   # Bootstrap from the hov1 archive, read by CNPG only at creation; a rebuild moves serverName first
   # (decision 021, docs/storage.md).
   bootstrap:
