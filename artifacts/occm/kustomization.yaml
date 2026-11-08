@@ -1,0 +1,14 @@
+# The OpenStack cloud controller manager, delivered as a config artifact (decision 013; the gitless plan):
+# platform/occm-config. The cloud config travels encrypted beside the manifests, decrypted by the cluster key.
+# The foundation: zot's own nodes need it, so at bootstrap this directory is applied from git first
+# (bootstrap/foundation-from-git.yaml) and the artifact takes over once zot serves.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - rbac.yaml
+  - daemonset.yaml
+  - cloud-config.enc.yaml
+# Step 2 of the move out of the infrastructure Kustomization (docs/plans/2026-11-gitless.md, goal 2): Flux must
+# not garbage-collect these while the handover runs; removed in step 3, once this artifact owns them.
+commonAnnotations:
+  kustomize.toolkit.fluxcd.io/prune: disabled

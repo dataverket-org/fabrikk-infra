@@ -33,6 +33,11 @@ and the record of both. It stops once on a new cluster, when the freshly generat
 `.sops.yaml` and every `*.enc.yaml` re-encrypted with a YubiKey. It needs kubectl, kubectl-cnpg, flux, sops, git,
 yq, jq and a YubiKey. The reasons behind each step are in `docs/decisions/`.
 
+Two things come from git only while there is no zot to serve them: the foundation, OCCM and Cinder CSI, which zot's
+own nodes and volume need (`bootstrap/foundation-from-git.yaml`), and zot itself (`bootstrap/zot-from-git.yaml`).
+`bootstrap.sh` applies both from git, pushes their artifacts once zot runs, and removes the git paths; after that
+every component is an artifact in zot (`docs/plans/2026-11-gitless.md`).
+
 A rebuild of a lost cluster runs `./bootstrap.sh --source github`: Flux reads the GitHub mirror while Forgejo is gone,
 and both databases come back from the hov1 site through the `bootstrap.recovery` in git (decision 021). The order,
 and the one commit that must precede it, is `docs/storage.md`, "Rebuild from git".

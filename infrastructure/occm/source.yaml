@@ -1,0 +1,39 @@
+# The OpenStack cloud controller manager, delivered gitless from artifacts/occm (decision 013; the gitless plan).
+# At bootstrap bootstrap/foundation-from-git.yaml applies the same directory from git until this one serves.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: occm-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: oci://zot.zot.svc.cluster.local:5000/platform/occm-config
+  insecure: true
+  ref:
+    tag: current
+  # Verification, switched on in goal 3 of the gitless plan, once every artifact is pushed signed:
+  # verify:
+  #   provider: cosign
+  #   secretRef:
+  #     name: cosign-osl1
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: occm
+  namespace: flux-system
+spec:
+  interval: 10m
+  dependsOn:
+    - name: zot
+  sourceRef:
+    kind: OCIRepository
+    name: occm-config
+  path: ./
+  prune: true
+  wait: true
+  timeout: 5m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

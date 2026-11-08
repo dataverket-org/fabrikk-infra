@@ -86,6 +86,18 @@ MSG
 fi
 echo "recipient $recipient is in .sops.yaml; Flux can decrypt"
 
+step "The foundation from git until zot serves it: OCCM and Cinder CSI (bootstrap/foundation-from-git.yaml)"
+foundation_ready=1
+for c in occm cinder-csi-provider; do
+  [ "$(k -n flux-system get kustomization "$c" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = True ] || foundation_ready=0
+done
+if [ "$foundation_ready" = 1 ]; then
+  echo "kustomizations occm and cinder-csi-provider are Ready from the registry; skipping the git path"
+else
+  k apply -f bootstrap/foundation-from-git.yaml >/dev/null
+  k -n flux-system wait --for=condition=ready --timeout=10m kustomization/occm-bootstrap kustomization/cinder-csi-provider-bootstrap >/dev/null
+  echo "the foundation is up from git"
+fi
 step "zot from git until it serves its own config (bootstrap/zot-from-git.yaml)"
 if [ "$(k -n flux-system get kustomization zot -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" = True ]; then
   echo "kustomization/zot is Ready from the registry; skipping the git path"
@@ -104,6 +116,18 @@ fi
 if k -n flux-system get kustomization zot-bootstrap >/dev/null 2>&1; then
   k -n flux-system delete kustomization zot-bootstrap >/dev/null
   echo "removed the git path; zot serves its own config (no prune, zot stays)"
+fi
+if [ "$foundation_ready" != 1 ]; then
+  step "The foundation artifacts into zot (bin/artifact occm --push, cinder-csi-provider --push, YubiKey)"
+  bin/artifact occm --push
+  bin/artifact cinder-csi-provider --push
+  for c in occm cinder-csi-provider; do
+    until k -n flux-system get ocirepository "$c-config" >/dev/null 2>&1; do sleep 10; done
+    flux --context "$ctx" reconcile source oci "$c-config" -n flux-system >/dev/null
+    k -n flux-system wait --for=condition=ready --timeout=10m "kustomization/$c" >/dev/null
+    k -n flux-system delete kustomization "$c-bootstrap" --ignore-not-found >/dev/null
+    echo "kustomization/$c is Ready from the registry; its git path removed (no prune, the foundation stays)"
+  done
 fi
 
 # A restored cluster's ScheduledBackup may fire during recovery and fail, and the -first Backups in git were taken

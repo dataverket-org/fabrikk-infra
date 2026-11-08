@@ -1,0 +1,37 @@
+# The foundation from git, for bootstrap and recovery only; applied before zot and removed by bootstrap.sh once the
+# occm and cinder-csi-provider artifacts serve (decision 011; the gitless plan, goal 2). zot's own nodes and volume
+# need the cloud controller manager and the CSI driver, so these two cannot come from zot on a fresh cluster. No
+# prune: what they make stays for the artifacts to adopt.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: occm-bootstrap
+  namespace: flux-system
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./artifacts/occm
+  prune: false
+  wait: true
+  timeout: 10m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cinder-csi-provider-bootstrap
+  namespace: flux-system
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./artifacts/cinder-csi-provider
+  prune: false
+  wait: true
+  timeout: 10m
