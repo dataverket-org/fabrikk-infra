@@ -15,4 +15,6 @@ tasks:
   default:           { cmds: [{ task: help }] }
   help:              { desc: "This list",                                    cmds: [task --list], silent: true }
   check-recipients:  { desc: "Every encrypted file matches its rule in .sops.yaml", cmds: [bin/check-recipients] }
-  hooks:             { desc: "Run check-recipients before every commit, from .githooks",   cmds: [git config core.hooksPath .githooks] }
+  vendor:            { desc: "Fetch any upstream manifest missing or off its pin (share/vendor.sh)", cmds: [bin/vendor] }
+  vendor-check:      { desc: "Every vendored upstream manifest matches its pin; no network", cmds: ["bin/vendor --check"] }
+  hooks:             { desc: "Run check-recipients and vendor-check before every commit, from .githooks", cmds: [git config core.hooksPath .githooks] }

@@ -53,6 +53,7 @@ what it supersedes.
 | [013](013-cluster-fetches-registry-through-service.md) | The cluster fetches its own registry through the Service, not the public name | The cluster pulls its own registry through the Service, so the edge being broken cannot lock it out. | 2026-09-17 |
 | [017](017-workers-are-replaced-never-changed-in-place.md) | Workers are replaced, never changed in place | A worker's placement and disk layout arrive with a new machine; the old one is retired, not reconfigured. | 2026-10-01 |
 | [029](029-s3-in-the-cluster-is-one-versitygw-per-org-on-one-volume.md) | S3 in the cluster is one versitygw per org, on one volume | An org's S3 is its own versitygw on one Cinder volume, named <org>.s3.osl1.dvkt.no and path-style; accounts are made with versitygw's own admin CLI, and object lock is available but unused. | 2026-10-15 |
+| [035](035-upstream-manifests-are-vendored-pinned-by-hash-a-flux-build-needs-no-network.md) | Upstream manifests are vendored, pinned by hash; a Flux build needs no network | A manifest the cluster applies from an upstream release is kept in the repository at its pinned version with its SHA-256 in share/vendor.sh, fetched by bin/vendor and proven by bin/vendor --check in the pre-commit hook; a kustomization never names a URL, so a reconcile depends on nothing but our own source. | 2026-11-08 |
 
 ## Storage
 

@@ -1,2 +1,6 @@
+# CloudNativePG 1.30.0, the release manifest kept here (decision 035): bin/vendor fetched it from
+# https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.30/releases/cnpg-1.30.0.yaml and
+# share/vendor.sh pins its SHA-256, so a Flux build needs nothing from GitHub. Bump: the row in share/vendor.sh,
+# then bin/vendor.
 resources:
-  - https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.30/releases/cnpg-1.30.0.yaml
+  - cnpg-1.30.0.yaml

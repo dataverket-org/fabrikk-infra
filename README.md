@@ -24,7 +24,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `talos/<cluster>/` | swamp's Omni and Talos models, never Flux | Talos machine config patches, one file each, applied to machines below Kubernetes; `workers-storage.yaml` is the workers' disk layout and kubelet thresholds (decisions 017, 019). |
 | `docs/decisions/`, `docs/plans/`, `docs/runbooks/`, `docs/storage.md`, `docs/node-storage.md` | Nobody | Why the repository is shaped as it is, what is being changed next, how a rare job is done step by step, where the cluster's data lives and how its workers are replaced, and how a disk on a node becomes a volume. `task decisions` lists the records with what is still pending. |
 | `Brewfile` | `brew bundle` | Every tool `bootstrap.sh` and the tasks need, on Apple silicon and Linux x86_64 and arm64. |
-| `.githooks/` | `git`, after `task hooks` | The pre-commit hook: `bin/check-recipients`, so a commit cannot carry a file encrypted to the wrong readers. |
+| `.githooks/` | `git`, after `task hooks` | The pre-commit hook: `bin/check-recipients`, so a commit cannot carry a file encrypted to the wrong readers, and `bin/vendor --check`, so it cannot carry a vendored manifest off its pin. |
 
 ## Bootstrap and recovery
 
@@ -60,6 +60,7 @@ rule behind it is decision 001. What comes after it, in order: the second door i
 | `task admin:zitadel-domains -- <method> [--arg k=v]` | Zitadel's domain list with the System API key the operators hold (decision 032): `domainList`, `domainAdd`, `domainSetPrimary`, `domainRemove`, one per run. `sops` decrypts `vaults/operator/osl1/zitadel-system.enc.json` for that one run, a YubiKey touch, and the key reaches swamp through a FIFO the `zitadel-system` definition names; it is never on disk. The public half is in `apps/zitadel/release.yaml` as `SystemAPIUsers.operators`. |
 | `task admin:zitadel-floor` | The Zitadel admin account's password, set as you through the browser login to the value in your password manager (`ZITADEL_ADMIN_PASSWORD_REF`, a `pass://` reference picked by title and, since two items share it, by its email field), so one account reaches the console with no passkey at whatever name the instance answers on. The value goes to Zitadel in a request body on curl's stdin and nowhere else. Safe to rerun. |
 | `task check-recipients` | Every encrypted file is encrypted to the recipients its rule names, and to nobody else. `bootstrap.sh` runs it first, `admin:start` before it mints anything. |
+| `task vendor`, `task vendor-check` | Upstream manifests kept in the repository, CloudNativePG and its Barman plugin today: `vendor` fetches one that is missing or off its SHA-256 pin in `share/vendor.sh`, `vendor-check` proves every committed copy true to it with no network, so a Flux build needs nothing from GitHub (decision 035). |
 
 What a session writes, and what reads it by name:
 

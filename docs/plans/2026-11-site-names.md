@@ -63,3 +63,20 @@ changes only which instance answers on the site alias, which no person uses yet.
 - Federation from the site instance to a tenant's instance for a tenant's people; built when a person needs it.
 
 ## Audit
+
+### 2026-11-08, R1 and R3
+
+**Status:** Done, in two commits merged by you (`18539c2`, then the correction `0aa6f19`) and four artifact pushes.
+
+| Finding | Where | Assessment |
+|---------|-------|------------|
+| The site name | listener `https-registry-osl1` Programmed, certificate `registry-osl1-dvkt-no-tls` issued by DNS-01 in about two minutes; the hostname on zot's route, the A record made by external-dns once the zot artifact applied | `https://registry.osl1.dvkt.no/v2/` 200 with the site's certificate; the nats mirror manifest and `dataverket/www-site` answer 200 by the site name |
+| A correction on the way | the first commit put `registry.${SITE}.dvkt.no` into the tenants' manifests through a Flux-substituted ConfigMap; you pointed out that offentlig-data and Zulip are Dataverket's services and must name Dataverket's registry of record | reverted the same morning: tenant manifests name `registry.dataverket.org/dataverket/…`; the site's name is the machines' mirror endpoint, to be set in the Talos registry mirror configuration through Omni, outside this repository, by you. 034's consequence rewritten to say so |
+| Tenant-first paths | `dataverket/offentlig-data` copied once by digest with the ci credential (two sequential `sops` reads: two at once garble the YubiKey's answer); `dataverket/www-site` and `dataverket/postgresql-zulip` pushed by their own scripts, same digests as before | offentlig-data runs `registry.dataverket.org/dataverket/offentlig-data:latest`; www rolled 09:29 UTC on its new site reference; Zulip's Postgres restarted 09:32 UTC on the renamed image. The old `sites/offentlig-data`, `platform/www-site` and `platform/postgresql-zulip` repositories still exist and are deleted when nothing names them; the offentlig-data builder in its own repository still pushes to `sites/` and follows |
+| GitHub in the way | `infrastructure` failed its build for an hour: `github.com/cloudnative-pg/plugin-barman-cloud/releases/download/…` answered 504, and every app Kustomization depends on `infrastructure` | nothing running changed, the four artifacts waited; the remote manifests of `cnpg-operator` and `cnpg-barman-plugin` are to be vendored, the next goal |
+| Health | run `555c096e` green with `registry-api` and `registry-api-osl1` | done |
+
+Left of R1: the Talos mirror entry (`registry.dataverket.org` → `https://registry.osl1.dvkt.no`), yours through Omni;
+until then the kubelet pulls from the registry of record directly, which at this site is the same zot.
+
+**Action Required:** The Talos mirror entry; delete the three old repositories when the offentlig-data builder has moved.

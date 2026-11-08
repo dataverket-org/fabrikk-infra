@@ -1,3 +1,6 @@
-# The Barman Cloud plugin for CloudNativePG, pinned to a release manifest like cnpg-operator (backup/README.md).
+# The Barman Cloud plugin for CloudNativePG v0.15.0, the release manifest kept here (decision 035): bin/vendor
+# fetched it from https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.15.0/manifest.yaml
+# and share/vendor.sh pins its SHA-256, so a Flux build needs nothing from GitHub (backup/README.md). Bump: the
+# row in share/vendor.sh, then bin/vendor.
 resources:
-  - https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.15.0/manifest.yaml
+  - plugin-barman-cloud-v0.15.0.yaml

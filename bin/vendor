@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#
+# Upstream manifests kept in the repository (decision 035). `bin/vendor`
+# fetches any that is missing or off its pin and writes it where Flux reads
+# it; `bin/vendor --check` proves every committed copy true to its pin
+# without the network, which is what the pre-commit hook runs. The table of
+# what is vendored, with each URL and SHA-256, is share/vendor.sh.
+#
+
+# shellcheck source=share/vendor.sh
+source "${0%/*}/../share/vendor.sh" || exit $?
+
+for tool in curl shasum; do
+	command -v "$tool" >/dev/null || fail "$tool is not on PATH"
+done
+
+case "${1:-}" in
+	"")		vendor_each vendor_fetch || fail "Not every manifest is vendored!" ;;
+	--check)	vendor_each vendor_check || fail "A vendored manifest is off its pin!" ;;
+	*)		echo "vendor: unrecognized option $1" >&2; exit 1 ;;
+esac

@@ -8,3 +8,8 @@
 	echo "pre-commit: bin/check-recipients failed; nothing committed" >&2
 	exit 1
 }
+# Every vendored upstream manifest matches its pin (decision 035); no network.
+"${0%/*}/../bin/vendor" --check >/dev/null || {
+	echo "pre-commit: bin/vendor --check failed; nothing committed" >&2
+	exit 1
+}
