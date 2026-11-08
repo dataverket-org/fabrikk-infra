@@ -1,0 +1,8 @@
+# The local static provisioner, delivered as a config artifact rendered in the factory (decisions 013, 028; the
+# gitless plan): platform/local-static-provisioner-config. rendered/ is the chart's output; the StorageClass is
+# ours, a plain manifest. The slots it serves are docs/node-storage.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - rendered
+  - storageclass.yaml

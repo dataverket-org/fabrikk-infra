@@ -1,0 +1,29 @@
+# The recipe: what bin/artifact local-static-provisioner turns into ../rendered/ (decision 028). The chart and
+# values that were the HelmRelease in infrastructure/ until the gitless plan's goal 2; the names are the release's,
+# so the rendered objects are the ones Helm made and marked keep at the handover. kubectl pulls the chart from its
+# repository at render time, on the laptop or in CI, never on the cluster.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+helmCharts:
+  - name: local-static-provisioner
+    repo: https://kubernetes-sigs.github.io/sig-storage-local-static-provisioner
+    version: 2.8.0
+    releaseName: local-static-provisioner
+    namespace: kube-system
+    skipTests: true
+    kubeVersion: "1.34.0"
+    valuesInline:
+      classes:
+        - name: pg-zitadel-storage
+          hostDir: /var/mnt
+          namePattern: pg-zitadel
+          volumeMode: Filesystem
+          accessMode: ReadWriteOnce
+          storageClass: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
