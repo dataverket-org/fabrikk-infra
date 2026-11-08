@@ -15,6 +15,10 @@
 #				exported, for an image the artifact names
 #	.sourceignore		Paths left out of the artifact, one a line,
 #				beside the defaults below
+#	recipe/plain-secrets	Names of Secrets the chart renders that hold
+#				no secret (a config file, a script), one a
+#				line with the reason; any other Secret is
+#				refused
 #	*.enc.yaml		Secrets, sops-encrypted to the cluster key;
 #				they travel in the artifact and never render
 #
@@ -64,11 +68,16 @@ function render_recipe()
 
 	run kubectl kustomize --enable-helm "$dir/recipe" -o "$out" || return $?
 
-	if grep -ql '^kind: Secret$' "$out"/*.yaml; then
-		error "The recipe renders a Secret; secrets travel encrypted" \
-		      "beside rendered/, never through it!"
-		return 1
-	fi
+	for file in "$out"/*.yaml; do
+		grep -q '^kind: Secret$' "$file" || continue
+		plain_secret "$dir" "$(grep -m1 '^  name:' "$file" | cut -d' ' -f4)" ||
+		{
+			error "The recipe renders Secret ${file##*/}; secrets travel" \
+			      "encrypted beside rendered/, never through it. A Secret" \
+			      "that holds no secret is named in recipe/plain-secrets!"
+			return 1
+		}
+	done
 	if grep -ql '^kind: Job$' "$out"/*.yaml; then
 		error "The recipe renders a Job; a hook does not run twice" \
 		      "from a plain manifest. Disable it, or carry it on purpose!"
@@ -95,6 +104,19 @@ function render_recipe()
 			echo "  - ${file##*/}"
 		done
 	} >"$out/kustomization.yaml"
+}
+
+#
+# Is a rendered Secret one the recipe declares to hold no secret? The file
+# recipe/plain-secrets names them, one a line, the name first.
+#
+function plain_secret()
+{
+	local dir="$1"
+	local name="$2"
+
+	[[ -f "$dir/recipe/plain-secrets" ]] || return 1
+	grep -qE "^$name( |\$)" "$dir/recipe/plain-secrets"
 }
 
 #

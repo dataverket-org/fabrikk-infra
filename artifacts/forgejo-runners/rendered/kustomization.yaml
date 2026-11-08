@@ -1,0 +1,7 @@
+# Written by bin/artifact; do not edit. One file per object, in the order kustomize emitted them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - apps_v1_deployment_org-dataverket-runner-forgejo-runner.yaml
+  - v1_secret_org-dataverket-runner-forgejo-runner-configfile.yaml
+  - v1_serviceaccount_org-dataverket-runner-forgejo-runner.yaml

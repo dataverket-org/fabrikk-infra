@@ -1,0 +1,40 @@
+# The organization's Actions runner, delivered gitless from artifacts/forgejo-runners, rendered in the factory
+# (decisions 013, 028; the gitless plan). Until the HelmRelease in this directory is removed, both paths apply the
+# same objects, marked keep for Helm.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: forgejo-runners-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: oci://zot.zot.svc.cluster.local:5000/platform/forgejo-runners-config
+  insecure: true
+  ref:
+    tag: current
+  # Verification, switched on in goal 3 of the gitless plan, once every artifact is pushed signed:
+  # verify:
+  #   provider: cosign
+  #   secretRef:
+  #     name: cosign-osl1
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: forgejo-runners
+  namespace: flux-system
+spec:
+  interval: 10m
+  dependsOn:
+    - name: zot
+  sourceRef:
+    kind: OCIRepository
+    name: forgejo-runners-config
+  path: ./
+  prune: true
+  wait: true
+  timeout: 5m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

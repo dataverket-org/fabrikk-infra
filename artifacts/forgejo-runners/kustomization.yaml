@@ -1,0 +1,10 @@
+# The organization's Forgejo Actions runner, delivered as a config artifact rendered in the factory (decisions
+# 013, 028; the gitless plan): platform/forgejo-runners-config. rendered/ is the chart's output; the namespace, the
+# docker store volume and the encrypted registration token are ours. README.md is the runner's story.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - rendered
+  - docker-store-pvc.yaml
+  - runner-secret.enc.yaml

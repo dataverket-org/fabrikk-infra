@@ -1,0 +1,39 @@
+# The chart's values, as the HelmRelease carried them. A file, not valuesInline: kustomize drops a null when it
+# serialises inline values, and a null here deletes a chart default (the runner's sample envs).
+dind:
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      memory: 4Gi
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+runner:
+  config:
+    instance: https://git.dataverket.org
+    existingSecret: org-dataverket-runner-secret
+    # Jobs reach the pod's dind, the chart's values-dind-bypass.yaml (README.md).
+    file:
+      runner:
+        envs:
+          A_TEST_ENV_NAME_1: null
+          A_TEST_ENV_NAME_2: null
+          DOCKER_HOST: tcp://127.0.0.1:2376
+          DOCKER_TLS_VERIFY: 1
+          DOCKER_CERT_PATH: /certs/client
+      container:
+        network: host
+        options: -v /certs/client:/certs/client
+        valid_volumes:
+          - /certs/client
+# The docker store, a Cinder volume at dind's /var/lib/docker (README.md).
+volumes:
+  - name: docker-store
+    persistentVolumeClaim:
+      claimName: org-dataverket-runner-docker
+volumeMounts:
+  - name: docker-store
+    mountPath: /var/lib/docker

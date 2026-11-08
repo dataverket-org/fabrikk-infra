@@ -1,0 +1,17 @@
+# The recipe: what bin/artifact forgejo turns into ../rendered/ (decision 028). The Forgejo chart 17.1.5 with the
+# values that were the HelmRelease in apps/forgejo until the gitless plan's goal 2; the chart is vendored under
+# charts/ so a render needs nothing from code.forgejo.org. The release name and namespace are the ones Helm used,
+# so the rendered objects are the ones Helm made and marked keep at the handover. The chart's three Secrets hold
+# app.ini and the init scripts, no credential; the credentials come from the *.enc.yaml beside rendered/ through
+# env, as before. They are allowed by plain-secrets.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+helmCharts:
+  - name: forgejo
+    repo: oci://code.forgejo.org/forgejo-helm
+    version: 17.1.5
+    releaseName: forgejo
+    namespace: forgejo
+    skipTests: true
+    kubeVersion: "1.34.0"
+    valuesFile: values.yaml

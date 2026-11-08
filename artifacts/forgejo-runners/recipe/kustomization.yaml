@@ -1,0 +1,39 @@
+# The recipe: what bin/artifact forgejo-runners turns into ../rendered/ (decision 028). The forgejo-runner chart
+# 0.7.5 at commit 3ae5398156088d703afb5aefc1d6f38574ab30a6 of code.forgejo.org/forgejo-helm/forgejo-runner, vendored
+# under charts/, with the values that were the HelmRelease in apps/forgejo-runners until the gitless plan's goal 2;
+# the release name and namespace are Helm's, so the rendered objects are the ones Helm made and marked keep. The
+# chart's one Secret is the runner's config file; the registration token is runner-secret.enc.yaml beside rendered/.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+helmCharts:
+  - name: forgejo-runner
+    version: 0.7.5
+    releaseName: org-dataverket-runner
+    namespace: forgejo-runners
+    skipTests: true
+    kubeVersion: "1.34.0"
+    valuesFile: values.yaml
+patches:
+  # The chart's templates carry no namespace (Helm set it at install); the kustomization's namespace field does
+  # not reach what helm inflates, so each object gets it here.
+  - target:
+      kind: Deployment|Secret|ServiceAccount
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: forgejo-runners
+  # One ReadWriteOnce disk: the old pod stops before the new one starts (../README.md).
+  - target:
+      kind: Deployment
+      name: org-dataverket-runner-forgejo-runner
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: org-dataverket-runner-forgejo-runner
+      spec:
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 0
+            maxUnavailable: 1

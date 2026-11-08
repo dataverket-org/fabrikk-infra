@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: org-dataverket-runner
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: forgejo-runner
+    app.kubernetes.io/version: 12.7.3
+    helm.sh/chart: forgejo-runner-0.7.5
+  name: org-dataverket-runner-forgejo-runner
+  namespace: forgejo-runners
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: org-dataverket-runner
+      app.kubernetes.io/name: forgejo-runner
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        config-hash: c7859c0c939a3e6ba23afdcbbc0ce093f68d82c4d0cf0ab9c606fe576b9aa68b
+      labels:
+        app.kubernetes.io/instance: org-dataverket-runner
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: forgejo-runner
+        app.kubernetes.io/version: 12.7.3
+        helm.sh/chart: forgejo-runner-0.7.5
+    spec:
+      containers:
+      - command:
+        - sh
+        - -c
+        - |
+          while ! nc -z 127.0.0.1 2376 </dev/null; do
+            echo 'waiting for docker daemon...';
+            sleep 5;
+          done
+          /bin/forgejo-runner --config /etc/runner/config.yaml daemon
+        env:
+        - name: DOCKER_HOST
+          value: tcp://127.0.0.1:2376
+        - name: DOCKER_CERT_PATH
+          value: /certs/client
+        - name: DOCKER_TLS_VERIFY
+          value: "1"
+        image: code.forgejo.org/forgejo/runner:12.7.3
+        imagePullPolicy: IfNotPresent
+        name: runner
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /etc/runner
+          name: runner-configfile
+        - mountPath: /certs
+          name: docker-certs
+        - mountPath: /data
+          name: runner-data
+      - env:
+        - name: DOCKER_TLS_CERTDIR
+          value: /certs
+        image: docker.io/library/docker:29.5.2-dind@sha256:6b9cd914eb9c6b342c040a49a27a5eb3804453bae6ecc90f7ff96133595a95e8
+        imagePullPolicy: IfNotPresent
+        name: dind
+        resources:
+          limits:
+            memory: 4Gi
+          requests:
+            cpu: "1"
+            memory: 2Gi
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /certs
+          name: docker-certs
+        - mountPath: /var/lib/docker
+          name: docker-store
+      initContainers:
+      - command:
+        - /bin/cp
+        - /etc/runner/.runner
+        - /data/.runner
+        image: code.forgejo.org/forgejo/runner:12.7.3
+        imagePullPolicy: IfNotPresent
+        name: make-config-writeable
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /data
+          name: runner-data
+        - mountPath: /etc/runner
+          name: runner-config
+      securityContext: {}
+      serviceAccountName: org-dataverket-runner-forgejo-runner
+      volumes:
+      - emptyDir: {}
+        name: docker-certs
+      - emptyDir: {}
+        name: runner-data
+      - name: runner-config
+        secret:
+          secretName: org-dataverket-runner-secret
+      - name: runner-configfile
+        secret:
+          secretName: org-dataverket-runner-forgejo-runner-configfile
+      - name: docker-store
+        persistentVolumeClaim:
+          claimName: org-dataverket-runner-docker

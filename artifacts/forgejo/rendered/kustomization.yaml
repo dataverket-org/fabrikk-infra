@@ -1,0 +1,13 @@
+# Written by bin/artifact; do not edit. One file per object, in the order kustomize emitted them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - apps_v1_deployment_forgejo.yaml
+  - gateway.networking.k8s.io_v1_httproute_forgejo.yaml
+  - gateway.networking.k8s.io_v1alpha2_tcproute_forgejo-ssh.yaml
+  - v1_persistentvolumeclaim_gitea-shared-storage.yaml
+  - v1_secret_forgejo-init.yaml
+  - v1_secret_forgejo-inline-config.yaml
+  - v1_secret_forgejo.yaml
+  - v1_service_forgejo-http.yaml
+  - v1_service_forgejo-ssh.yaml

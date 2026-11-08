@@ -1,0 +1,18 @@
+# Forgejo, delivered as a config artifact rendered in the factory (decisions 013, 028; the gitless plan):
+# platform/forgejo-config. rendered/ is the chart's output; the rest is ours: the namespace, the database Cluster
+# and its backup to hov1, the Zitadel OAuth client, the mailer, the daily actions mirror, the encrypted Secrets.
+# The theme is its own artifact (forgejo-theme), mounted by the Deployment.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - rendered
+  - postgres.yaml
+  - backup.yaml
+  - hov1-s3.yaml
+  - s3-cnpg-forgejo.enc.yaml
+  - actions-mirror.yaml
+  - forgejo-admin.enc.yaml
+  - forgejo-mailer.enc.yaml
+  - forgejo-security.enc.yaml
+  - forgejo-zitadel-oauth-secret.enc.yaml
