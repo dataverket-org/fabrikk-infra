@@ -1,0 +1,34 @@
+# The readers group's rights, delivered gitless from artifacts/readers (decision 013; the gitless plan).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: readers-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: oci://zot.zot.svc.cluster.local:5000/platform/readers-config
+  insecure: true
+  ref:
+    tag: current
+  # Verification, switched on in goal 3 of the gitless plan, once every artifact is pushed signed:
+  # verify:
+  #   provider: cosign
+  #   secretRef:
+  #     name: cosign-osl1
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: readers
+  namespace: flux-system
+spec:
+  interval: 10m
+  dependsOn:
+    - name: zot
+  sourceRef:
+    kind: OCIRepository
+    name: readers-config
+  path: ./
+  prune: true
+  wait: true
+  timeout: 5m

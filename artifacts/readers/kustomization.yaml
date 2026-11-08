@@ -1,0 +1,9 @@
+# The readers group's rights, delivered as a config artifact (decision 013; the gitless plan): platform/readers-config.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - readers.yaml
+# Step 2 of the move out of the infrastructure Kustomization (docs/plans/2026-11-gitless.md, goal 2): Flux must
+# not garbage-collect these while the handover runs; removed in step 3, once this artifact owns them.
+commonAnnotations:
+  kustomize.toolkit.fluxcd.io/prune: disabled

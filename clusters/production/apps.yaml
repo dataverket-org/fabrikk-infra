@@ -6,6 +6,8 @@ metadata:
 spec:
   dependsOn:
     - name: infrastructure
+    # The database operator comes from its own artifact; Forgejo's and Zitadel's Clusters need its CRDs.
+    - name: cnpg
   interval: 10m
   path: ./apps
   prune: true
