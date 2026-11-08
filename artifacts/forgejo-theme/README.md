@@ -20,7 +20,7 @@ Kustomization in `apps/forgejo/theme.yaml`. Nothing in the cluster builds or wri
 
 The landing page's copy lives in Forgejo's locale strings, and Forgejo replaces its whole en-US file with ours, so
 ours must be the one of the release that runs, with nine keys of `[startpage]` changed. `render.sh` reads the
-release from the chart, the `appVersion` of the chart tag in `apps/forgejo/repo.yaml`, fetches
+release from the chart, the `appVersion` of the chart version `artifacts/forgejo/recipe/kustomization.yaml` pins, fetches
 `options/locale/locale_en-US.ini` from Forgejo's source at that tag, and patches it with the theme's own
 `locale_from()`. Forgejo embeds `options/` from its source tree as it is: on 2026-10-15 the file at `v15.0.7` and
 the one `forgejo embedded extract` gave in the running pod had the same sha256, and the render's result matched the
@@ -37,7 +37,7 @@ git commit ...                                        # the revision annotation 
 bin/artifact forgejo-theme --push                       # PIN and one YubiKey touch for the fabrikk-ci credential
 ```
 
-A Forgejo upgrade is the same without the first line: once the chart tag in `apps/forgejo/repo.yaml` moves,
+A Forgejo upgrade is the same without the first line: once the chart version in `artifacts/forgejo/recipe/kustomization.yaml` moves,
 `render.sh --check` fails until `rendered/` carries that release's locale, and `bin/artifact forgejo-theme --push` refuses to ship. Render,
 commit and push before the chart reaches the cluster, or in the same breath: a locale from the wrong release drops
 or misnames the strings that changed.

@@ -3,8 +3,8 @@
 # to a temporary directory and compares; bin/artifact forgejo-theme --push runs it first.
 #
 # Inputs: public/assets of the theme at the commit recipe/source.env names, and options/locale/locale_en-US.ini from
-# Forgejo's source at the tag of the chart's appVersion (apps/forgejo/repo.yaml), patched by the theme's
-# locale_from(). That file is the one Forgejo embeds, byte for byte (README.md).
+# Forgejo's source at the tag of the chart's appVersion (the chart artifacts/forgejo/recipe/kustomization.yaml
+# names), patched by the theme's locale_from(). That file is the one Forgejo embeds, byte for byte (README.md).
 #
 # Needs git, curl, helm, yq, python3 and kubectl on PATH; helm only reads the chart's metadata.
 set -eu
@@ -16,9 +16,18 @@ done
 
 . recipe/source.env
 
-chart=$(yq '.spec.url' ../../apps/forgejo/repo.yaml)
-chart_version=$(yq '.spec.ref.tag' ../../apps/forgejo/repo.yaml)
-forgejo=$(helm show chart "$chart" --version "$chart_version" 2>/dev/null | yq '.appVersion')
+# The chart as the forgejo artifact's recipe pins it; the unpacked copy under its charts/ when there is one, so a
+# check needs nothing from code.forgejo.org, the registry otherwise.
+recipe=../forgejo/recipe
+chart_name=$(yq '.helmCharts[0].name' "$recipe/kustomization.yaml")
+chart_version=$(yq '.helmCharts[0].version' "$recipe/kustomization.yaml")
+chart="$recipe/charts/$chart_name-$chart_version/$chart_name"
+if [ -d "$chart" ]; then
+  forgejo=$(helm show chart "$chart" 2>/dev/null | yq '.appVersion')
+else
+  chart="$(yq '.helmCharts[0].repo' "$recipe/kustomization.yaml")/$chart_name"
+  forgejo=$(helm show chart "$chart" --version "$chart_version" 2>/dev/null | yq '.appVersion')
+fi
 [ -n "$forgejo" ] && [ "$forgejo" != null ] || { echo "no appVersion for $chart $chart_version" >&2; exit 1; }
 
 tmp=$(mktemp -d)
