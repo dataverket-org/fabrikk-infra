@@ -1,7 +1,7 @@
 # The offentlig-data artifact
 
 `offentlig-data.dataverket.org` serves the public overview site built in `../offentlig-data`.
-The site image is `registry.dataverket.org/dataverket/offentlig-data:latest`, pulled by the site as `registry.${SITE}.dvkt.no/dataverket/offentlig-data` (decision 034); this directory is a separate
+The site image is `registry.dataverket.org/dataverket/offentlig-data:latest` (tenant-first, decision 034); this directory is a separate
 Flux config artifact, pushed as `platform/offentlig-data-config` by `push.sh`. The pointer is
 `apps/offentlig-data/source.yaml`.
 

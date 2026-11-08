@@ -71,7 +71,7 @@ Both forms work, and both pull the same digest.
 | Form | Example | Used for |
 |---|---|---|
 | Explicit | `registry.dataverket.org/mirror/docker.io/library/nats:2.15.0-alpine@sha256:004796…` | Manifests we write |
-| Transparent | `docker.io/library/nats@sha256:004796…`, which Talos sends to `https://registry.osl1.dvkt.no/v2/mirror/docker.io` with `overridePath: true` (the site's name of the registry, decision 034; at another site the same name is that site's mirror) | Talos's own images, and charts with fixed references |
+| Transparent | `docker.io/library/nats@sha256:004796…`, which Talos sends to `https://registry.osl1.dvkt.no/v2/mirror/docker.io` with `overridePath: true` (the site's name of the registry, decision 034; the same mirror entry sends `registry.dataverket.org` there too, and at another site the name is that site's pull-through mirror) | Talos's own images, and charts with fixed references |
 
 Transparent mirrors need `skipFallback: true` in Talos. Without it containerd fetches from the upstream whenever the
 mirror cannot serve, which defeats the purpose. Kyverno and cosign look for a signature at the registry the

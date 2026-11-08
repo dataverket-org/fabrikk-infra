@@ -31,12 +31,6 @@ spec:
     name: offentlig-data-config
   path: ./
   prune: true
-  # The site's values, so the artifact's image references read registry.${SITE}.dvkt.no (decision 034;
-  # clusters/production/cluster-vars.yaml). A ${...} the artifact means literally is written $${...}.
-  postBuild:
-    substituteFrom:
-      - kind: ConfigMap
-        name: cluster-vars
   wait: true
   timeout: 5m
   decryption:

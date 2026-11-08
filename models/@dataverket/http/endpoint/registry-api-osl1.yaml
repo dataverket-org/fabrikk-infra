@@ -4,7 +4,8 @@ id: 7d1f3b2a-9c4e-4e81-a6b5-2f8c0d9e1a73
 name: registry-api-osl1
 version: 1
 tags: {}
-# The same zot by the site's name, registry.osl1.dvkt.no, what this site's workloads pull by (decision 034);
+# The same zot by the site's name, registry.osl1.dvkt.no, the site's mirror endpoint for pulls of the registry of
+# record (decision 034);
 # anonymous pull is on, so /v2/ answers 200 without a credential. registry-api checks the registry of record.
 globalArguments:
   url: 'https://registry.osl1.dvkt.no/v2/'

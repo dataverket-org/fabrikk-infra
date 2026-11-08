@@ -136,7 +136,7 @@ they recognise a former name as ours, mint the new one, and remove what the old 
 | Name | Used by | Why |
 |---|---|---|
 | `registry.dataverket.org` | The registry of record: pushes from CI, developers and the push scripts, cosign, the zot UI and its login; another site's mirror | The upstream's name (decision 034; TLS through the gateway, anonymous pull, push for `fabrikk-ci`) |
-| `registry.osl1.dvkt.no` | This site's workloads: the kubelet's pulls, the mirror paths Talos asks for | The same zot by the site's name, so site manifests carry the site as a variable and another site's copy is a mirror (decision 034) |
+| `registry.osl1.dvkt.no` | The site's machines, through their registry mirror configuration: pulls of `registry.dataverket.org` land here | The same zot by the site's name; at another site the same name is that site's pull-through mirror. Manifests never name it (decision 034) |
 | `zot.zot.svc.cluster.local:5000` | Only `apps/zot/source.yaml`, this cluster fetching zot's own config | Must survive external DNS, the LoadBalancer, or the certificate being broken (decision 013) |
 | `git.dataverket.org` | Flux's `GitRepository`, humans, the push mirror to GitHub | The source of record; `github.com/dataverket-org/fabrikk-infra` is Flux's source for a rebuild (decision 021) |
 | `id.dataverket.org` | People, Forgejo, Zulip, zot, the swamp Zitadel definitions, `zitadel-me` and the passkey link workflow | Zitadel, the upstream's name: the organization's people and its services' logins (decisions 031, 034) |

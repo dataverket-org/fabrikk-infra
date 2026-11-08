@@ -5,7 +5,8 @@ metadata:
   namespace: zot
 spec:
   # Two names of one zot (decision 034): registry.dataverket.org, the registry of record on the wildcard listener,
-  # and registry.osl1.dvkt.no, the site's name on its own listener, what this site's workloads pull by.
+  # and registry.osl1.dvkt.no, the site's name on its own listener, where the site's machines' registry mirror sends
+  # their pulls of the first. Manifests name the first.
   parentRefs:
     - name: envoy-gateway
       namespace: envoy-system

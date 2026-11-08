@@ -12,30 +12,31 @@ operator login and `ExternalDomain` on `id.dataverket.org`.
 
 ## R1: the site-local registry name
 
-`registry.osl1.dvkt.no` is the same zot by a second name; at the upstream's own site there is nothing to mirror.
+`registry.osl1.dvkt.no` is the same zot by a second name; at the upstream's own site there is nothing to mirror. It
+is the site's mirror endpoint: Talos sends pulls of `registry.dataverket.org` to it. A tenant's manifests keep naming
+`registry.dataverket.org`, so they are true at any site (034).
 
 | Change | Where |
 |---|---|
 | Listener `https-registry-osl1`, hostname `registry.osl1.dvkt.no`, certificate `registry-osl1-dvkt-no-tls` from the Gateway's cert-manager annotation, the shape of `https-id-osl1` | `infrastructure/envoy/gateway.yaml` |
 | The hostname on zot's route, with its own parentRef | `artifacts/zot/httproute.yaml`, pushed as the artifact |
-| `ConfigMap cluster-vars` in `flux-system` with `SITE: osl1`; `postBuild.substituteFrom` on the three Kustomizations that apply artifacts carrying image references (`www`, `offentlig-data`, `zulip`) and on no other: `apps/zitadel/release.yaml` holds `${ZITADEL_EXTERNALDOMAIN}` for Zitadel itself | `clusters/production/cluster-vars.yaml`, `apps/{www,offentlig-data,zulip}/source.yaml` |
-| `${SIGNAL_GROUP_LINK}` in www's nginx config escaped as `$${SIGNAL_GROUP_LINK}`, so Flux hands it on untouched | `artifacts/www/nginx-conf.yaml` |
-| The kubelet's pulls on `registry.${SITE}.dvkt.no`: www's site image, offentlig-data's image, Zulip's Postgres image | the three artifacts |
+| The machines' registry mirror: `registry.dataverket.org` → `https://registry.osl1.dvkt.no`, no path override, beside the `docker.io` mirror the mirror plan describes | Talos machine configuration through Omni, outside this repository; the operator's |
 | `registry-api-osl1` endpoint check beside `registry-api`; the health workflow carries both | `models/@dataverket/http/endpoint/`, `workflows/workflow-health.yaml` |
 | The mirror plan names the site name as what Talos and containerd ask | `docs/plans/2026-10-registry-mirror.md` |
 
 Done when: the listener is Programmed and the certificate Ready; `crane digest` through the `registry` definition
-answers for the nats mirror by the new name; each moved image runs from it; health green with both registry checks.
-Rollback: revert and push the artifacts again; the old name never stopped answering.
+answers for the nats mirror by the new name; health green with both registry checks; and, once the machines carry the
+mirror entry, a pull of a `registry.dataverket.org` image is served by the site's name. Rollback: revert; the old name
+never stopped answering.
 
 ## R3: tenant-first repository paths
 
 Dataverket's images move under `dataverket/`: `platform/www-site` → `dataverket/www-site`,
 `sites/offentlig-data` → `dataverket/offentlig-data`, `platform/postgresql-zulip` → `dataverket/postgresql-zulip`.
-The platform's `mirror/` and the `platform/*-config` deployment artifacts stay. Done with R1 in one round of pushes,
-so the pods roll once: the build scripts (`artifacts/www/site.sh`, `artifacts/zulip/postgres-image.sh`) push to the
-new paths, the offentlig-data image is copied once by digest to its new path (its builder lives in another
-repository and follows), the references carry `registry.${SITE}.dvkt.no/dataverket/…`. zot's `**` policy already
+The platform's `mirror/` and the `platform/*-config` deployment artifacts stay. The build scripts (`artifacts/www/site.sh`,
+`artifacts/zulip/postgres-image.sh`) push to the new paths, the offentlig-data image is copied once by digest to its
+new path (its builder lives in another repository and follows), the references carry
+`registry.dataverket.org/dataverket/…`, the tenant's registry of record. zot's `**` policy already
 lets `fabrikk-ci` create there. The old repositories are deleted when the pods run from the new.
 
 ## R4: the site's own identity

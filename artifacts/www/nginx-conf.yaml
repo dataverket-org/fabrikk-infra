@@ -13,7 +13,7 @@ data:
 
         # Keep the quotes (README.md).
         location / {
-            return 302 "$${SIGNAL_GROUP_LINK}";
+            return 302 "${SIGNAL_GROUP_LINK}";
         }
     }
 

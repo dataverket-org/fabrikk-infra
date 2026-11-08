@@ -66,10 +66,12 @@ site; enforcement, where wanted, is a second instance of the service behind the 
 
 ## Consequences
 
-- The site's workloads reference the site's registry name. At the upstream's own site that name is the same zot by
-  a second name, no mirror; at another site it is a pull-through mirror of the registry of record, serving from its
-  own storage when the upstream is away. Site manifests therefore carry the site as a variable, substituted by Flux
-  from one per-cluster ConfigMap, which is the thing an overlay repository takes over later.
+- A tenant's manifests name the tenant's registry of record, `registry.dataverket.org/dataverket/…`, and so are true
+  wherever the tenant is hosted; a tenant never learns a site's name. Locality is the site's: its machines' registry
+  mirror configuration sends pulls of `registry.dataverket.org` to `registry.<site>.dvkt.no`. At the upstream's own
+  site that is the same zot by a second name, no sync; at another site a pull-through mirror that keeps serving from
+  its own storage when the upstream is away. The site's name lives in the machine configuration, which is what an
+  overlay repository carries later, not in any manifest.
 - Repositories in the registry become tenant-first: Dataverket's images under `dataverket/`, the platform's mirrors
   under `mirror/`. Pushes, CI and signing keep targeting the registry of record.
 - Site services trust the site's issuer. versitygw at osl1 trusts `id.osl1.dvkt.no`, where Dataverket is an

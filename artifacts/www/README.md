@@ -5,7 +5,7 @@ pod behind the Gateway (`httproute.yaml`); the wildcard certificate on the `http
 external-dns makes the records from the routes. Delivered the way zot is: git holds the pointer,
 `apps/www/source.yaml`; this directory is the artifact, pushed as it is by `push.sh` into zot as
 `platform/www-config`, and Flux applies whatever the `current` tag holds, decrypting the Secret with the cluster key.
-The website itself is a second image, `dataverket/www-site` (pushed to the registry of record, pulled by the site's name, decision 034), built from `site/` by `site.sh` and mounted into the pods
+The website itself is a second image, `dataverket/www-site` (tenant-first, decision 034), built from `site/` by `site.sh` and mounted into the pods
 as an image volume; the manifests name it by digest.
 
 ## Contents

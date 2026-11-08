@@ -70,9 +70,9 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # The registry by the site's name (decision 034): the same zot, reached by this site's workloads as
-    # registry.osl1.dvkt.no, so a site's manifests name the site and another site's copy is a mirror. One name, as
-    # https-id-osl1; the certificate from the annotation above.
+    # The registry by the site's name (decision 034): the same zot as registry.dataverket.org, the endpoint the
+    # site's machines send their pulls of it to through Talos's registry mirror; at another site the same name is
+    # that site's pull-through mirror. One name, as https-id-osl1; the certificate from the annotation above.
     - name: https-registry-osl1
       protocol: HTTPS
       port: 443
