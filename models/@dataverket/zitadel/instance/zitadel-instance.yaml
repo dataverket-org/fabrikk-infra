@@ -1,0 +1,12 @@
+type: '@dataverket/zitadel/instance'
+typeVersion: 2026.11.08.1
+id: ef0ba879-2a17-4ce8-be65-3a3937270121
+name: zitadel-instance
+version: 1
+tags: {}
+# The instance as its administrators see it, with the reader key (IAM_OWNER_VIEWER): its domains, the domains it
+# trusts, and every holder of an instance role. Read-only here; the two trusted-domain writes need IAM_OWNER.
+globalArguments:
+  apiUrl: 'https://id.dataverket.org'
+  keyJsonFile: '~/.config/zitadel/fabrikk-infra-reader.json'
+methods: {}

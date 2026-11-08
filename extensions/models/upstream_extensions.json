@@ -194,8 +194,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/zitadel": {
-    "version": "2026.11.06.1",
-    "pulledAt": "2026-11-06T13:29:42.955Z",
+    "version": "2026.11.08.1",
+    "pulledAt": "2026-11-08T18:57:47.317Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/zitadel/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/zitadel/files/README.md",
@@ -205,6 +205,7 @@
       ".swamp/pulled-extensions/@dataverket/zitadel/models/app.ts",
       ".swamp/pulled-extensions/@dataverket/zitadel/models/common.ts",
       ".swamp/pulled-extensions/@dataverket/zitadel/models/grant.ts",
+      ".swamp/pulled-extensions/@dataverket/zitadel/models/instance.ts",
       ".swamp/pulled-extensions/@dataverket/zitadel/models/lookup.ts",
       ".swamp/pulled-extensions/@dataverket/zitadel/models/org.ts",
       ".swamp/pulled-extensions/@dataverket/zitadel/models/project.ts",
@@ -213,8 +214,8 @@
       ".swamp/pulled-extensions/@dataverket/zitadel/models/system.ts",
       ".swamp/pulled-extensions/@dataverket/zitadel/models/user.ts"
     ],
-    "checksum": "9eef974a7204306bb4b85094e20fded8ede75910f8f750c1a7d719a4664a4c71",
-    "filesChecksum": "4ea9a99ef8d093eb44625421fae340b9006a48b1c83b3697cbc61d8ef869c6f7",
+    "checksum": "e3162d719db384882ffe61a8c1d06a8c7c793e42cfb37f7e376464404186f738",
+    "filesChecksum": "082c6374eb91cdbfbbe0ccb84151292265e34637b77f07d3acfbbda2888e32eb",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
