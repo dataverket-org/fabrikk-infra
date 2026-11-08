@@ -7,6 +7,14 @@ swamp datastore of this repository is on the gateway (decision 030), with a loca
 its only other copy. Until this runs the volume has Cinder's three copies and nothing else (decision 018), as
 `docs/storage.md` and `backup/README.md` say.
 
+## Status, 2026-11-08
+
+**Not started, and overdue since 2026-10-28.** No kopia CronJob, repository, bucket or Secret exists; the scratch test
+of step 1 has not run, so the xattr question is open. `backup/README.md` still says "Nothing yet" for the gateway's
+volume, which holds Zulip's uploads and avatars and the swamp datastore of this repository. Delivery has changed
+since this was written: the CronJob and Secrets go into `artifacts/versitygw/` and ship with `bin/artifact versitygw
+--push`, not a `push.sh`.
+
 ## What it backs up
 
 The gateway's one claim, `data-versitygw-0`, `csi-cinder-standard-retain`, 20 GiB: `/data` (buckets as directories,

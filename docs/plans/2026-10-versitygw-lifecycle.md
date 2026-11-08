@@ -4,6 +4,12 @@ Written 2026-10-05. Nothing is built. A small Go program, not a swamp model: it 
 that versitygw has no rules for, expiring released versions and delete markers, so that object lock can be turned on
 for the backup buckets without the disk growing without end.
 
+## Status, 2026-11-08
+
+**Not started.** The repository `dataverket/versitygw-lifecycle` does not exist on the forge; no bucket has object
+lock. Nothing has changed in what was found: versitygw still has no lifecycle rules, and the backup buckets on hov1 run
+without lock. It comes before any writer turns lock on, and the osl1 backup plan says kopia manages lock itself.
+
 ## What was found
 
 - versitygw has no lifecycle rules by design: `PutBucketLifecycleConfiguration` is "recognized but not implemented"

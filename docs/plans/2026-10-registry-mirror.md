@@ -6,6 +6,16 @@ operator and signed by the cluster. Smaller sites run a zot of their own that ho
 tools are ones in common use: Renovate, regclient, zot, cosign, Kyverno and Trivy, all running in the cluster under
 Flux. Swamp has no part in it.
 
+## Status, 2026-11-08
+
+**Not started as a pipeline; the site name is in place.** None of steps 1 to 9 is applied: `fabrikk-ci` still writes
+everywhere, `mirror/nats` and `mirror/static` still exist beside `mirror/docker.io/library/nats`, there is no
+`candidates/`, no lockfile, no regsync, Renovate or Kyverno, no retention beyond `gcDelay: 1h`. What is done around
+it: `registry.osl1.dvkt.no` answers as the site's name of this zot (`docs/plans/2026-11-site-names.md`, R1), which is
+what the Talos mirror entry of step 7 points at; the entry itself is the operator's through Omni and not yet made.
+The gitless plan removed the cluster's other upstream fetches, so images are the last traffic that leaves the site at
+reconcile time; this plan is what closes it.
+
 ## Where we are, 2026-10-30
 
 | Fact | Consequence for this plan |

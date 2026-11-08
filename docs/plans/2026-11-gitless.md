@@ -5,6 +5,11 @@ stop for the operator's signed merge. What was done is in git's history and in d
 of the day, Forgejo's namespace pruned during its handover, is step 0 of `artifacts/cert-manager/README.md`
 "Handing over from helm-controller", the rule every handover since has followed.
 
+## Status, 2026-11-08
+
+**Goal 1 done, goal 2 done but for the root, goal 3 not started.** Pruned to what is left on the evening of
+2026-11-08; the sections below are the whole of it.
+
 ## Where we are
 
 | Source | Fetched from | Carries |

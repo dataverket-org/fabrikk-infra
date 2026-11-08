@@ -4,6 +4,13 @@ Written 2026-10-04 as step 2 of the osl1 S3 plan, split out 2026-10-15 when the 
 Research only; nothing is applied. In the way the rest of the platform does it (decision 015), a person would reach
 S3 with credentials that expire, from a browser login.
 
+## Status, 2026-11-08
+
+**Research, not started.** The gateway runs internal IAM; no human reaches S3 with expiring credentials and none has
+asked to, so question 1 below is still what decides whether this is built at all. Two things it now depends on:
+the site's own Zitadel instance, which is R4 of `docs/plans/2026-11-site-names.md` and does not exist yet, and the
+flat `groups` claim of question 2, unverified. The backup plan comes before it in any case.
+
 ## What was found
 
 Not applied, and not applied before the gateway has run for a while. This records what was found so the plan can be

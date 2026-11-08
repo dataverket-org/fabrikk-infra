@@ -3,6 +3,13 @@
 Written 2026-09-29, after decision 001 and the credential-tiers plan removed the long-lived Omni Operator key from
 the vault. Nothing is applied.
 
+## Status, 2026-11-08
+
+**Not started.** `vaults/operator/break-glass/` holds its README and nothing else; no WireGuard interface is in any
+`talos/` patch; no hub runs on hov1. Every administrative path still goes through Omni. The plan's goals and steps
+stand as written. `docs/plans/2026-09-kubernetes-identity.md` and the detach step of
+`docs/plans/2026-10-talosctl-over-omni.md` both wait on the route this plan builds.
+
 ## Why
 
 Every administrative path into `dataverket-prod` runs through Omni today. The kubeconfig and the talosconfig are

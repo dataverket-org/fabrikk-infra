@@ -5,6 +5,13 @@ delegated from `dvkt.no` at Nordhost, which stays the registrar. The first site 
 `hov1.dvkt.no`, where nothing in production depends on the outcome; `osl1.dvkt.no`, the production cluster's zone,
 moves second, by the same steps; `dataverket.org` moves last, as a whole zone.
 
+## Status, 2026-11-08
+
+**Not started.** No deSEC account, token, zone or webhook exists in the tree or the cluster; every zone is still at
+Nordhost through `nordhost-integrator`, with one more name depending on the osl1 zone since 2026-11-07: `id.osl1.dvkt.no`
+(the table below). The brute-force blacklisting of the cluster's egress address on 2026-10-15, which took external-dns
+out for a day, is the strongest argument for the plan so far. Steps 1 to 7 as written.
+
 ## Why
 
 DNS for `dataverket.org` and `dvkt.no` is DirectAdmin at Nordhost, reached through `nordhost-integrator`, with a login

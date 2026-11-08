@@ -4,6 +4,15 @@ Written 2026-09-29 for decision 015. Nothing is applied, and nothing here can st
 credential tiers (decision 001, applied 2026-09-29) and after `docs/plans/2026-09-break-glass.md`, which is not
 applied, because it needs that plan's route.
 
+## Status, 2026-11-08
+
+**Not started.** Decision 015 is `proposed`; both kube contexts are still Omni service-account kubeconfigs minted by
+`admin:start`. What has changed around it: the extension this plan creates its objects with is built and in use
+(`@dataverket/zitadel`, `models/@dataverket/zitadel/`, the write path proven on the real instance by Zulip's project
+and client on 2026-10-15), and decision 034 names the issuer: the cluster is a site service, so it authenticates
+against the site's own Zitadel instance at `id.osl1.dvkt.no` (`docs/plans/2026-11-site-names.md`, R4), not the
+upstream's. R4 and the break-glass route come first.
+
 ## Why
 
 Omni is already the identity provider for Kubernetes here. `omnictl kubeconfig` writes an OIDC kubeconfig that

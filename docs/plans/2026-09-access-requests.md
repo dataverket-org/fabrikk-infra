@@ -8,6 +8,14 @@ request over a list of services. Nothing is applied.
 It is deliberately a second plan. The first is finishable and worth finishing before this one starts: the request
 model should be written against tasks that have been used for a while, not against tasks that have never been run.
 
+## Status, 2026-11-08
+
+**Not started.** Nothing of the service list, `WHO`/`NEED` or the drift report exists. Since it was written the
+session tasks were renamed: `admin:start`, `admin:elevate`, `admin:stop` and `admin:renew` (README "Commands")
+replace the `admin:login`, `admin:renew`, `admin:status` and `admin:logout` the steps name, and the Omni Operator
+key is minted by `admin:elevate`, deliberately, which is the narrowing step 4 asks for in its simplest form. The
+plan still describes the next shape; its step names are to be read against today's tasks.
+
 ## The request
 
 A session starts with a sentence rather than a command: I am `<name>`, and I need `<level>` access to these

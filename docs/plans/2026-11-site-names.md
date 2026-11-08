@@ -4,6 +4,14 @@ Written 2026-11-07 under decision 034. Three goals: two small ones that follow d
 structural one that waits for extension work. Each is one branch, unsigned, that ends with a stop for the operator's
 signed merge; Flux reads `main`. Audit lines go under the heading at the end.
 
+## Status, 2026-11-08
+
+| Goal | Done | Not done |
+|---|---|---|
+| R1, the site-local registry name | listener, certificate, zot's route, the A record, the health check (audit below) | the Talos mirror entry `registry.dataverket.org` → `https://registry.osl1.dvkt.no`, the operator's through Omni |
+| R3, tenant-first paths | the three images under `dataverket/`, every pod running from them; the mirror plan's layout | `sites/offentlig-data`, `platform/www-site`, `platform/postgresql-zulip`, `mirror/nats` and `mirror/static` still exist in the registry (read 2026-11-08 evening); whether the offentlig-data builder in its own repository pushes to the new path is not verified from here |
+| R4, the site's own identity | nothing | steps 1 to 4; `@dataverket/zitadel/system` has the four domain methods and no instance methods yet |
+
 ## What is already as 034 wants it
 
 `dataverket.s3.osl1.dvkt.no` (029); `git`, `forum`, `www`, `registry` and `id` on the upstream's zone; Flux fetching

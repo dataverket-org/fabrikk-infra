@@ -4,6 +4,16 @@ Written 2026-10-01, after swap 1 of the storage plan. Omni will not be used long
 possible, and every workflow moves to open source `talosctl`, Kubernetes and OpenStack models. Nothing here happens
 during the storage migration; until then, only the rule below applies.
 
+## Status, 2026-11-08
+
+**The rule holds; the code is partly there; nothing detached.** `@dataverket/talosctl/node` has `applyConfig`,
+`patchConfig`, `bootstrap`, `reset`, `upgrade`, `reboot`, `kubeconfig`, `etcdMembers`, `etcdStatus` and `health`;
+`workflow-talos-reboot-node`, `worker-join` and `worker-retire` exist, the last two in their Omni form. Of "Code to add":
+`etcdSnapshot`, `upgradeK8s` and `genConfig` are not written (1); `@swamp/kubernetes/node` has `cordon` and `taint`
+but no `drain` or `delete` (2); no Image Factory schematic is in `talos/` (3); there is no CNPG model, so the
+promote and destroy after a worker swap are still `kubectl` by hand (4); no talosctl-form workflows (5). Steps 2 to
+4 remain, and step 4 waits on the network path, which is the break-glass plan's overlay.
+
 ## The rule from now on
 
 A workflow step uses `talosctl`, a Kubernetes model or an OpenStack model wherever one can do the job. Omni is called
