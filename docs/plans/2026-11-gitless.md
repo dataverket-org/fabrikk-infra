@@ -93,6 +93,71 @@ unsigned tag.
 Done when: every `OCIRepository` is `Ready` with verification on, and a deliberately unsigned push of a test tag is
 refused. Rollback: remove the `verify` block from the one source that fails; signatures do no harm unverified.
 
+## Handover: where to pick this up
+
+Written 2026-11-08 after the day's work, for whoever continues, person or agent. Read the audit below first, then
+`artifacts/cert-manager/README.md` "Handing over from helm-controller", whose step 0 was learned the hard way today.
+
+### State
+
+| Component | Comes from | Note |
+|---|---|---|
+| zot, versitygw, www, offentlig-data, zulip, forgejo-theme, cert-manager | zot, as before | pushed with `bin/artifact <name> --push` now |
+| readers, kata-containers, cnpg, occm, cinder-csi-provider | zot | moved today; `infrastructure/<name>/source.yaml` is the pointer; `bootstrap/foundation-from-git.yaml` carries occm and cinder-csi-provider at bootstrap |
+| forgejo, forgejo-runners | zot | moved today, through an incident; rendered from charts vendored under `recipe/charts/`; no HelmRelease left |
+| envoy, zitadel | git: a HelmRelease each, their charts from zot (`mirror/…`) | the plan's two exceptions, done |
+| local-static-provisioner | git: a HelmRelease, every object marked `keep` | **parked** on branch `gitless-2d` (`75573e7`): recipe and kustomization written, the chart tarball not vendored because GitHub's release downloads were down. Not merged |
+| the root, `clusters/production` | git | untouched |
+
+`bin/artifact --check` passes for every artifact on `main`. `swamp workflow run health` was green after the
+recovery. The `apps` Kustomization is resumed. Nothing is suspended, nothing carries a migration annotation.
+
+### What is left of goal 2, in order
+
+1. **local-static-provisioner.** On `gitless-2d`: fetch `local-static-provisioner-2.8.0.tgz` (the index at
+   `kubernetes-sigs.github.io/sig-storage-local-static-provisioner` points at a GitHub release asset; when the
+   download CDN fails, the API asset endpoint `api.github.com/repos/<owner>/<repo>/releases/tags/<tag>` →
+   `.assets[].url` with `Accept: application/octet-stream` worked today), check its digest against the index,
+   untar it to `artifacts/local-static-provisioner/recipe/charts/local-static-provisioner-2.8.0/`, render with
+   `bin/artifact local-static-provisioner`, `kubectl diff -k artifacts/local-static-provisioner/rendered` against the
+   cluster (expect only a `helm.sh/chart` label if anything). Then the handover in the recipe's order: push the
+   artifact first; merge the pointer (`infrastructure/local-static-provisioner/source.yaml`, the shape of the others,
+   `dependsOn: zot`) with `release.yaml` and `repo.yaml` still in place; see the objects adopt; then a second commit
+   removes `release.yaml`, `repo.yaml` and the chart source. `pg-zitadel-storage` StorageClass moves with it and is
+   owned by `infrastructure` today: either `prune: disabled` on it first or accept its one-second re-creation (no
+   PV is bound through it at the moment; check with `kubectl get pv`).
+2. **Zitadel's pointer artifact.** `artifacts/zitadel/` holding what `apps/zitadel/` holds today, HelmRelease
+   included; pointer in `apps/zitadel/source.yaml`. The HelmRelease object itself is just another manifest in the
+   artifact; nothing is uninstalled. The database `Cluster` is in there: push first, `prune: disabled` on
+   everything moved, as for CNPG today.
+3. **The root.** `clusters/production` becomes `platform/cluster-production`; `gotk-sync.yaml`'s `Kustomization
+   flux-system` sources it from an `OCIRepository`; `bootstrap.sh` becomes a from-checkout sequence (foundation,
+   zot, the artifacts in dependency order, then Flux pointed at the root artifact) with no `GitRepository`. Design
+   it before touching it; it is the step that changes how a rebuild works.
+4. **CI.** A Forgejo Actions workflow beside `.forgejo/workflows/check.yaml` running `bin/artifact <name> --push`
+   for each `artifacts/<name>/` a push to `main` changed, with the `fabrikk-ci` credential as a repository secret.
+   Until then every push is an operator's, one YubiKey touch each.
+
+Then goal 3 as written.
+
+### How the work is done here, the parts that are not in any README
+
+- The operator merges and pushes `main`, signed; the agent commits unsigned on a branch and types the merge
+  into the operator's zmx session (`fabrikk-infra-cmd` today) without pressing enter. Check the prompt is empty
+  before typing a second line, and that the shell is at the repository root: today a line typed onto a half-typed
+  one ran the wrong command, and `bin/artifact` was not found from `apps/`.
+- The agent's auto mode refuses cluster writes and pushes to `main`; those are typed for the operator too.
+  Reads with `kubectl --context dataverket-prod-admin` work; the readers context cannot read cluster-scoped objects.
+- `swamp behavior run dataverket-prod-kustomizations reconcile --arg name=<k> --arg withSource=true` is the
+  reconcile; it blocks until the Kustomization is ready and holds the behavior's lock meanwhile, so do not loop it
+  over many names in one command. A Kustomization waiting on `infrastructure` waits on every remote fetch
+  `infrastructure` still has: none since 035, except the two HelmReleases' charts, which come from zot.
+- Flux's `HelmRepository`, `HelmChart` and `OCIRepository` have no swamp type yet; `kubectl get` them.
+- A push through `bin/artifact` needs a clean checkout; the revision annotation names the commit the directory is
+  at. Pushing from a branch before the merge is the right order for a handover.
+- Two `sops` reads at once garble the YubiKey's answer; read sequentially. `crane auth login` and `helm registry
+  login` must get a throwaway `DOCKER_CONFIG`/`HELM_REGISTRY_CONFIG`, or macOS's credential helper eats the login.
+
 ## Not in this plan
 
 - The mirror plan's intake and quarantine for images and charts; Zitadel's chart is mirrored by hand, pinned.
