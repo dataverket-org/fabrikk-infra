@@ -51,7 +51,7 @@ swamp model method run hov1-s3 check
 ## When the address changes
 
 `../versitygw/README.md`, runbook "Change the address": new `S3_ADDR`, `bin/cert`, `bin/site-secret` into
-`apps/forgejo/hov1-s3.yaml` and `apps/zitadel/hov1-s3.yaml`, commit. The certificate and two plaintext Secrets change;
+`apps/forgejo/hov1-s3.yaml` and `artifacts/zitadel/hov1-s3.yaml`, commit. The certificate and two plaintext Secrets change;
 no writer key does.
 
 ## When the host is lost

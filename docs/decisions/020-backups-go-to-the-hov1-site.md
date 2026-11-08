@@ -69,7 +69,7 @@ The copy off the provider that 018 counts on. A rebuild restores from it (021).
 
 | Finding | Where | Assessment |
 |---------|-------|------------|
-| Base backups and WAL to the site | `apps/forgejo/backup.yaml`, `apps/zitadel/backup.yaml` | done since 2026-09-20 |
+| Base backups and WAL to the site | `apps/forgejo/backup.yaml`, `artifacts/zitadel/backup.yaml` | done since 2026-09-20 |
 | Restore test of both clusters | `backup/restore-test/` | passed 2026-09-21; both migrations of the storage plan were restores too |
 | WAL and certificate alerts | `docs/storage.md`, Alerts | pending: written down, not deployed |
 

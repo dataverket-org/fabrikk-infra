@@ -163,7 +163,7 @@ recipients are still set in `.sops.yaml` by a person.
 For products, `miljo` says "secrets, in any encoding: never in git", so their secrets are an L0 matter: the
 cluster's secrets artifact creates the Secret, and the product's rendered manifests name it.
 
-One clear-text value exists today: the first-login password in `apps/zitadel/release.yaml`. Rendered, it would
+One clear-text value exists today: the first-login password in `artifacts/zitadel/release.yaml`. Rendered, it would
 sit in a public artifact.
 
 ## Outcomes for this repository

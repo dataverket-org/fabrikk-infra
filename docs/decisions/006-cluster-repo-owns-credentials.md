@@ -73,7 +73,7 @@ masterkey, `cloud.conf`.
 
 | Finding | Where | Assessment |
 |---------|-------|------------|
-| The Zitadel masterkey and Forgejo's security keys authored here | `apps/zitadel/zitadel-masterkey.enc.yaml`, `apps/forgejo/forgejo-security.enc.yaml` | done 2026-09-30, pinned, since a restore needs them |
+| The Zitadel masterkey and Forgejo's security keys authored here | `artifacts/zitadel/zitadel-masterkey.enc.yaml`, `apps/forgejo/forgejo-security.enc.yaml` | done 2026-09-30, pinned, since a restore needs them |
 | The hov1 writer keys authored here | `apps/<namespace>/s3-cnpg-<bucket>.enc.yaml` | done, born on the site and encrypted on the way in |
 
 **Summary:** Two more secrets a restore needs are in git. Still by hand: the Forgejo admin, mailer and OAuth secrets,

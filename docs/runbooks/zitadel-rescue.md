@@ -17,7 +17,7 @@ this job is the one that key exists for.
 
 | | |
 |---|---|
-| Reads | The CNPG archive of `zitadel-db` at hov1 (`backup/hov1`, `docs/storage.md`), the chart values in `apps/zitadel/release.yaml`, `vaults/operator/osl1/zitadel-system.enc.json` |
+| Reads | The CNPG archive of `zitadel-db` at hov1 (`backup/hov1`, `docs/storage.md`), the chart values in `artifacts/zitadel/release.yaml`, `vaults/operator/osl1/zitadel-system.enc.json` |
 | Writes | A new cluster's Zitadel namespace, its routes and listener; Zitadel's instance domain list; the `id.dataverket.org` A record at Nordhost, by hand |
 | Keys | The operator's YubiKey for the sops store, once per `task admin:zitadel-domains` run; the cluster's Operator key for Flux and CNPG |
 | Never touches | The masterkey (it travels in the sops store as it does today, a restore needs the same one); the passkeys, which are rows in the database; the clients, which never named a site |

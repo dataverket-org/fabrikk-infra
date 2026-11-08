@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: zitadel
-  # Handover to the artifact (the gitless plan): never pruned while two Kustomizations carry it; off afterwards.
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: disabled

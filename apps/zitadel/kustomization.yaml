@@ -1,15 +1,4 @@
-# Handover to the artifact (artifacts/cert-manager/README.md "Handing over", step 0): source.yaml is the pointer; the
-# rest stays here until the zitadel Kustomization has adopted the objects, then a second commit removes it.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ./source.yaml
-  - ./namespace.yaml
-  - ./repo.yaml
-  - ./postgres.yaml
-  - ./hov1-s3.yaml
-  - ./s3-cnpg-zitadel.enc.yaml
-  - ./backup.yaml
-  - ./zitadel-masterkey.enc.yaml
-  - ./release.yaml
-  - ./httproute.yaml

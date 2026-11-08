@@ -127,7 +127,7 @@ helm-controller still runs envoy, zitadel, forgejo, CNPG and the static provisio
 | forgejo-theme, forgejo, forgejo-runners | `artifacts/<name>/` | rendered from their charts; Forgejo's handover lost the namespace to a prune for an hour, step 0 of the handover recipe since (`docs/plans/2026-11-gitless.md`, audit) |
 | local-static-provisioner | `artifacts/local-static-provisioner/` | rendered, 5 objects, `kubectl diff` empty against the release; pushed `current@sha256:550ed5dc…`, adopted with the StorageClass, no pod replaced, the Helm path removed the same evening |
 | CNPG | `artifacts/cnpg/` | not rendered: the upstream manifests vendored and pinned (035) |
-| envoy, zitadel | `infrastructure/envoy/`, `apps/zitadel/` | stay HelmReleases for their hook Jobs; their charts come from zot, `mirror/…`, by the Service name |
+| envoy, zitadel | `infrastructure/envoy/`, `artifacts/zitadel/` | stay HelmReleases for their hook Jobs; their charts come from zot, `mirror/…`, by the Service name. Zitadel's HelmRelease is a manifest in its artifact since 2026-11-08 evening, adopted with its database, nothing rolled |
 
 **Summary:** Every chart without hooks is rendered in the factory. helm-controller runs envoy and zitadel, from charts
 in zot.

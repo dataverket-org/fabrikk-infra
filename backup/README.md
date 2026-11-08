@@ -50,7 +50,7 @@ Account names equal bucket names. Each account owns its bucket and sees nothing 
 
 ### Needed for any restore
 
-The Zitadel masterkey, in `apps/zitadel/zitadel-masterkey.enc.yaml`, and Forgejo's `SECRET_KEY`,
+The Zitadel masterkey, in `artifacts/zitadel/zitadel-masterkey.enc.yaml`, and Forgejo's `SECRET_KEY`,
 `INTERNAL_TOKEN`, `JWT_SECRET` and `LFS_JWT_SECRET`, in `apps/forgejo/forgejo-security.enc.yaml` and pinned into
 the release: Forgejo generated them into `app.ini` on `gitea-shared-storage`, which the mirror does not copy. A
 backup without them restores nothing usable. Both Secrets carry `kustomize.toolkit.fluxcd.io/prune: disabled`, so

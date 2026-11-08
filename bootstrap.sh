@@ -138,7 +138,7 @@ fi
 step "A first base backup of every CNPG cluster that has none since it was created"
 clusters=$(find apps artifacts -path '*/recipe' -prune -o -name '*.yaml' ! -name '*.enc.yaml' -exec yq -r \
   'select(.kind == "Cluster" and (.apiVersion // "" | test("^postgresql.cnpg.io/"))) |
-   .metadata.namespace + " " + .metadata.name' {} + \; | grep -v '^---$' | sort -u)
+   .metadata.namespace + " " + .metadata.name' {} \; | grep -v '^---$' | sort -u)
 [ -n "$clusters" ] || echo "git names no CNPG cluster under apps/ or artifacts/"
 while read -r ns name; do
   [ -n "$name" ] || continue
