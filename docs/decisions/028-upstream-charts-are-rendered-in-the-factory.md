@@ -50,13 +50,13 @@ that ran it is removed once the artifact is applied and read as healthy.
 - **Kustomize is the only renderer.** `artifacts/<name>/recipe/kustomization.yaml` names the chart, its version
   and its values in `helmCharts`, with any hand-written manifests as `resources`; `kubectl kustomize --enable-helm`
   inflates it. Helm runs on the operator's machine and never in the cluster.
-- **The rendered tree is committed.** `artifacts/<name>/rendered/`, one file per object, written by `render.sh`
-  and never by hand. The diff of it is the review of a chart upgrade. `render.sh --check` proves it true to the
-  recipe, and `push.sh` refuses to ship otherwise.
+- **The rendered tree is committed.** `artifacts/<name>/rendered/`, one file per object, written by `bin/artifact <name>`
+  and never by hand. The diff of it is the review of a chart upgrade. `bin/artifact <name> --check` proves it true to the
+  recipe, and `bin/artifact <name> --push` refuses to ship otherwise.
 - **The render refuses two things.** A Secret, since a value in the rendered tree is a value in git in clear;
   secrets travel encrypted next to the tree, as zot's do, and Flux decrypts them. A Job, since a Helm hook rendered
   is a Job that cannot be re-run; a hook is disabled, or carried as a plain manifest on purpose.
-- **Shipped and applied as zot is.** `push.sh` pushes the tree and the encrypted Secret into zot, tagged by commit
+- **Shipped and applied as zot is.** `bin/artifact <name> --push` pushes the tree and the encrypted Secret into zot, tagged by commit
   and `current`; an `OCIRepository` on the Service name and a `Kustomization` apply it. A from-git Kustomization in
   `bootstrap/` covers a fresh cluster, until zot serves.
 - **The CRDs can never be pruned.** They carry `kustomize.toolkit.fluxcd.io/prune: disabled`, because a CRD
@@ -70,7 +70,7 @@ that ran it is removed once the artifact is applied and read as healthy.
 ## Consequences
 
 - `artifacts/cert-manager/`: the recipe for cert-manager v1.20.3 and external-dns 1.21.1 with the placement of 027,
-  the nordhost webhook and the ClusterIssuer as plain manifests, 70 rendered objects, `render.sh`, `push.sh`.
+  the nordhost webhook and the ClusterIssuer as plain manifests, 70 rendered objects, rendered and pushed by what is now `bin/artifact`.
   `infrastructure/cert-manager/source.yaml` applies it; `bootstrap/cert-manager-from-git.yaml` is the fallback. The
   two HelmReleases carry the orphan setting and are removed in the step after the artifact is read as healthy.
 - The cluster stops reading `charts.jetstack.io` and the external-dns chart repository; the operator's machine
@@ -81,7 +81,7 @@ that ran it is removed once the artifact is applied and read as healthy.
   which is the open question the research names; a decision on each closes it.
 - helm-controller is removed from Flux when the last HelmRelease is.
 - Signing is per site, with a cosign key pair kept as one sops file in `vaults/operator/<site>/cosign.enc.json`,
-  read by a person at `push.sh` time and by nothing unattended; the public half is a Secret in
+  read by a person at `bin/artifact --push` time and by nothing unattended; the public half is a Secret in
   `clusters/production/`, and each `OCIRepository` carries its `verify` block, switched on once the artifact has
   been pushed signed. A release runner, when it exists, signs with a key of its own.
 

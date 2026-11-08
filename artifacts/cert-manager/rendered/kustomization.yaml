@@ -1,4 +1,4 @@
-# Written by render.sh; do not edit. One file per object, in the order kustomize emitted them.
+# Written by bin/artifact; do not edit. One file per object, in the order kustomize emitted them.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

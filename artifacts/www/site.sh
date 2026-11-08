@@ -5,7 +5,7 @@
 #
 #   site.sh            build, and write the digest into deployment.yaml; commit the result
 #   site.sh --check    build, and fail if deployment.yaml names another digest
-#   site.sh --push     --check, then copy the image into zot; push.sh runs this with $user and $password set
+#   site.sh --push     --check, then copy the image into zot; bin/artifact runs this with $user and $password set
 #
 # The build runs in crane's in-memory registry on a free local port, so it needs no credential and leaves nothing
 # behind. Needs crane and bsdtar on PATH; macOS ships bsdtar, Linux has it in libarchive-tools.
@@ -79,7 +79,7 @@ case "${1:-}" in
     fi
     echo "site/ is true to deployment.yaml ($digest)"
     if [ "$1" = --push ]; then
-      : "${user:?push.sh sets user}" "${password:?push.sh sets password}"
+      : "${user:?bin/artifact sets user}" "${password:?bin/artifact sets password}"
       # crane reads credentials only from a Docker config; this one lives in $tmp and goes with it.
       DOCKER_CONFIG=$tmp/docker
       export DOCKER_CONFIG

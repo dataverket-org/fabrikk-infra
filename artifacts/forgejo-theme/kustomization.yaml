@@ -1,0 +1,5 @@
+# The theme artifact: rendered/ is what Flux applies (bin/artifact forgejo-theme renders it through render.sh).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - rendered

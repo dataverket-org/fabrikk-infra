@@ -1,6 +1,6 @@
 #!/bin/sh
 # Renders the theme into rendered/, one file per ConfigMap and a kustomization.yaml listing them. `--check` renders
-# to a temporary directory and compares; push.sh runs it first.
+# to a temporary directory and compares; bin/artifact forgejo-theme --push runs it first.
 #
 # Inputs: public/assets of the theme at the commit recipe/source.env names, and options/locale/locale_en-US.ini from
 # Forgejo's source at the tag of the chart's appVersion (apps/forgejo/repo.yaml), patched by the theme's

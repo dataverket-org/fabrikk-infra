@@ -21,7 +21,7 @@ repository `git.dataverket.org/dataverket/forgejo-theme` and Forgejo's own en-US
 artifact `platform/forgejo-theme-config` (`artifacts/forgejo-theme/README.md`, decision 028). `theme.yaml` is its
 `OCIRepository` and Kustomization. `release.yaml` mounts the first three over Forgejo's `public/assets/{css,img,fonts}`
 and the locale over `options/locale`. A theme change is a new pin in `artifacts/forgejo-theme/recipe/source.env`,
-rendered and pushed; a Forgejo upgrade is the same render against the new chart, which `render.sh --check` enforces.
+rendered and pushed; a Forgejo upgrade is the same render against the new chart, which `bin/artifact forgejo-theme --check` enforces.
 
 CSS, images and fonts are served within a reconcile, since a mounted ConfigMap is synced into the running pod.
 Forgejo loads locale strings at startup, so a copy change reaches visitors after the pod's next restart, which a
@@ -31,7 +31,7 @@ The site name in the page title and header is `APP_NAME` in `release.yaml`, not 
 is "Forgejo: Beyond coding. We forge."
 
 All four theme volumes are `optional`. A rebuilt cluster starts with an empty zot, so the forge starts on its
-built-in assets and copy, and takes the theme once `artifacts/forgejo-theme/push.sh` has run again, the locale
+built-in assets and copy, and takes the theme once `bin/artifact forgejo-theme --push` has run again, the locale
 after one restart.
 
 ## The actions mirror

@@ -1,4 +1,4 @@
-# The recipe: what render.sh turns into ../rendered/. Two upstream charts inflated by kustomize, and the plain
+# The recipe: what bin/artifact cert-manager turns into ../rendered/. Two upstream charts inflated by kustomize, and the plain
 # manifests that belong with them. Nothing here reaches the cluster; Flux applies ../rendered/ (README.md).
 #
 # Placement is decision 027: everything on the control planes, the cert-manager webhook three replicas spread softly
@@ -7,7 +7,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # No namespace transformer: the charts set metadata.namespace on what they render and the hand-written files carry
 # their own, and one of them, the solver's authentication-reader RoleBinding, must stay in kube-system. A root
-# namespace rewrote it to cert-manager on 2026-10-06 and the real one was pruned; render.sh now refuses a namespaced
+# namespace rewrote it to cert-manager on 2026-10-06 and the real one was pruned; bin/artifact now refuses a namespaced
 # object without a namespace instead.
 resources:
   - namespace.yaml

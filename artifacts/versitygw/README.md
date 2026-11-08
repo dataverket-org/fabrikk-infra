@@ -2,7 +2,7 @@
 
 The S3 service at the osl1 site, `dataverket.s3.osl1.dvkt.no`: one versitygw with the posix backend on one Cinder
 volume, delivered the way zot is. Git holds the pointer, `apps/versitygw/source.yaml`; this directory is the artifact,
-pushed as it is by `push.sh` into zot as `platform/versitygw-config`, and Flux applies whatever the `current` tag
+pushed as it is by `bin/artifact versitygw --push` into zot as `platform/versitygw-config`, and Flux applies whatever the `current` tag
 holds, decrypting the Secret with the cluster key. Why it is shaped so is decision 029; its backup, deferred, is
 `docs/plans/2026-10-s3-osl1-backup.md`; what it holds is read by the model `osl1-s3`, below.
 
@@ -15,14 +15,14 @@ holds, decrypting the Secret with the cluster key. Why it is shaped so is decisi
 | `service.yaml` | `versitygw:7070`, the S3 API for in-cluster writers and the route; `versitygw-admin:7071`, the admin API, never routed |
 | `httproute.yaml` | `dataverket.s3.osl1.dvkt.no` on the Gateway's `https-s3-osl1` listener, request timeout off; the `http` redirect |
 | `versitygw-root.enc.yaml` | The root key pair, source of record, sops-encrypted to the cluster key and the two operators |
-| `push.sh` | Pushes this directory into zot; not part of the artifact |
+| `bin/artifact versitygw --push` | Pushes this directory into zot; not part of the artifact |
 | `user.sh` | Mints an account and its buckets through `kubectl exec`, prints the writer's Secret; not part of the artifact |
 
 ## Ship a change
 
 ```sh
 git commit ...                      # the revision annotation names the commit, so commit first
-artifacts/versitygw/push.sh         # one YubiKey touch for the fabrikk-ci credential
+bin/artifact versitygw --push         # one YubiKey touch for the fabrikk-ci credential
 ```
 
 Flux picks up `current` within ten minutes. The StatefulSet replaces its one pod; the volume stays attached to the
@@ -86,6 +86,6 @@ Read from the wiki and the source at v1.8.0 on 2026-10-04 and at v1.9.0 on 2026-
 
 ## After a rebuild
 
-zot comes back empty (`docs/storage.md`, "Rebuild from git"), so Flux cannot fetch this artifact until `push.sh` has
+zot comes back empty (`docs/storage.md`, "Rebuild from git"), so Flux cannot fetch this artifact until `bin/artifact versitygw --push` has
 run again from the checkout. The gateway's volume is retained, so the data comes back with the claim; the root key
 pair and the accounts are on it.

@@ -90,7 +90,7 @@ spec:
               name: forgejo-security
               key: LFS_JWT_SECRET
     # The theme's ConfigMaps over Forgejo's custom paths (README.md). Optional: after a rebuild zot is empty until
-    # artifacts/forgejo-theme/push.sh runs.
+    # bin/artifact forgejo-theme --push runs.
     extraVolumes:
       - name: theme-css
         configMap:

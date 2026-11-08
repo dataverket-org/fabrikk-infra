@@ -159,10 +159,10 @@ mirror, `github.com/dataverket-org/fabrikk-infra`, which carries every repositor
 4. zot comes back empty on a new Standard volume, filled by mirrors, artifacts and rebuilds; the runner volumes empty.
 5. Forgejo's repositories restored by hand from the GitHub mirrors, this repository with the rebuild commit among
    them, before Forgejo's push mirror runs again, since it force-pushes. Then a last commit points `gotk-sync.yaml`
-   back at `git.dataverket.org`. The forge starts without its theme until `artifacts/forgejo-theme/push.sh` and
-   `artifacts/www/push.sh` have run again into the empty zot; one restart of the forgejo pod then serves the
+   back at `git.dataverket.org`. The forge starts without its theme until `bin/artifact forgejo-theme --push` and
+   `bin/artifact www --push` have run again into the empty zot; one restart of the forgejo pod then serves the
    landing page's copy (`apps/forgejo/README.md`, "The theme").
-6. Zulip's artifact pushed again into the empty zot, `artifacts/zulip/push.sh`, after the rebuild commit has moved
+6. Zulip's artifact pushed again into the empty zot, `bin/artifact zulip --push`, after the rebuild commit has moved
    `zulip-postgres`'s `serverName` with the others; its database restores from the hov1 archive as Forgejo's does.
 
 A rebuild on the same machines resets the `u-pg-zitadel` partitions first, because the provisioner publishes whatever

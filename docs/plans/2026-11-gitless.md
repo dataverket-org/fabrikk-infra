@@ -100,3 +100,17 @@ refused. Rollback: remove the `verify` block from the one source that fails; sig
 - A second site's zot as an edge mirror of this one, and the overlay repository that would carry a site's values.
 
 ## Audit
+
+### 2026-11-08, goal 1
+
+**Status:** Done. `9a0c59f`.
+
+| Finding | Where | Assessment |
+|---|---|---|
+| The chart | `helm pull` from `charts.zitadel.com` failed: the index points at a GitHub release asset, and those answered 504 all morning; fetched through GitHub's API asset endpoint instead, digest `334aa455…` equal to the index's | the chart source was the same GitHub dependency as the manifests of 035 |
+| Into zot | `helm push` by you with the ci credential: `mirror/charts.zitadel.com/zitadel:10.0.4`, digest `8b2c9bab…` | zot's `**` policy already lets `fabrikk-ci` create there |
+| The source | `HelmRepository zitadel-repo` `type: oci`, `oci://zot.zot.svc.cluster.local:5000/mirror/charts.zitadel.com`, `insecure: true` | the `HelmChart` reports "pulled 'zitadel' chart with version '10.0.4'" from it; the chart being byte-identical, helm-controller made no upgrade and Zitadel did not roll, release v5 of 11-06 stands |
+| Health | green | done |
+
+Not a swamp type: Flux's `HelmRepository`, `HelmChart` and `OCIRepository` state, read with `kubectl` this once; noted
+for the extension.

@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+#
+# One config artifact, artifacts/<name>/, rendered, checked or pushed
+# (decisions 013, 028; docs/plans/2026-11-gitless.md):
+#
+#	bin/artifact <name>		render the recipe into rendered/
+#	bin/artifact <name> --check	prove rendered/ true to the recipe
+#	bin/artifact <name> --push	check, then push the directory into zot
+#					as platform/<name>-config at the commit
+#					it is at, sign it when the site key
+#					exists, and tag it current
+#	bin/artifact --check		check every artifact
+#
+# A push reads the fabrikk-ci credential from artifacts/zot with your
+# YubiKey, one touch, and a second for the signature when the key exists.
+# Run it from a clean checkout of the commit to ship. What the directory may
+# hold is in share/artifact.sh.
+#
+
+# shellcheck source=share/artifact.sh
+source "${0%/*}/../share/artifact.sh" || exit $?
+
+#
+# Prints usage information.
+#
+function usage()
+{
+	cat <<USAGE
+usage: bin/artifact <name> [--check|--push]
+       bin/artifact --check
+
+Options:
+
+	--check		Prove rendered/ true to the recipe; with no name, for every artifact
+	--push		Check, then push into zot, sign and tag current
+	-D, --debug	Enable debug messages
+	-h, --help	Prints this message
+USAGE
+}
+
+#
+# Parses the command line.
+#
+function parse_options()
+{
+	local argv=()
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			--check)	action="check"; shift ;;
+			--push)		action="push"; shift ;;
+			-D|--debug)	enable_debug=1; shift ;;
+			-h|--help)	usage; exit ;;
+			-*)		echo "artifact: unrecognized option $1" >&2
+					return 1 ;;
+			*)		argv+=("$1"); shift ;;
+		esac
+	done
+
+	case "${#argv[*]}" in
+		0)	[[ "$action" == check ]] || {
+				echo "artifact: an artifact name is needed" >&2
+				return 1
+			} ;;
+		1)	name="${argv[0]}" ;;
+		*)	echo "artifact: one artifact at a time" >&2
+			return 1 ;;
+	esac
+}
+
+#
+# Checks every artifact under artifacts/.
+#
+function check_all()
+{
+	local dir status=0
+
+	for dir in "$repo_dir"/artifacts/*/; do
+		dir="${dir%/}"
+		artifact_check "${dir##*/}" || status=1
+	done
+	return "$status"
+}
+
+action="render"
+name=""
+
+parse_options "$@" || exit $?
+
+for tool in kubectl helm flux sops jq git; do
+	command -v "$tool" >/dev/null || fail "$tool is not on PATH"
+done
+
+case "$action" in
+	render)	artifact_render "$name" || fail "Rendering $name failed!" ;;
+	check)	if [[ -n "$name" ]]; then
+			artifact_check "$name" || fail "$name is not true to its recipe!"
+		else
+			check_all || fail "An artifact is not true to its recipe!"
+		fi ;;
+	push)	artifact_push "$name" || fail "Pushing $name failed!" ;;
+esac

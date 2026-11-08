@@ -4,7 +4,7 @@ cert-manager, external-dns, the nordhost DNS webhook they share a credential wit
 ClusterIssuer, delivered the way zot and versitygw are, and the first artifact whose contents are rendered from
 upstream charts rather than written by hand (decision 028). Git holds the pointer,
 `infrastructure/cert-manager/source.yaml`; this directory is the artifact's source. `recipe/` says what to render,
-`rendered/` is the result, committed, and `push.sh` ships `rendered/` and the one encrypted Secret into zot as
+`rendered/` is the result, committed, and `bin/artifact cert-manager --push` ships `rendered/` and the one encrypted Secret into zot as
 `platform/cert-manager-config`. Flux applies whatever the `current` tag holds, decrypting the Secret with the
 cluster key. Placement is decision 027: everything on the control planes, the webhook three replicas.
 
@@ -14,20 +14,20 @@ cluster key. Placement is decision 027: everything on the control planes, the we
 |---|---|
 | `recipe/kustomization.yaml` | The two charts, cert-manager v1.20.3 and external-dns 1.21.1, with their values, and the plain manifests listed below; the CRDs carry a `prune: disabled` annotation so no Kustomization ever deletes them |
 | `recipe/namespace.yaml`, `recipe/clusterissuer.yaml`, `recipe/nordhost-webhook/` | Written by hand; the webhook's Deployment, RBAC, Service, APIService and its own PKI |
-| `rendered/` | One file per object, named by kind and name, plus a `kustomization.yaml` listing them. Written by `render.sh`, never by hand |
+| `rendered/` | One file per object, named by kind and name, plus a `kustomization.yaml` listing them. Written by `bin/artifact cert-manager`, never by hand |
 | `nordhost-config.enc.yaml` | The DirectAdmin credential, sops-encrypted to the cluster key and the two operators. Never rendered: it travels next to `rendered/` and Flux decrypts it |
 | `kustomization.yaml` | What Flux applies: `rendered/` and the Secret |
-| `render.sh` | Renders the recipe; `--check` proves `rendered/` is true to it. Needs `kubectl` and `helm` on PATH; helm only inflates charts |
-| `push.sh` | Runs the check, then pushes into zot; not part of the artifact |
+| (`bin/artifact cert-manager`) | Renders the recipe into `rendered/`; `--check` proves `rendered/` true to it. Needs `kubectl` and `helm` on PATH; helm only inflates charts. The renderer is shared, `share/artifact.sh` |
+| (`bin/artifact cert-manager --push`) | Runs the check, then pushes into zot, signs when the site key exists, tags `current` |
 
 ## Change something
 
 ```sh
 # edit recipe/, then
-./render.sh                 # rewrites rendered/
+bin/artifact cert-manager   # rewrites rendered/
 git diff --stat rendered/   # the review: what changes in the cluster, object by object
 git commit -a
-./push.sh                   # from the committed state; refuses a dirty tree and a stale render
+bin/artifact cert-manager --push                   # from the committed state; refuses a dirty tree and a stale render
 ```
 
 A chart upgrade is a version bump in the recipe and a render. The diff of `rendered/` shows every object the new
@@ -46,7 +46,7 @@ is off for that reason, and the certificate check it did is what `kubectl get ce
 Both charts ran as HelmReleases in `infrastructure/`; on 2026-10-06 they were handed to the artifact. The objects
 are the same; what changes is which controller owns them. What was done, and what it taught, in order.
 
-1. **Ship the artifact beside the releases.** `push.sh`, with `infrastructure/cert-manager/source.yaml` already in
+1. **Ship the artifact beside the releases.** `bin/artifact cert-manager --push`, with `infrastructure/cert-manager/source.yaml` already in
    git. Both paths apply the same objects, and helm-controller's drift detection is off, so they do not fight.
    Server-side apply moves the objects' Flux labels to the `cert-manager` Kustomization. Read: every object and
    CRD labelled `kustomize.toolkit.fluxcd.io/name=cert-manager`, `prune: disabled` on the live CRDs, every

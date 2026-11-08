@@ -94,8 +94,8 @@ else
   k -n flux-system wait --for=condition=ready --timeout=10m kustomization/zot-bootstrap >/dev/null
   echo "zot is up from git"
 
-  step "First artifact into zot (artifacts/zot/push.sh, YubiKey)"
-  artifacts/zot/push.sh
+  step "First artifact into zot (bin/artifact zot --push, YubiKey)"
+  bin/artifact zot --push
   until k -n flux-system get ocirepository zot-config >/dev/null 2>&1; do sleep 10; done
   flux --context "$ctx" reconcile source oci zot-config -n flux-system >/dev/null
   k -n flux-system wait --for=condition=ready --timeout=10m kustomization/zot >/dev/null

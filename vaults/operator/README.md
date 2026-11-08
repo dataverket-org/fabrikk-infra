@@ -32,7 +32,7 @@ One cosign key pair per site, both halves in one file, `vaults/operator/<site>/c
 cosign reads from the environment: `COSIGN_PRIVATE_KEY`, `COSIGN_PUBLIC_KEY` and `COSIGN_PASSWORD`, the last empty
 so that the YubiKey touch is the only secret. The key signs the site's artifacts, `platform/*` in zot, and Flux
 verifies them before applying (decision 028). It is tier 3 with a human owner: it cannot be minted with a lifetime,
-it is read by a person at `push.sh` time and by nothing unattended, and the release runner, when it exists, signs
+it is read by a person at `bin/artifact --push` time and by nothing unattended, and the release runner, when it exists, signs
 with a key of its own that is never here. The public half also lives in plain in `clusters/production/`, as the
 Secret Flux reads; keeping it in this file too is so the pair is found in one place.
 
@@ -47,7 +47,7 @@ cd "$OLDPWD" && rm -rf "$OLDPWD"                                     # nothing o
 ```
 
 Run from the repository root; the encryption needs only the recipients' public keys, and no touch. Every
-`artifacts/*/push.sh` then signs what it pushed, one touch, when the file exists:
+`bin/artifact <name> --push` then signs what it pushed, one touch, when the file exists:
 
 ```sh
 sops exec-env vaults/operator/osl1/cosign.enc.json \

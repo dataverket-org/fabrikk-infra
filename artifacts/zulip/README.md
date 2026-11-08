@@ -3,7 +3,7 @@
 Zulip is Dataverket's chat and forum, at `https://forum.dataverket.org`. People log in with their Zitadel account.
 This directory holds everything Zulip runs on: the app, its database, three helper services and their secrets.
 
-It is delivered the way zot is. `push.sh` pushes this directory into zot as `platform/zulip-config`. Git holds only
+It is delivered the way zot is. `bin/artifact zulip --push` pushes this directory into zot as `platform/zulip-config`. Git holds only
 the pointer, `apps/zulip/source.yaml`, and Flux applies whatever the `current` tag holds: it builds
 `kustomization.yaml`, decrypts the Secrets with the cluster key, and applies the result. The organization itself,
 its name, owner, brand and open channels, is in the artifact too, applied by a Job ("The organization"). How it was
@@ -29,7 +29,7 @@ built, step by step, is `docs/plans/2026-10-zulip.md`.
 | `organization-job.yaml` | The Job that runs `apply.py` in a pod of Zulip's image, again on every change to the two ConfigMaps |
 | `postgres-image.sh` | Builds the database image with Zulip's search dictionaries; not part of the artifact |
 | `brand.sh` | Renders `brand/` from the design repository at a pinned commit; not part of the artifact |
-| `push.sh` | Pushes that image, then this directory, into zot; not part of the artifact |
+| `bin/artifact zulip --push` | Pushes that image, then this directory, into zot; not part of the artifact |
 | `s3proof/` | Tests Zulip's S3 use against the osl1 gateway, in Go; not part of the artifact |
 
 All `*.enc.yaml` files are encrypted to the cluster key and the two operators.
@@ -40,7 +40,7 @@ Edit the files, commit, then push. The revision annotation names the commit, so 
 
 ```sh
 git commit ...
-artifacts/zulip/push.sh             # your YubiKey PIN and one touch, for the fabrikk-ci credential
+bin/artifact zulip --push             # your YubiKey PIN and one touch, for the fabrikk-ci credential
 ```
 
 Flux applies the new artifact within ten minutes. To apply it now:
@@ -212,7 +212,7 @@ To change it, edit the pins in the script, then:
 ```sh
 artifacts/zulip/postgres-image.sh   # rebuilds and writes the new reference into postgres.yaml
 git commit ...
-artifacts/zulip/push.sh             # pushes the image first, then the manifests
+bin/artifact zulip --push             # pushes the image first, then the manifests
 ```
 
 CNPG reads the Postgres version from the image tag, so `postgres.yaml` names the image by tag and digest:
@@ -221,7 +221,7 @@ the script.
 
 ## After a rebuild
 
-zot comes back empty after a rebuild (`docs/storage.md`, "Rebuild from git"). Run `push.sh` again from the checkout.
+zot comes back empty after a rebuild (`docs/storage.md`, "Rebuild from git"). Run `bin/artifact zulip --push` again from the checkout.
 The database then restores itself from the hov1 archive, since `postgres.yaml` bootstraps by recovery, and the
 organization Job finds the organization and leaves it as it is. If there is no archive to restore, the Job creates
 the organization; then follow "After a fresh install, or a rebuild with no archive" above.

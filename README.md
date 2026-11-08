@@ -15,7 +15,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 | `infrastructure/` | Kustomization `infrastructure` | OpenStack cloud controller and Cinder CSI, CNPG, Envoy Gateway, cert-manager and the wildcard certificate, external-dns, Kata. |
 | `backup/` | `docker compose` on a site host, nothing in the cluster | The sources-and-targets table (`backup/README.md`); `versitygw/` is a compose stack, versitygw with the posix backend behind its own private CA, that runs anywhere; `<site>/` is one instance of it, `hov1/` the S3 endpoint the backups are written to. |
 | `apps/` | Kustomization `apps` (after `infrastructure`) | Forgejo, its runners, Zitadel, and the pointer to zot. |
-| `artifacts/<name>/` | Nobody, from git | Sources of OCI config artifacts. Pushed with `artifacts/<name>/push.sh`, pulled by an `OCIRepository` declared under `apps/`. |
+| `artifacts/<name>/` | Nobody, from git | Sources of OCI config artifacts. Rendered, checked and pushed with `bin/artifact <name>`, pulled by an `OCIRepository` declared under `apps/`. |
 | `bootstrap/` | `bootstrap.sh` | What must exist before the rest can be applied: the cluster's SOPS key, and zot from git until zot serves its own config. |
 | `Taskfile.yml`, `taskfiles/` | `task` | The commands of this repository, one namespace per group, one file per namespace. |
 | `bin/`, `share/` | The tasks | One executable per task over shared libraries. Nothing here names this cluster, this Omni or this cloud, so another repository reuses them unchanged (decision 008). |
@@ -54,7 +54,7 @@ rule behind it is decision 001. What comes after it, in order: the second door i
 | `task admin:start` | The working day: the Omni login, the Proton Pass session when `OS_PASSWORD_REF` is `pass://` (and a check that the reference resolves), then every credential of ours, in order, when any one of them is due: the Omni Reader key, both kube contexts, the talos context, the OpenStack cloud entry and the Zitadel reader key. A Zitadel renewal logs you in through the browser; a current key opens nothing. `RENEW=1` renews them all now. Safe to rerun. |
 | `task admin:elevate` | The two keys that can change something, minted deliberately when you are about to: the Omni Operator key, and the Zitadel key that writes to the projects in `ZITADEL_PROJECTS` and nothing else. `admin:start` never mints them. After changing `ZITADEL_PROJECTS`, run it with `RENEW=1`. |
 | `task admin:stop` | The end of the day: closes the Proton Pass session, removes the Omni login key, both elevated keys and your Zitadel token file. The rest of tier 2 expires by itself. |
-| `task admin:dns-keys` | New Nordhost login keys for the cluster's DNS zones, named `dataverketprod<expiry>` and written into `artifacts/cert-manager/nordhost-config.enc.yaml` with sops; then commit, `artifacts/cert-manager/push.sh`, and restart `external-dns` and `nordhost-webhook`, which read the keys only at start. `DRY_RUN=1` tests the current keys; `NORDHOST_DELETE_KEYS` removes old ones once the new are running. Each zone's account password comes from `vaults/operator/nordhost/`, a YubiKey touch each. |
+| `task admin:dns-keys` | New Nordhost login keys for the cluster's DNS zones, named `dataverketprod<expiry>` and written into `artifacts/cert-manager/nordhost-config.enc.yaml` with sops; then commit, `bin/artifact cert-manager --push`, and restart `external-dns` and `nordhost-webhook`, which read the keys only at start. `DRY_RUN=1` tests the current keys; `NORDHOST_DELETE_KEYS` removes old ones once the new are running. Each zone's account password comes from `vaults/operator/nordhost/`, a YubiKey touch each. |
 | `task admin:zitadel-setup` | Once per instance, and on a host whose config lacks the client id: the organization's name, the admin project and the application the browser login goes through. It acts as the machine user the chart made at install, whose key it reads from the cluster for that run and writes nowhere. |
 | `task admin:zitadel-login` | Your Zitadel login as a file: the device-flow login as you, the token written to `~/.config/zitadel/fabrikk-infra-me.token`, which the `zitadel-me` definition names, so a workflow such as `zitadel-passkey-link` acts as you. Nothing reads the value but swamp, at call time. Expires with Zitadel's token lifetime; `admin:stop` removes it. Safe to rerun. |
 | `task admin:zitadel-domains -- <method> [--arg k=v]` | Zitadel's domain list with the System API key the operators hold (decision 032): `domainList`, `domainAdd`, `domainSetPrimary`, `domainRemove`, one per run. `sops` decrypts `vaults/operator/osl1/zitadel-system.enc.json` for that one run, a YubiKey touch, and the key reaches swamp through a FIFO the `zitadel-system` definition names; it is never on disk. The public half is in `apps/zitadel/release.yaml` as `SystemAPIUsers.operators`. |
@@ -225,11 +225,11 @@ masterkey and Forgejo's generated security keys are here since 2026-09-30, pinne
 
 `apps/zot/source.yaml` is the pattern: an `OCIRepository` on the registry and a Kustomization that applies whatever
 the artifact holds, decrypting with the cluster key. `artifacts/zot/` is the artifact's source, plain manifests with
-the image pinned by digest; `push.sh` pushes the directory as it is, tagged with the commit and `current`.
+the image pinned by digest; `bin/artifact zot --push` pushes the directory as it is, tagged with the commit and `current`.
 `artifacts/versitygw/` and `apps/versitygw/source.yaml` are the second use of the pattern, the S3 service at the
 osl1 site (decision 029). `artifacts/cert-manager/` is the third and the first rendered one:
 two upstream charts, cert-manager and external-dns, inflated by kustomize from `recipe/` into a committed
-`rendered/` tree that `push.sh` ships and `infrastructure/cert-manager/source.yaml` applies (decision 028). The
+`rendered/` tree that `bin/artifact cert-manager --push` ships and `infrastructure/cert-manager/source.yaml` applies (decision 028). The
 diff of `rendered/` is the review of a chart upgrade, and the cluster reads no chart repository for them.
 `artifacts/www/`, the website and the Signal short link, is the fourth, plain manifests again, with the website as
 an image of its own that the pods mount as a volume. `artifacts/forgejo-theme/` is the fifth, rendered: the forge's

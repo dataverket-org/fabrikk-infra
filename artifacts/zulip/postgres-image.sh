@@ -5,7 +5,7 @@
 #
 #   postgres-image.sh            build, and write the reference into postgres.yaml when it exists; commit the result
 #   postgres-image.sh --check    build, and fail if postgres.yaml names another digest
-#   postgres-image.sh --push     --check, then copy the image into zot; push.sh runs this with $user and $password set
+#   postgres-image.sh --push     --check, then copy the image into zot; bin/artifact runs this with $user and $password set
 #
 # en_us.dict and en_us.affix are Debian trixie's hunspell-en-us en_US.dic and en_US.aff as they are: Debian's
 # pg_updatedicts only re-encodes them to UTF-8, and both are UTF-8 already (SET UTF-8). The build runs in crane's
@@ -101,7 +101,7 @@ case "${1:-}" in
     fi
     echo "the image is true to postgres.yaml ($digest)"
     if [ "$1" = --push ]; then
-      : "${user:?push.sh sets user}" "${password:?push.sh sets password}"
+      : "${user:?bin/artifact sets user}" "${password:?bin/artifact sets password}"
       # crane reads credentials only from a Docker config; this one lives in $tmp and goes with it.
       DOCKER_CONFIG=$tmp/docker
       export DOCKER_CONFIG

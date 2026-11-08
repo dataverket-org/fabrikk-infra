@@ -3,7 +3,7 @@
 `www.dataverket.org`, the website, and `signal.dataverket.org`, a short link to the Dataverket Signal group. An nginx
 pod behind the Gateway (`httproute.yaml`); the wildcard certificate on the `https` listener covers both names, and
 external-dns makes the records from the routes. Delivered the way zot is: git holds the pointer,
-`apps/www/source.yaml`; this directory is the artifact, pushed as it is by `push.sh` into zot as
+`apps/www/source.yaml`; this directory is the artifact, pushed as it is by `bin/artifact www --push` into zot as
 `platform/www-config`, and Flux applies whatever the `current` tag holds, decrypting the Secret with the cluster key.
 The website itself is a second image, `dataverket/www-site` (tenant-first, decision 034), built from `site/` by `site.sh` and mounted into the pods
 as an image volume; the manifests name it by digest.
@@ -19,14 +19,14 @@ as an image volume; the manifests name it by digest.
 | `service.yaml` | `www:80` |
 | `httproute.yaml` | Both names on the `https` listener; on `http`, a 301 to https, the apex included; the apex has its own listener and a 301 to `www` |
 | `www-secrets.enc.yaml` | `SIGNAL_GROUP_LINK`, sops-encrypted to the cluster key and the operators |
-| `push.sh` | Pushes the `www-site` image, then this directory, into zot; not part of the artifact |
+| `bin/artifact www --push` | Pushes the `www-site` image, then this directory, into zot; not part of the artifact |
 
 ## Ship a change
 
 ```sh
 artifacts/www/site.sh               # after a change in site/: rebuilds, writes the new digest into deployment.yaml
 git commit ...                      # the revision annotation names the commit, so commit first
-artifacts/www/push.sh               # PIN and one YubiKey touch for the fabrikk-ci credential; a real terminal, not `!`
+bin/artifact www --push               # PIN and one YubiKey touch for the fabrikk-ci credential; a real terminal, not `!`
 ```
 
 Flux picks up `current` within ten minutes. A new page is a new digest in `deployment.yaml`, so it rolls the
@@ -37,7 +37,7 @@ Deployment by itself, one pod at a time.
 `site.sh` builds `site/` into one layer with every file owned by root, mode 0644, mtime 0, and the platform set to
 `linux/amd64`, in crane's in-memory registry on a free local port. The same `site/` gives the same digest on any
 machine with the same crane, so the digest is committed before anything is pushed, and `site.sh --check`, which
-`push.sh` runs, refuses a `site/` that no longer builds to it. A crane upgrade may change the compression and with it
+`bin/artifact www --push` runs, refuses a `site/` that no longer builds to it. A crane upgrade may change the compression and with it
 the digest; then `site.sh` and a commit is all it takes.
 
 The pods mount it with an image volume (Kubernetes 1.36, containerd 2.3): the kubelet pulls it like any image, from
@@ -78,4 +78,4 @@ The root filesystem is read-only; `conf.d`, the cache and `/tmp` are emptyDirs.
 ## After a rebuild
 
 zot comes back empty (`docs/storage.md`, "Rebuild from git"), so Flux cannot fetch this artifact or the pods the
-website image, and both names are down, until `push.sh` has run again from the checkout.
+website image, and both names are down, until `bin/artifact www --push` has run again from the checkout.
