@@ -1,18 +1,22 @@
 type: '@dataverket/http/endpoint'
-typeVersion: 2026.10.29.1
+typeVersion: 2026.11.10.1
 id: 99171827-cdca-46f5-969e-9128ddf79dab
 name: zitadel-oidc-id-osl1
 version: 1
 tags: {}
 # Identity: Zitadel's OIDC discovery document at id.osl1.dvkt.no, this site's alias and the primary instance domain (decisions 031, 032), which must name itself as
 # its issuer, so a route that answers but an instance not yet told about the name fails too
-# (decisions 031 and 034). Plain GET, no credential.
+# (decisions 031 and 034). The issuer field is compared exactly, and since the document is public the record shows the
+# issuer it got when they differ. Plain GET, no credential.
 globalArguments:
   url: 'https://id.osl1.dvkt.no/.well-known/openid-configuration'
   expectStatus: 200
   followRedirects: true
   maxRedirects: 5
-  bodyContains: '"issuer":"https://id.osl1.dvkt.no"'
+  bodyContains: ''
+  bodyJson:
+    issuer: 'https://id.osl1.dvkt.no'
+  bodyJsonShowValues: true
   timeoutMs: 10000
   caFile: ''
   userAgent: swamp @dataverket/http
