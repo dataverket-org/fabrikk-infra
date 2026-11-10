@@ -390,8 +390,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/cosign": {
-    "version": "2026.10.28.1",
-    "pulledAt": "2026-11-10T17:27:54.463Z",
+    "version": "2026.11.10.1",
+    "pulledAt": "2026-11-10T20:43:10.312Z",
     "files": [
       ".agents/skills/cosign",
       ".claude/skills/cosign",
@@ -402,8 +402,51 @@
       ".swamp/pulled-extensions/@dataverket/cosign/workflows/workflow-77ec3bcb-f4a4-4297-acfc-659615aca7ff.yaml",
       ".swamp/pulled-extensions/@dataverket/cosign/workflows/workflow-92c2dc73-8d7f-4d0a-8b5f-f339820df6b0.yaml"
     ],
-    "checksum": "8e7c5375071faab8d6ced992b69adeffaf12149db9a83dda3a3f55134bd13f08",
-    "filesChecksum": "f3af11eb45714f43258eefabbcda0f0dc639b16ae971f8b2bf7b3260c33b7b8a",
+    "checksum": "73d2db07af7c28f380f32d2d4ea4d894da280189ee3c9611dc5c5938fa8e1fd2",
+    "filesChecksum": "9f550582b5a8fed063d0a1c16e0e7af72a6e92aae637e6f4b05b88a7f4c81855",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
+  },
+  "@dataverket/signed-images": {
+    "version": "2026.11.10.1",
+    "pulledAt": "2026-11-10T20:43:14.521Z",
+    "files": [
+      ".agents/skills/signed-images",
+      ".claude/skills/signed-images",
+      ".swamp/pulled-extensions/@dataverket/signed-images/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/signed-images/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/signed-images/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-00999cd6-0187-4b5a-a1cd-646160f1c6c1.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-67950888-67dc-4aa8-8bd3-e88389aeecce.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-721d7910-1e2b-45c6-9935-5a6201623258.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-8c79cd57-8f51-4dfc-b7c2-05dd8500f875.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-97de917b-4596-4ab1-931e-ae60d8536323.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-c0ab6bef-ac1a-4169-9a0f-426cecde87be.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-ef303fe3-2ace-42b2-b3f6-7f4d64ae50c4.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-f890223b-2998-4e64-a00e-99666c471a5d.yaml",
+      ".swamp/pulled-extensions/@dataverket/signed-images/workflows/workflow-pinned-base-image.yaml"
+    ],
+    "checksum": "91f6096b0d75b9a2a22c7371ad07f5d8d55542f37ac2794fffed0dfa82c66402",
+    "filesChecksum": "81fdb77ae99ff5a72ed50bc0ee30efe595be003480ddca7bbc207ad66653cda0",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
+  },
+  "@dataverket/ko": {
+    "version": "2026.10.29.1",
+    "pulledAt": "2026-11-10T20:43:16.504Z",
+    "files": [
+      ".agents/skills/ko",
+      ".claude/skills/ko",
+      ".swamp/pulled-extensions/@dataverket/ko/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/ko/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/ko/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/ko/models/module.ts",
+      ".swamp/pulled-extensions/@dataverket/ko/workflows/workflow-2e4b9047-f0e9-4641-8a1a-9b730bc7f4a3.yaml",
+      ".swamp/pulled-extensions/@dataverket/ko/workflows/workflow-39d3cf77-6a01-46b8-9ef3-c7f5d8fa95bd.yaml",
+      ".swamp/pulled-extensions/@dataverket/ko/workflows/workflow-a134f13a-a1a2-485f-8b4b-f68f305848da.yaml"
+    ],
+    "checksum": "c5ee937711350f11a7eb5566d8730fd052bd39b2d6e176182f0b4dbd21b63b38",
+    "filesChecksum": "0a0489790c75a83b2ae9fff5ca2e327db2272751351d88bf073acbfb1668a9db",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   }

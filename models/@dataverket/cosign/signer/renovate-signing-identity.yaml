@@ -1,5 +1,5 @@
 type: '@dataverket/cosign/signer'
-typeVersion: 2026.10.28.1
+typeVersion: 2026.11.10.1
 id: f25cae8c-63db-4dc0-b2c2-0b60985990e1
 name: renovate-signing-identity
 version: 1
@@ -11,7 +11,8 @@ tags: {}
 # workflow that builds and signs the image, https://github.com/renovatebot/renovate/blob/main/.github/workflows/build.yml;
 # the signatures of 44.132.2 and 44.226.2 carried it on 2026-11-10. Change it only when Renovate moves its build,
 # and read their change first. It verifies only: key is empty and it signs nothing. The renovate-image-verified
-# workflow runs it against the digest that run resolved.
+# workflow reads certificateIdentity and oidcIssuer from here and hands them to @dataverket/verified-upstream-image,
+# so the identity is stated once; the verify below is for a digest by hand.
 # Usage: swamp workflow run renovate-image-verified --input ref=ghcr.io/renovatebot/renovate:<tag>
 #        swamp model method run renovate-signing-identity verify --input 'refs:json=["ghcr.io/renovatebot/renovate@sha256:<digest>"]'
 globalArguments:
