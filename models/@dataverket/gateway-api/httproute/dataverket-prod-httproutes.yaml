@@ -1,0 +1,10 @@
+type: '@dataverket/gateway-api/httproute'
+typeVersion: 2026.11.10.1
+id: 26795952-577a-4a6d-9d3a-a3fbb400ecab
+name: dataverket-prod-httproutes
+version: 1
+tags: {}
+globalArguments:
+  namespace: ''
+  context: dataverket-prod-readers
+methods: {}

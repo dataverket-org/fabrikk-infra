@@ -1,0 +1,11 @@
+type: '@dataverket/cnpg/backup'
+typeVersion: 2026.11.10.1
+id: caed1ca1-687d-47cf-8824-d5fd37402c76
+name: dataverket-prod-postgres-backups
+version: 1
+tags: {}
+globalArguments:
+  namespace: ''
+  context: dataverket-prod-readers
+  unfinishedAfterSeconds: 3600
+methods: {}

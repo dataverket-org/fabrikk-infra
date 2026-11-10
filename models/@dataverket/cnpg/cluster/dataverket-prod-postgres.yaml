@@ -1,0 +1,10 @@
+type: '@dataverket/cnpg/cluster'
+typeVersion: 2026.11.10.1
+id: 9a804e55-d491-4372-b61c-2b1c1d757282
+name: dataverket-prod-postgres
+version: 1
+tags: {}
+globalArguments:
+  namespace: ''
+  context: dataverket-prod-readers
+methods: {}

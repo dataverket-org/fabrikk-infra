@@ -1,0 +1,10 @@
+type: '@dataverket/gateway-api/gateway'
+typeVersion: 2026.11.10.1
+id: 74e38d40-9d93-4158-9fcd-461896100d8e
+name: dataverket-prod-gateways
+version: 1
+tags: {}
+globalArguments:
+  namespace: ''
+  context: dataverket-prod-readers
+methods: {}

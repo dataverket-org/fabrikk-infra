@@ -1,0 +1,10 @@
+type: '@dataverket/cert-manager/certificate'
+typeVersion: 2026.11.10.1
+id: 8d60999e-8ceb-44ea-8d7d-061f6a65ed87
+name: dataverket-prod-certificates
+version: 1
+tags: {}
+globalArguments:
+  namespace: ''
+  context: dataverket-prod-readers
+methods: {}
