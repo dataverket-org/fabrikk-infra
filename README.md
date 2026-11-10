@@ -85,8 +85,9 @@ Every item shares the one lifetime, and `admin:start` renews them all when any h
 schedule: a host's `swamp-fabrikk-infra` lasts until that host is rebuilt, `cluster-dataverket-prod` the cluster's life.
 
 The readers context's group, `fabrikk-readers`, has Kubernetes' `view` role cluster-wide (`infrastructure/readers/`):
-every workload, log, ConfigMap, event, Flux and cert-manager object, with Gateway API aggregated in, and never a
-Secret (decision 003). The factory's service-account kubeconfig carries the same group.
+every workload, log, ConfigMap, event, Flux and cert-manager object, with Gateway API, CloudNativePG and
+cert-manager's ClusterIssuers aggregated in, and never a Secret (decision 003). The factory's service-account
+kubeconfig carries the same group.
 
 The `decisions:` group is the records in `docs/decisions/`. `task decisions` lists them with their audit status, so
 what is decided and what is still pending read at a glance; `decisions:new` starts one from the template and opens

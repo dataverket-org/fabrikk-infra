@@ -26,3 +26,33 @@ rules:
   - apiGroups: [gateway.envoyproxy.io]
     resources: ["*"]
     verbs: [get, list, watch]
+---
+# CloudNativePG Clusters, their Backups and ScheduledBackups, and the Barman Cloud plugin's ObjectStores, aggregated
+# into view. They name every credential by Secret and hold none; a secret typed inline (postInitSQL, env, an
+# external cluster's connection parameters) would be read with them, so none is ever written there.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cnpg-view
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+  - apiGroups: [postgresql.cnpg.io]
+    resources: [clusters, backups, scheduledbackups]
+    verbs: [get, list, watch]
+  - apiGroups: [barmancloud.cnpg.io]
+    resources: [objectstores]
+    verbs: [get, list, watch]
+---
+# cert-manager's ClusterIssuers, which its own cert-manager-view leaves out, aggregated into view. An issuer names its
+# account key and solver credentials by Secret; a webhook solver's free-form config holds no secret either.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cert-manager-clusterissuers-view
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+  - apiGroups: [cert-manager.io]
+    resources: [clusterissuers]
+    verbs: [get, list, watch]
