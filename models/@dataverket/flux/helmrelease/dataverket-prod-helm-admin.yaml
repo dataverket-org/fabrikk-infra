@@ -1,0 +1,12 @@
+type: '@dataverket/flux/helmrelease'
+typeVersion: 2026.11.10.1
+id: 02074f7b-653d-4fc5-9028-73579a58ddcf
+name: dataverket-prod-helm-admin
+version: 1
+tags: {}
+# Changes: reconcile, suspend, resume and reset of a HelmRelease, with the admin context. Lists and get are read
+# through dataverket-prod-helm, with the readers context.
+globalArguments:
+  namespace: ''
+  context: dataverket-prod-admin
+methods: {}

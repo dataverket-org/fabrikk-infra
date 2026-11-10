@@ -268,11 +268,11 @@ swamp workflow run health                             # the forge, both S3 gatew
 swamp workflow run zitadel-passkey-link --input user=someone@example.org   # Zitadel mails that person a link to register a passkey; runs as you through zitadel-me after task admin:zitadel-login, one person per run, when they are ready
 swamp model method run forgejo health
 swamp model method run omni discover                  # the Talos fleet, read-only
-swamp model method run dataverket-prod-kustomizations reconcile --input name=apps --input namespace=flux-system --input withSource=true
+swamp model method run dataverket-prod-kustomizations-admin reconcile --input name=apps --input namespace=flux-system --input withSource=true
 swamp workflow run fleet-volumes                      # every node's disks, partitions and EPHEMERAL usage, read-only
 swamp model method run runner-pods list               # context dataverket-prod-readers
 swamp model method run runner-events getWarnings      # the same namespace's warning events, same context
-swamp model method run dataverket-prod-helm list      # context dataverket-prod-admin
+swamp model method run dataverket-prod-helm list      # context dataverket-prod-readers; the -admin twin reconciles
 swamp model method run registry copy --input 'sources:json=["<upstream>:<tag>@sha256:<digest>"]'   # into mirror/<upstream registry>/<path>, @dataverket/crane
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
 swamp workflow run worker-join --input name=dataverket-wrkr-N   # one half of a worker swap, docs/storage.md

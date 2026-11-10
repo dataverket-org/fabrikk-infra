@@ -58,7 +58,7 @@ kubectl cnpg psql forgejo-postgres -n forgejo --context dataverket-prod-admin --
   -c "SELECT id, uid, name, scope FROM access_token WHERE name = 'actions-mirror';" \
   -c "DELETE FROM access_token WHERE name = 'actions-mirror' AND uid = (SELECT id FROM \"user\" WHERE lower_name = 'actions-mirror');"
 kubectl --context dataverket-prod-admin -n forgejo delete job actions-mirror-bootstrap --ignore-not-found
-swamp behavior run dataverket-prod-kustomizations reconcile --arg name=forgejo
+swamp behavior run dataverket-prod-kustomizations-admin reconcile --arg name=forgejo
 ```
 
 **The CronJob `actions-mirror`** runs daily and keeps the org a frozen copy of `code.forgejo.org/actions`,

@@ -1,0 +1,12 @@
+type: '@dataverket/flux/kustomization'
+typeVersion: 2026.11.10.1
+id: 8ef33801-0e9b-48af-816b-e6110fdfb518
+name: dataverket-prod-kustomizations-admin
+version: 1
+tags: {}
+# Changes: reconcile, suspend and resume of a Kustomization in flux-system, with the admin context. Lists are read
+# through dataverket-prod-kustomizations, with the readers context.
+globalArguments:
+  namespace: flux-system
+  context: dataverket-prod-admin
+methods: {}

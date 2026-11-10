@@ -98,7 +98,7 @@ refused. Rollback: remove the `verify` block from the one source that fails; sig
   path. `prune: disabled` on anything whose loss is a database, for the duration.
 - The agent's auto mode refuses cluster writes and pushes to `main`; reads with `kubectl --context
   dataverket-prod-admin` work; the readers context cannot read cluster-scoped objects.
-- `swamp behavior run dataverket-prod-kustomizations reconcile --arg name=<k> --arg withSource=true` is the
+- `swamp behavior run dataverket-prod-kustomizations-admin reconcile --arg name=<k> --arg withSource=true` is the
   reconcile; it blocks until the Kustomization is ready and holds the behavior's lock meanwhile, so not in a loop.
 - Flux's `HelmRepository`, `HelmChart` and `OCIRepository` have no swamp type yet; `kubectl get` them.
 - Two `sops` reads at once garble the YubiKey's answer; read sequentially. `crane auth login` and `helm registry

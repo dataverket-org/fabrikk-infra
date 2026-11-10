@@ -46,7 +46,7 @@ bin/artifact zulip --push             # your YubiKey PIN and one touch, for the 
 Flux applies the new artifact within ten minutes. To apply it now:
 
 ```sh
-swamp behavior run dataverket-prod-kustomizations reconcile --input name=zulip --input namespace=flux-system \
+swamp behavior run dataverket-prod-kustomizations-admin reconcile --input name=zulip --input namespace=flux-system \
   --input withSource=true
 ```
 
@@ -164,7 +164,7 @@ and reconcile: Flux creates it again, which runs it again.
 ```sh
 kubectl --context dataverket-prod-admin -n zulip logs job/zulip-organization
 kubectl --context dataverket-prod-admin -n zulip delete job zulip-organization
-swamp behavior run dataverket-prod-kustomizations reconcile --input name=zulip --input namespace=flux-system
+swamp behavior run dataverket-prod-kustomizations-admin reconcile --input name=zulip --input namespace=flux-system
 ```
 
 When creating the organization failed, clean up first, or the next try fails too. A failed try is rolled back in
