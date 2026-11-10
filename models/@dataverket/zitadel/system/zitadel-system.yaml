@@ -7,9 +7,10 @@ tags: {}
 # The instance's domain list, kept with the System API user the operators hold (decision 032). The key is in the
 # operator store and reaches swamp through the FIFO named here, which bin/zitadel-domains makes for one run; the
 # definition itself holds nothing. apiUrl is the assertion's audience and must equal what the server builds from
-# ExternalDomain, ExternalPort and ExternalSecure: id.dataverket.org since step 5.2 of the Zitadel plan.
+# ExternalDomain, ExternalPort and ExternalSecure: id.dataverket.org since step 5.2 of the Zitadel plan. The
+# address is stated once, in zitadel-instance, and read from there.
 globalArguments:
-  apiUrl: 'https://id.dataverket.org'
+  apiUrl: '${{ model.zitadel-instance.input.globalArguments.apiUrl }}'
   systemUser: operators
   systemKeyFile: '~/.config/zitadel/fabrikk-infra-system.pem'
 methods: {}

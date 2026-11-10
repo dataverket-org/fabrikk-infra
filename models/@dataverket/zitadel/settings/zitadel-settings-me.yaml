@@ -10,6 +10,6 @@ tags: {}
 # how long the code in a registration link lives, with your rights (iam.write, the IAM_OWNER role)
 # and your name in Zitadel's audit log. zitadel-settings, with the reader key, stays for reads.
 globalArguments:
-  apiUrl: 'https://id.dataverket.org'
+  apiUrl: '${{ model.zitadel-instance.input.globalArguments.apiUrl }}'
   accessTokenFile: '~/.config/zitadel/fabrikk-infra-me.token'
 methods: {}

@@ -1,10 +1,10 @@
 type: '@dataverket/zitadel/action'
-typeVersion: 2026.11.06.1
+typeVersion: 2026.11.08.1
 id: 721f58ff-8c3c-40bf-a20e-887da50bc554
 name: zitadel-action
 version: 1
 tags: {}
 globalArguments:
-  apiUrl: 'https://id.dataverket.org'
+  apiUrl: '${{ model.zitadel-instance.input.globalArguments.apiUrl }}'
   keyJsonFile: '~/.config/zitadel/fabrikk-infra-reader.json'
 methods: {}

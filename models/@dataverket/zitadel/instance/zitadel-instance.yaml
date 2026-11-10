@@ -6,6 +6,10 @@ version: 1
 tags: {}
 # The instance as its administrators see it, with the reader key (IAM_OWNER_VIEWER): its domains, the domains it
 # trusts, and every holder of an instance role. Read-only here; the two trusted-domain writes need IAM_OWNER.
+# apiUrl here is the one place the address is stated: every other zitadel-* definition reads this argument, so a
+# change of name is this one edit. It is also each token assertion's audience and must equal, to the character,
+# what the server builds from ExternalDomain, ExternalPort and ExternalSecure (the zitadel-config-yaml ConfigMap,
+# read by zitadel-configmaps).
 globalArguments:
   apiUrl: 'https://id.dataverket.org'
   keyJsonFile: '~/.config/zitadel/fabrikk-infra-reader.json'
