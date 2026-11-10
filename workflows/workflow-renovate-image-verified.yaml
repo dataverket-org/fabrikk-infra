@@ -1,0 +1,110 @@
+id: d961f9b1-c4a6-4ebe-8654-4f7faf498591
+name: renovate-image-verified
+description: >-
+  Is this Renovate image the one Renovate's own CI built and signed? Run it when the tag pinned in the renovate
+  repository's kube/cronjob.yaml changes, before the image is used. The tag in ref is resolved to its digest once,
+  with crane on the registry model; everything after that names the digest this run resolved, never the tag again
+  and never an older record. cosign verifies the signature of that digest keyless, against the identity and issuer
+  that renovate-signing-identity states and through the public Sigstore log; then the SLSA provenance attestation
+  of the same digest, the same way; an assertion after each fails the run and says what to look at. Read-only: it
+  reads ghcr.io and Sigstore and writes three records, digest (registry), verification and attestationVerification
+  (renovate-signing-identity). The registry model logs in to our own registry for the run, in a docker config that
+  holds only that login, so ghcr.io is read without any credential. What a pass proves: the digest was built and
+  signed by that workflow in Renovate's repository. What it does not: that the commit it was built from is good,
+  or that a cluster runs this digest, since the CronJob pulls by tag and nothing verifies there.
+tags:
+  factory: platform
+version: 1
+inputs:
+  properties:
+    ref:
+      type: string
+      description: The image by tag, with its registry, such as ghcr.io/renovatebot/renovate:44.226.2
+  required:
+    - ref
+jobs:
+  - name: resolve
+    steps:
+      - name: digest
+        description: crane digest of the tag; one digest record with repository and digest. A tag that is not in the registry fails here.
+        task:
+          type: model_method
+          modelIdOrName: registry
+          methodName: digest
+          inputs:
+            refs:
+              - ${{ inputs.ref }}
+      - name: one-digest
+        description: This run recorded exactly one digest, for the reference asked for.
+        dependsOn:
+          - step: digest
+            condition:
+              type: succeeded
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec("registry", "digest").filter(d, d.tags.?workflowRunId.orValue("") == run.id).size() == 1
+            && data.findBySpec("registry", "digest").filter(d, d.tags.?workflowRunId.orValue("") == run.id && d.attributes.ref == inputs.ref && d.attributes.digest.matches("^sha256:[0-9a-f]{64}$")).size() == 1
+          message: >-
+            The registry gave no single digest for ${{ inputs.ref }}. Check that the tag exists:
+            crane digest ${{ inputs.ref }}
+          severity: high
+  - name: verify
+    dependsOn:
+      - job: resolve
+        condition:
+          type: succeeded
+    steps:
+      - name: signature
+        description: cosign verify of the digest this run resolved, keyless, against Renovate's signing identity; one verification record, verified or not.
+        task:
+          type: model_method
+          modelIdOrName: renovate-signing-identity
+          methodName: verify
+          inputs:
+            refs: ${{ data.findBySpec("registry", "digest").filter(d, d.tags.?workflowRunId.orValue("") == run.id).map(d, d.attributes.repository + "@" + d.attributes.digest) }}
+      - name: signed-by-renovate
+        description: This run recorded one verification, of the digest this run resolved, and it verified.
+        dependsOn:
+          - step: signature
+            condition:
+              type: succeeded
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec("renovate-signing-identity", "verification").filter(v, v.tags.?workflowRunId.orValue("") == run.id && v.attributes.verified == true && v.attributes.digest == data.findBySpec("registry", "digest").filter(d, d.tags.?workflowRunId.orValue("") == run.id)[0].attributes.digest).size() == 1
+          message: >-
+            Not signed by Renovate's CI: ${{ inputs.ref }} is ${{ data.findBySpec("registry", "digest").filter(d, d.tags.?workflowRunId.orValue("") == run.id)[0].attributes.digest }},
+            and that digest has no signature from the identity renovate-signing-identity states.
+            Do not use this image. cosign said:
+            ${{ data.findBySpec("renovate-signing-identity", "verification").filter(v, v.tags.?workflowRunId.orValue("") == run.id).map(v, v.attributes.error) }}
+          severity: high
+      - name: provenance
+        description: cosign verify-attestation of the same digest, type slsaprovenance1, against the same identity; one attestationVerification record.
+        dependsOn:
+          - step: signed-by-renovate
+            condition:
+              type: succeeded
+        task:
+          type: model_method
+          modelIdOrName: renovate-signing-identity
+          methodName: verifyAttestation
+          inputs:
+            refs: ${{ data.findBySpec("registry", "digest").filter(d, d.tags.?workflowRunId.orValue("") == run.id).map(d, d.attributes.repository + "@" + d.attributes.digest) }}
+            type: slsaprovenance1
+      - name: built-by-renovate
+        description: This run recorded one attestation verification, of the digest this run resolved, and it verified.
+        dependsOn:
+          - step: provenance
+            condition:
+              type: succeeded
+        task:
+          type: assert
+          expr: >-
+            data.findBySpec("renovate-signing-identity", "attestationVerification").filter(a, a.tags.?workflowRunId.orValue("") == run.id && a.attributes.verified == true && a.attributes.digest == data.findBySpec("registry", "digest").filter(d, d.tags.?workflowRunId.orValue("") == run.id)[0].attributes.digest).size() == 1
+          message: >-
+            No provenance from Renovate's CI: ${{ inputs.ref }} is ${{ data.findBySpec("registry", "digest").filter(d, d.tags.?workflowRunId.orValue("") == run.id)[0].attributes.digest }},
+            which is signed, but has no SLSA provenance attestation from the identity renovate-signing-identity
+            states. Do not use this image. cosign said:
+            ${{ data.findBySpec("renovate-signing-identity", "attestationVerification").filter(a, a.tags.?workflowRunId.orValue("") == run.id).map(a, a.attributes.error) }}
+          severity: high

@@ -388,5 +388,23 @@
     "filesChecksum": "83d2868faa3d5f5f48f4d4822c09fe47e6c331ce955e270019054dcda3c5cb23",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
+  },
+  "@dataverket/cosign": {
+    "version": "2026.10.28.1",
+    "pulledAt": "2026-11-10T17:27:54.463Z",
+    "files": [
+      ".agents/skills/cosign",
+      ".claude/skills/cosign",
+      ".swamp/pulled-extensions/@dataverket/cosign/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/cosign/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/cosign/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/cosign/models/signer.ts",
+      ".swamp/pulled-extensions/@dataverket/cosign/workflows/workflow-77ec3bcb-f4a4-4297-acfc-659615aca7ff.yaml",
+      ".swamp/pulled-extensions/@dataverket/cosign/workflows/workflow-92c2dc73-8d7f-4d0a-8b5f-f339820df6b0.yaml"
+    ],
+    "checksum": "8e7c5375071faab8d6ced992b69adeffaf12149db9a83dda3a3f55134bd13f08",
+    "filesChecksum": "f3af11eb45714f43258eefabbcda0f0dc639b16ae971f8b2bf7b3260c33b7b8a",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
   }
 }

@@ -274,6 +274,7 @@ swamp model method run runner-pods list               # context dataverket-prod-
 swamp model method run runner-events getWarnings      # the same namespace's warning events, same context
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-readers; the -admin twin reconciles
 swamp model method run registry copy --input 'sources:json=["<upstream>:<tag>@sha256:<digest>"]'   # into mirror/<upstream registry>/<path>, @dataverket/crane
+swamp workflow run renovate-image-verified --input ref=ghcr.io/renovatebot/renovate:<tag>   # the tag's digest, its keyless signature and SLSA provenance against renovate-signing-identity, asserted; read-only, run when the renovate repository's pin changes
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
 swamp workflow run worker-join --input name=dataverket-wrkr-N   # one half of a worker swap, docs/storage.md
 swamp model method run hov1-s3 check                  # the hov1 gateway against its rules; inventory needs the root key, vaults/operator/README.md

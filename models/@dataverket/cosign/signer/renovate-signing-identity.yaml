@@ -1,0 +1,31 @@
+type: '@dataverket/cosign/signer'
+typeVersion: 2026.10.28.1
+id: f25cae8c-63db-4dc0-b2c2-0b60985990e1
+name: renovate-signing-identity
+version: 1
+tags: {}
+# Who must have signed a Renovate image (ghcr.io/renovatebot/renovate), through @dataverket/cosign: Renovate's own
+# build workflow on GitHub, on its main branch. The image is signed keyless, so there is no public key and nothing
+# here is a credential: cosign checks the identity in the signing certificate, the issuer that vouched for it
+# (GitHub Actions) and the entry in the public Sigstore log, which is why tlog is true. The identity is the
+# workflow that builds and signs the image, https://github.com/renovatebot/renovate/blob/main/.github/workflows/build.yml;
+# the signatures of 44.132.2 and 44.226.2 carried it on 2026-11-10. Change it only when Renovate moves its build,
+# and read their change first. It verifies only: key is empty and it signs nothing. The renovate-image-verified
+# workflow runs it against the digest that run resolved.
+# Usage: swamp workflow run renovate-image-verified --input ref=ghcr.io/renovatebot/renovate:<tag>
+#        swamp model method run renovate-signing-identity verify --input 'refs:json=["ghcr.io/renovatebot/renovate@sha256:<digest>"]'
+globalArguments:
+  key: ''
+  password: ''
+  publicKey: ''
+  certificateIdentity: >-
+    https://github.com/renovatebot/renovate/.github/workflows/build.yml@refs/heads/main
+  certificateIdentityRegexp: ''
+  oidcIssuer: 'https://token.actions.githubusercontent.com'
+  tlog: true
+  signingConfig: ''
+  trustedRoot: ''
+  insecureRegistry: false
+  httpRegistry: false
+  cosignBinary: cosign
+methods: {}
