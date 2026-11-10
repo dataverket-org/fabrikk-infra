@@ -1,7 +1,7 @@
 {
   "@swamp/kubernetes": {
-    "version": "2026.10.25.2",
-    "pulledAt": "2026-10-29T11:32:50.401Z",
+    "version": "2026.11.07.1",
+    "pulledAt": "2026-11-10T09:26:13.994Z",
     "files": [
       ".swamp/pulled-extensions/@swamp/kubernetes/files/LICENSE.txt",
       ".swamp/pulled-extensions/@swamp/kubernetes/files/README.md",
@@ -39,8 +39,8 @@
       ".swamp/pulled-extensions/@swamp/kubernetes/workflows/service-connectivity.yaml",
       ".swamp/pulled-extensions/@swamp/kubernetes/workflows/storage-health.yaml"
     ],
-    "checksum": "0af588ce1a20fca22c358f7751731d22d9cc34f4eb0db99a781d3fba778a6876",
-    "filesChecksum": "9b910e3af40ba507ea91f84a038564c7fa51ae919415ab00978a23a31a2cc29a",
+    "checksum": "035f127648eca891f0306331e3c1a04e02feacc0b993b0ab9631137f417ade6f",
+    "filesChecksum": "fc18ab9157c347980aa0032975b0a2ec39dc33114086da00d44c5709922db4c0",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
@@ -252,8 +252,8 @@
     "publishedChannel": "stable"
   },
   "@swamp/s3-datastore": {
-    "version": "2026.10.24.2",
-    "pulledAt": "2026-10-28T16:52:34.769Z",
+    "version": "2026.11.09.1",
+    "pulledAt": "2026-11-10T09:26:18.830Z",
     "files": [
       ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/atomic_write.ts",
       ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/aws_credentials.ts",
@@ -273,8 +273,8 @@
       ".swamp/pulled-extensions/@swamp/s3-datastore/files/README.md",
       ".swamp/pulled-extensions/@swamp/s3-datastore/manifest.yaml"
     ],
-    "checksum": "5b23db5329ba342bd74f983d2a6c10b78aeff4718b7cc0baac8640343288b7e2",
-    "filesChecksum": "d89759302b57f64eb963894bd1dcf7f99dfaea52c8b19d8c5d1a658e9f41d8e1",
+    "checksum": "ea2e72ae4805243b12642809809b0541159e29e1472d7b8981b629b64083ff1a",
+    "filesChecksum": "ed339ab90f9d9d40a87fb45c1c5de1edea6afef514a4f7ff311aeb4cbbe05c75",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
