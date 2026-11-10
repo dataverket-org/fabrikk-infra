@@ -255,8 +255,8 @@
     "publishedChannel": "stable"
   },
   "@swamp/s3-datastore": {
-    "version": "2026.11.09.1",
-    "pulledAt": "2026-11-10T09:26:18.830Z",
+    "version": "2026.11.10.1",
+    "pulledAt": "2026-11-10T17:35:49.482Z",
     "files": [
       ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/atomic_write.ts",
       ".swamp/pulled-extensions/@swamp/s3-datastore/datastores/_lib/aws_credentials.ts",
@@ -276,8 +276,8 @@
       ".swamp/pulled-extensions/@swamp/s3-datastore/files/README.md",
       ".swamp/pulled-extensions/@swamp/s3-datastore/manifest.yaml"
     ],
-    "checksum": "ea2e72ae4805243b12642809809b0541159e29e1472d7b8981b629b64083ff1a",
-    "filesChecksum": "ed339ab90f9d9d40a87fb45c1c5de1edea6afef514a4f7ff311aeb4cbbe05c75",
+    "checksum": "20331e9e9c6aa576932031fdb18f9948e8649dda24fc7d9cfb553efdbcce135d",
+    "filesChecksum": "3c5a669376f46d56fe5183f3bd325f22251bf252097fbb0aeb30cb2a05af46bc",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
