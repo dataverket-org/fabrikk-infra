@@ -1,0 +1,12 @@
+type: '@swamp/kubernetes/configmap'
+typeVersion: 2026.11.07.1
+id: 93edfae6-ae7c-4145-b2a1-f9b5a2e65d2d
+name: zitadel-configmaps
+version: 1
+tags: {}
+# What Zitadel is configured with, as the cluster holds it: the chart's ConfigMaps, zitadel-config-yaml among them
+# (ExternalDomain, ExternalPort, ExternalSecure). Read with the readers context; ConfigMaps hold no credential.
+globalArguments:
+  namespace: zitadel
+  context: dataverket-prod-readers
+methods: {}
