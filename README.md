@@ -116,7 +116,7 @@ put there once, and no script here names one:
 |---|---|---|
 | `~/.talos/omni/config` | context `default` | `https://dataverket.eu-central-1.omni.siderolabs.io`, with `omnictl config new --url <that>` |
 | `~/.config/openstack/clouds.yaml` | cloud `nexthop` | `https://identity-api.nexthop.no:5000/v3`, your own Keystone login, never an application credential |
-| `~/.config/zitadel/config.yaml` | context `default` | `url: https://id.dataverket.org` and `login_url: https://id.dataverket.org/ui/v2/login` under `contexts.default` (the old name works until goal G); `task admin:zitadel-bootstrap` adds `client_id` |
+| `~/.config/zitadel/config.yaml` | context `default` | `url: https://id.dataverket.org` and `login_url: https://id.dataverket.org/ui/v2/login` under `contexts.default`; `task admin:zitadel-bootstrap` adds `client_id` |
 
 If your own config uses other names, export `OMNI_CONTEXT`, `OS_CLOUD` or `ZITADEL_CONTEXT`; a shell wins over the
 Taskfile.

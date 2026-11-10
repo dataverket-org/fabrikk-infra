@@ -71,7 +71,7 @@ env:
   # Pass holds for the instance, picked by its email field since two items
   # share the title. A reference, never the secret.
   ZITADEL_ADMIN_USER: admin@zitadel.zitadel.dataverket.org
-  ZITADEL_ADMIN_PASSWORD_REF: pass://Personal/zitadel.dataverket.org/password?email=admin@zitadel.zitadel.dataverket.org
+  ZITADEL_ADMIN_PASSWORD_REF: pass://Personal/id.dataverket.org/password?email=admin@zitadel.zitadel.dataverket.org
   # The System API user that keeps Zitadel's domain list (decision 032): its
   # name in the chart's SystemAPIUsers, and the store entry with its private
   # key, decrypted by sops for one run of admin:zitadel-domains.
