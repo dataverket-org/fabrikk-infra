@@ -1,5 +1,5 @@
 type: '@dataverket/http/endpoint'
-typeVersion: 2026.10.29.1
+typeVersion: 2026.11.10.1
 id: 991532fa-33b2-4638-82f4-d1617cfdf3fb
 name: forum
 version: 1

@@ -1,5 +1,5 @@
 type: '@dataverket/http/endpoint'
-typeVersion: 2026.10.29.1
+typeVersion: 2026.11.10.1
 id: 548a73cc-a497-4a11-9694-013579b45224
 name: registry-api
 version: 1

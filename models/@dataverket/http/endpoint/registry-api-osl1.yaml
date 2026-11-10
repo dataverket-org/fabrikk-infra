@@ -1,5 +1,5 @@
 type: '@dataverket/http/endpoint'
-typeVersion: 2026.10.29.1
+typeVersion: 2026.11.10.1
 id: 7d1f3b2a-9c4e-4e81-a6b5-2f8c0d9e1a73
 name: registry-api-osl1
 version: 1

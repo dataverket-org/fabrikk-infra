@@ -176,21 +176,24 @@
     "publishedChannel": "stable"
   },
   "@dataverket/flux": {
-    "version": "2026.10.29.1",
-    "pulledAt": "2026-10-29T11:33:01.164Z",
+    "version": "2026.11.10.1",
+    "pulledAt": "2026-11-10T13:10:39.806Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/flux/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/flux/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/flux/lib/cli.ts",
+      ".swamp/pulled-extensions/@dataverket/flux/lib/kubectl.ts",
       ".swamp/pulled-extensions/@dataverket/flux/manifest.yaml",
       ".swamp/pulled-extensions/@dataverket/flux/models/_helpers.ts",
+      ".swamp/pulled-extensions/@dataverket/flux/models/get.ts",
       ".swamp/pulled-extensions/@dataverket/flux/models/helmrelease.ts",
       ".swamp/pulled-extensions/@dataverket/flux/models/kustomization.ts",
       ".swamp/pulled-extensions/@dataverket/flux/models/push_artifact.ts",
       ".swamp/pulled-extensions/@dataverket/flux/models/reset.ts",
       ".swamp/pulled-extensions/@dataverket/flux/models/source.ts"
     ],
-    "checksum": "06183573030b280e0d8d17117b75960539b512ab36366d63c0b5fc31b0c96133",
-    "filesChecksum": "fe8a1587bf9c642f43c5c5b6799641510bbc3429510f711427e5ce0773dc2fd1",
+    "checksum": "88fc9226be485965502a95a9aa6171652a338ff5bed5430682e24acd7ee4676c",
+    "filesChecksum": "55cb93f03db242d856d65cce211d3b840f4c91791b2a2da077c2e7814976bd55",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
@@ -311,16 +314,78 @@
     "publishedChannel": "stable"
   },
   "@dataverket/http": {
-    "version": "2026.10.29.1",
-    "pulledAt": "2026-10-29T10:26:31.798Z",
+    "version": "2026.11.10.1",
+    "pulledAt": "2026-11-10T13:10:41.376Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/http/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/http/files/README.md",
       ".swamp/pulled-extensions/@dataverket/http/manifest.yaml",
       ".swamp/pulled-extensions/@dataverket/http/models/endpoint.ts"
     ],
-    "checksum": "2b7d605078b242dfc6eb8929fbe1dae7e75da15b88b163f0eed4337096d78e9a",
-    "filesChecksum": "01a96329dda982fca128d22b6a30081ea0ea8cbb4bc246844ab44b8c94e43cc3",
+    "checksum": "d0cf223e35a9e167f56982435f9a57b9dec07bcc6bf878b4717e11df69a5bce6",
+    "filesChecksum": "8d0125f6456f69183dbc19f52e3ef8cddf666a19a1c477e6bf8595fdf3c8a13b",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
+  },
+  "@dataverket/gateway-api": {
+    "version": "2026.11.10.1",
+    "pulledAt": "2026-11-10T13:10:43.519Z",
+    "files": [
+      ".swamp/pulled-extensions/@dataverket/gateway-api/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/gateway-api/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/gateway-api/lib/cli.ts",
+      ".swamp/pulled-extensions/@dataverket/gateway-api/lib/kubectl.ts",
+      ".swamp/pulled-extensions/@dataverket/gateway-api/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/gateway-api/models/_helpers.ts",
+      ".swamp/pulled-extensions/@dataverket/gateway-api/models/gateway.ts",
+      ".swamp/pulled-extensions/@dataverket/gateway-api/models/gatewayclass.ts",
+      ".swamp/pulled-extensions/@dataverket/gateway-api/models/httproute.ts"
+    ],
+    "checksum": "ae2c1992ad13ce56ef42b3408676f4ef92a259d9aa3fb8a8318bfcf9382044b5",
+    "filesChecksum": "126b62eb1a16a6f29f26a6bf8d048a55f8b691465aa4c4b972c319dd4d63ee26",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
+  },
+  "@dataverket/cert-manager": {
+    "version": "2026.11.10.1",
+    "pulledAt": "2026-11-10T13:10:46.462Z",
+    "files": [
+      ".swamp/pulled-extensions/@dataverket/cert-manager/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/lib/cli.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/lib/kubectl.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/models/_helpers.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/models/_methods.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/models/_records.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/models/certificate.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/models/certificaterequest.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/models/challenge.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/models/issuer.ts",
+      ".swamp/pulled-extensions/@dataverket/cert-manager/models/order.ts"
+    ],
+    "checksum": "b9c9d50a2a5a554e5fe336f1612b3fc160bf2fa9fb1ac4be2dc8cb19be6194f3",
+    "filesChecksum": "e3b364a597b6d7cb13451fc59ed2f09d81b3e5a8d49c1d4093070d2b2cbd7b52",
+    "serverUrl": "https://swamp-club.com",
+    "publishedChannel": "stable"
+  },
+  "@dataverket/cnpg": {
+    "version": "2026.11.10.1",
+    "pulledAt": "2026-11-10T13:10:49.295Z",
+    "files": [
+      ".swamp/pulled-extensions/@dataverket/cnpg/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/cnpg/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/cnpg/lib/cli.ts",
+      ".swamp/pulled-extensions/@dataverket/cnpg/lib/kubectl.ts",
+      ".swamp/pulled-extensions/@dataverket/cnpg/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/cnpg/models/_backup_record.ts",
+      ".swamp/pulled-extensions/@dataverket/cnpg/models/_helpers.ts",
+      ".swamp/pulled-extensions/@dataverket/cnpg/models/backup.ts",
+      ".swamp/pulled-extensions/@dataverket/cnpg/models/cluster.ts",
+      ".swamp/pulled-extensions/@dataverket/cnpg/models/scheduledbackup.ts"
+    ],
+    "checksum": "cd0fed8cfcce156fae5a173fde099e674624b9b225970d97d96ec4cf41c498c6",
+    "filesChecksum": "83d2868faa3d5f5f48f4d4822c09fe47e6c331ce955e270019054dcda3c5cb23",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   }
