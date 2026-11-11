@@ -390,8 +390,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/cosign": {
-    "version": "2026.11.10.1",
-    "pulledAt": "2026-11-10T20:43:10.312Z",
+    "version": "2026.11.10.2",
+    "pulledAt": "2026-11-11T07:06:36.190Z",
     "files": [
       ".agents/skills/cosign",
       ".claude/skills/cosign",
@@ -402,8 +402,8 @@
       ".swamp/pulled-extensions/@dataverket/cosign/workflows/workflow-77ec3bcb-f4a4-4297-acfc-659615aca7ff.yaml",
       ".swamp/pulled-extensions/@dataverket/cosign/workflows/workflow-92c2dc73-8d7f-4d0a-8b5f-f339820df6b0.yaml"
     ],
-    "checksum": "73d2db07af7c28f380f32d2d4ea4d894da280189ee3c9611dc5c5938fa8e1fd2",
-    "filesChecksum": "9f550582b5a8fed063d0a1c16e0e7af72a6e92aae637e6f4b05b88a7f4c81855",
+    "checksum": "ddd07ac5d1ae279fba0171e6a2478558ee62022d7800d784330a46220d3d9bb9",
+    "filesChecksum": "b79f72f09bd67a4b92a03b25450a0546fa89daaff24d968e69a42a57166c2978",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },

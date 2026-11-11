@@ -1,5 +1,5 @@
 type: '@dataverket/cosign/signer'
-typeVersion: 2026.11.10.1
+typeVersion: 2026.11.10.2
 id: f25cae8c-63db-4dc0-b2c2-0b60985990e1
 name: renovate-signing-identity
 version: 1
