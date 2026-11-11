@@ -24,12 +24,14 @@ which would force an update before every merge that follows another. The workflo
 this through `repo_merge_settings_ensure` and `branch_protection_ensure`; `dataverket/fabrikk` has it since
 2026-11-11, and is the only such repository.
 
-- "Update branch by merge" stays. It keeps the attested commit but moves the head; fabrikk compares the merged head
-  with the attested commit and stops for a person.
+- "Update branch by merge" stays. It keeps the attested commit but moves the head, and fabrikk refuses a head that is
+  not the attested commit; `validate-attestation` tells the reader to open a new pull request from the attested
+  commit.
 - `requireSignedCommits` is off on `main`: the forge's own merge commits are unsigned.
-- `validate-attestation` is not a required check on `main` yet. Once it has reported on a real pull request, it is
-  added with `branch_protection_ensure` (`enableStatusCheck` and the context name the forge shows), from here:
-  fabrikk's token is refused on branch protection, and gets no new scope.
+- `validate-attestation` runs on every pull request as `validate-attestation / validate (pull_request)` and is not a
+  required check on `main`: a change to the factory itself carries no attestation, so a required check would refuse
+  it. Making it required is `branch_protection_ensure` with `enableStatusCheck` and that context, run from here,
+  since fabrikk's token is refused on branch protection and gets no new scope.
 
 ## The theme
 
