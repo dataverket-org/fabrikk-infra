@@ -21,7 +21,7 @@ is the first site. Everything here is run **from the site directory**: `../versi
 
 | What | Image | Listens | Role |
 |---|---|---|---|
-| `versitygw` | `versity/versitygw:v1.8.0` | `${LISTEN}:${PORT}` (default `0.0.0.0:443`) to 7070 inside, TLS; admin API on 7071, plain HTTP, published on the host's loopback only (`${ADMIN_LISTEN}:${ADMIN_PORT}`, default `127.0.0.1:7071`) | The gateway. `${DATA_DIR}` is the root: every top-level directory a bucket, every file an object, S3 metadata in xattrs. Accounts in the internal IAM directory on the `iam` volume. `/health` for the healthcheck. Runs under an init, since it does not reap children |
+| `versitygw` | `versity/versitygw:v1.11.0` | `${LISTEN}:${PORT}` (default `0.0.0.0:443`) to 7070 inside, TLS; admin API on 7071, plain HTTP, published on the host's loopback only (`${ADMIN_LISTEN}:${ADMIN_PORT}`, default `127.0.0.1:7071`) | The gateway. `${DATA_DIR}` is the root: every top-level directory a bucket, every file an object, S3 metadata in xattrs. Accounts in the internal IAM directory on the `iam` volume. `/health` for the healthcheck. Runs under an init, since it does not reap children |
 | `certs/` | `smallstep/step-cli:0.30.6`, once, in a throwaway container | Nothing | `ca.crt` and `ca.key`, a private root valid three years; `tls.crt` and `tls.key`, the gateway's certificate for `S3_ADDR`, valid three years. versitygw reloads them on SIGHUP |
 
 ## Design decisions
@@ -32,7 +32,7 @@ is the first site. Everything here is run **from the site directory**: `../versi
 | Own private CA, made offline with `step`, no CA server | No public CA issues a durable certificate for a bare address (Let's Encrypt's are six-day and HTTP-01 only). One gateway needs one certificate; a running CA and a renewer were more moving parts than the problem |
 | Root and certificate valid three years | Long enough that renewal is an event, not a process; short enough to be a calendar entry. Reissue is one script, watched by an expiry alert from the cluster |
 | One account per writer, role `user`, owner of one bucket | A leaked writer key reaches one bucket. versitygw's `user` role sees only buckets it owns |
-| Bucket versioning off | versitygw 1.8 has no lifecycle rules, so versioning keeps every deleted object forever; a bucket's owner can suspend it anyway. Retention is the writers' job; protection against a bad key is a second copy, or object lock later |
+| Bucket versioning off | versitygw 1.11 has no lifecycle rules, so versioning keeps every deleted object forever; a bucket's owner can suspend it anyway. Retention is the writers' job; protection against a bad key is a second copy, or object lock later |
 | Root key pair only in `.env`, in `vaults/operator/<site>/` and in the operator's shell | Nothing unattended ever holds it; a swamp run gets it through `sops exec-env`, one touch |
 | Writer secrets leave the site only sops-encrypted | Flux decrypts them with the cluster key; no plaintext file in the repository or on an operator disk |
 
