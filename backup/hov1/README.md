@@ -12,7 +12,7 @@ the site hov1.
 | Region | `us-east-1` |
 | Trust | The site's private CA root in `certs/ca.crt`, made 2026-09-20 with `step`, valid three years; delivered as Secret `hov1-s3` to `forgejo` and `zitadel` |
 | Buckets | `cnpg-forgejo`, `cnpg-zitadel`; one account each, named after the bucket; `kopia-forgejo` when the repositories get a backup of their own |
-| Host | The hov1 site, Docker Compose 2.24 or newer; port 443 forwarded to the gateway |
+| Host | The hov1 site, rootless Podman 6.2 and podman-compose 1.6 from Homebrew (`../versitygw/README.md`, "Rootless Podman, once per host"); port 443 forwarded to the gateway |
 | Data | `DATA_DIR` and `VERSIONS_DIR` per `.env`, on an xattr filesystem |
 | Name | None. `s3.hov1.dvkt.no` through DirectAdmin's DNS API for `dvkt.no` is the day an address change should not touch every client; not needed before |
 

@@ -38,34 +38,63 @@ is the first site. Everything here is run **from the site directory**: `../versi
 
 ## Prerequisites
 
-- A host with Docker, or rootless Podman 4.9 or newer, and **Docker Compose 2.24 or newer** (`include`). Nothing in
-  the stack needs root: container root maps to the host user, who owns `DATA_DIR` and `certs/`.
+- A host with Docker and **Docker Compose 2.24 or newer** (`include`), or rootless Podman 6 with podman-compose 1.6.
+  Nothing in the stack needs root: container root maps to the host user, who owns `DATA_DIR` and `certs/`.
 - `DATA_DIR` and `VERSIONS_DIR` on a filesystem with xattrs (ext4, xfs); `VERSIONS_DIR` outside `DATA_DIR`.
 - Port `PORT` reachable from the cluster at `S3_ADDR` (forwarded, if the host is behind NAT).
 - On the operator's machine: `sops` with the repository's `.sops.yaml` recipients (a YubiKey), GNU `base64`.
 
 ### Rootless Podman, once per host
 
-hov1 runs this way. The distro `docker-compose` is usually v1 and cannot read this stack; install the Compose v2
-binary as the user and tell Podman to use it.
+hov1 runs this way, since 2026-11-11 on Homebrew's Podman 6.2 and podman-compose 1.6; `brew install podman-compose`
+brings both. Ubuntu 24.04's own Podman is 4.9 and its `docker-compose` is v1, which cannot read this stack. Once
+Podman 6 runs the containers the distro's must not touch them, so the units and `docker` all lead to Homebrew's.
 
 ```sh
 loginctl enable-linger $USER                                  # containers outlive the login
+# Homebrew's units, ahead of the distro's in /usr/lib/systemd/user, which run /usr/bin/podman
+for u in "$(brew --prefix)"/opt/podman/lib/systemd/user/*; do systemctl --user link "$u"; done
 systemctl --user enable --now podman.socket podman-restart.service
-install -m 0755 docker-compose-linux-x86_64 ~/.local/bin/docker-compose   # the release binary, checksum checked
+# The scripts call docker, and /usr/bin/docker is the distro's podman
+printf '#!/bin/sh\nexec %s/bin/podman "$@"\n' "$(brew --prefix)" > ~/.local/bin/docker
+chmod 0755 ~/.local/bin/docker
 ```
 
 In `~/.config/containers/containers.conf`, inside the one `[engine]` table (a second `[engine]` table is invalid
-TOML and stops every podman command):
+TOML and stops every podman command), `[engine.runtimes]` after the table's own keys:
 
 ```toml
-compose_providers = ["/home/<user>/.local/bin/docker-compose"]
+compose_providers = ["/home/linuxbrew/.linuxbrew/bin/podman-compose"]
 compose_warning_logs = false
+# Podman finds the distro's conmon and crun in /usr/bin first, and crun 1.14 is too old for Podman 6: every
+# container fails with "crun: unknown version specified".
+conmon_path = ["/home/linuxbrew/.linuxbrew/bin/conmon"]
+[engine.runtimes]
+  crun = ["/home/linuxbrew/.linuxbrew/bin/crun"]
 ```
 
-After that `docker compose` and `podman compose` run the v2 binary against the user's socket, which is what the
-scripts call. To publish 443 rootless, either forward 443 to `PORT=8443` at the router, or
-`sysctl net.ipv4.ip_unprivileged_port_start=443` in `/etc/sysctl.d/`, which opens 443 and up to every user.
+In `~/.config/containers/registries.conf.d/docker-hub.conf`: podman-compose pulls through the Podman CLI, which
+refuses a short image name such as `versity/versitygw` unless a search registry is named.
+
+```toml
+unqualified-search-registries = ["docker.io"]
+```
+
+After that `docker compose` and `podman compose` run podman-compose, which is what the scripts call. To publish 443
+rootless, either forward 443 to `PORT=8443` at the router, or `sysctl net.ipv4.ip_unprivileged_port_start=443` in
+`/etc/sysctl.d/`, which opens 443 and up to every user.
+
+A running container keeps the path of the Podman that started it, `Cellar/podman/<version>`, for its healthcheck
+timer and for the restart after a crash. After `brew upgrade` has replaced Podman:
+`systemctl --user daemon-reload`, then `docker compose restart` from the site directory.
+
+A host that ran the stack on the distro's Podman: stop every container with `/usr/bin/podman stop --all` first,
+then `podman system migrate`, `docker rm <site>-versitygw` and `docker compose up -d`. Podman 6 has no slirp4netns,
+which carries the network of every container Podman 4.9 started; the `iam` volume and the directories stay.
+Removing the distro's Podman afterwards, keep four of the packages it brought, before any `apt autoremove`:
+`apt-mark manual catatonit uidmap golang-github-containers-common golang-github-containers-image`. The gateway's
+definition mounts `/usr/libexec/podman/catatonit` as its init (`init: true`), so without that package it runs on
+but does not start again; `uidmap` is `newuidmap`, and the other two are `/etc/containers` and the seccomp profile.
 
 ## Runbooks
 
