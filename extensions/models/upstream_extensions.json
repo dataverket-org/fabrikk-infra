@@ -130,8 +130,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/forgejo": {
-    "version": "2026.11.09.1",
-    "pulledAt": "2026-11-09T11:37:04.619Z",
+    "version": "2026.11.11.1",
+    "pulledAt": "2026-11-11T18:59:30.023Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/forgejo/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/forgejo/files/README.md",
@@ -142,6 +142,7 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/forgejo.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/issues.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/labels.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/merge_settings.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/names.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/org_delete.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/pr_assign.ts",
@@ -154,8 +155,8 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/units.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/work_item_sync.ts"
     ],
-    "checksum": "25a56033b6869e5864aa45b581fc63ab88bf1a331bd1bd6b9cf868b2a2e4ab6a",
-    "filesChecksum": "b42f6471a4547d824103a7ee64d13552f8cdd88f152b6888324aa10429234506",
+    "checksum": "1c833a151ddf7094741b0d8f14e7c3d8f395b96884e7409a49b69d84da34102c",
+    "filesChecksum": "9f0c61accdd99f32aa187ce6fe5b29739513f3845d1a6f0ebf083289501d503a",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
