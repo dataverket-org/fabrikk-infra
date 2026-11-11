@@ -14,6 +14,23 @@ mirror (decisions 022 and 023). Its admin, mailer and OAuth Secrets are `*.enc.y
 - The forge refuses basic authentication, so the admin credential is of no use over the API. Anything that needs
   a user or a token without a password runs the `forgejo` CLI inside the forgejo pod.
 
+## Merge commits only
+
+fabrikk attests a work item with a signed tag, `attestation/<commit>`, on the commit it verified. A rebase, a rebase
+with a merge commit or a squash on the forge makes a new, unsigned commit that carries neither, and "Update branch
+by rebase" rewrites the pull request's head before the merge. So a repository whose pull requests carry attestations
+merges with a merge commit only, the default style, and its branch rule does not require an up-to-date branch,
+which would force an update before every merge that follows another. The workflow `forge-merge-commits-only` sets
+this through `repo_merge_settings_ensure` and `branch_protection_ensure`; `dataverket/fabrikk` has it since
+2026-11-11, and is the only such repository.
+
+- "Update branch by merge" stays. It keeps the attested commit but moves the head; fabrikk compares the merged head
+  with the attested commit and stops for a person.
+- `requireSignedCommits` is off on `main`: the forge's own merge commits are unsigned.
+- `validate-attestation` is not a required check on `main` yet. Once it has reported on a real pull request, it is
+  added with `branch_protection_ensure` (`enableStatusCheck` and the context name the forge shows), from here:
+  fabrikk's token is refused on branch protection, and gets no new scope.
+
 ## The theme
 
 Four ConfigMaps, `forgejo-theme-css`, `-img`, `-fonts` and `-locale`, rendered in the factory from the theme
