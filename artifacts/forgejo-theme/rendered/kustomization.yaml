@@ -1,4 +1,4 @@
-# Written by render.sh; do not edit. The theme at c9a2bf0883d4b99b596c41bc408c14ee543e0237, the locale of Forgejo 15.0.7.
+# Written by render.sh; do not edit. The theme at c9a2bf0883d4b99b596c41bc408c14ee543e0237, the locale of Forgejo 15.0.11.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
