@@ -130,8 +130,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/forgejo": {
-    "version": "2026.11.12.1",
-    "pulledAt": "2026-11-12T15:16:57.411Z",
+    "version": "2026.11.12.2",
+    "pulledAt": "2026-11-12T17:33:35.507Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/forgejo/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/forgejo/files/README.md",
@@ -156,10 +156,11 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/topics.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/units.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/work_item_sync.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/workflows/workflow-2b798979-97bc-4421-8c04-d538d5b5917d.yaml",
       ".swamp/pulled-extensions/@dataverket/forgejo/workflows/workflow-5a8da8d5-7458-4310-bf2d-66e1dbf4c394.yaml"
     ],
-    "checksum": "3463001dc656518f90c93aeca2450c1d23e0679d6517e99e93e84db1d5c0d47a",
-    "filesChecksum": "a786f76ece079ca5bddf4f0c4179886fb9f357c2797a2258d3f84e8a8c66fbc0",
+    "checksum": "330c72c1cbcc1e8d24fee7e45beddfef128b88225b0c86300994a41109d87bcc",
+    "filesChecksum": "6c519a1e096d175283a7a4afc256b910725c437e8d3e7800b21642cbd70719b9",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },

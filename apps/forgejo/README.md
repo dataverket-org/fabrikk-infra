@@ -22,8 +22,13 @@ by rebase" rewrites the pull request's head before the merge. So a repository wh
 merges with a merge commit only, the default style. Fast-forward would also keep the commit, and is off all the
 same, so every pull request shows in the branch's history as a merge. Its branch rule does not require an
 up-to-date branch, which would force an update before every merge that follows another. The workflow
-`forge-merge-commits-only` sets this through `repo_merge_settings_ensure` and `branch_protection_ensure`;
-`dataverket/fabrikk` has it since 2026-11-11, and is the only such repository.
+`@dataverket/forgejo-stagecraft-merge-settings`, shipped with `@dataverket/forgejo`, sets this; `dataverket/fabrikk`
+has it since 2026-11-11, and is the only such repository:
+
+```sh
+swamp workflow run @dataverket/forgejo-stagecraft-merge-settings \
+  --input forgejo=forgejo --input owner=dataverket --input name=fabrikk
+```
 
 - "Update branch by merge" stays. It keeps the attested commit but moves the head, and fabrikk refuses a head that is
   not the attested commit; `validate-attestation` tells the reader to open a new pull request from the attested
