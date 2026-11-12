@@ -130,8 +130,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/forgejo": {
-    "version": "2026.11.11.1",
-    "pulledAt": "2026-11-11T18:59:30.023Z",
+    "version": "2026.11.12.1",
+    "pulledAt": "2026-11-12T15:16:57.411Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/forgejo/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/forgejo/files/README.md",
@@ -151,12 +151,15 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/pull_mirror.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/push_mirror.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/repo_delete.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/stagecraft_tracker.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/tag_protection.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/topics.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/units.ts",
-      ".swamp/pulled-extensions/@dataverket/forgejo/models/work_item_sync.ts"
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/work_item_sync.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/workflows/workflow-5a8da8d5-7458-4310-bf2d-66e1dbf4c394.yaml"
     ],
-    "checksum": "1c833a151ddf7094741b0d8f14e7c3d8f395b96884e7409a49b69d84da34102c",
-    "filesChecksum": "9f0c61accdd99f32aa187ce6fe5b29739513f3845d1a6f0ebf083289501d503a",
+    "checksum": "3463001dc656518f90c93aeca2450c1d23e0679d6517e99e93e84db1d5c0d47a",
+    "filesChecksum": "a786f76ece079ca5bddf4f0c4179886fb9f357c2797a2258d3f84e8a8c66fbc0",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },
