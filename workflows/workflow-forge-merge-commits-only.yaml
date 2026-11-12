@@ -5,6 +5,7 @@ description: >-
   reach the branch as they were pushed: signed, and with any attestation tag on its commit still true. A rebase, a
   rebase with a merge commit and a squash each make new, unsigned commits on the forge, and "Update branch by rebase"
   rewrites a pull request's head before the merge, so all four are turned off; merge is the button's default.
+  Fast-forward is off too: every pull request lands as a merge commit, so the branch's history shows each one.
   The branch's protection rule stops requiring an up-to-date branch (blockOnOutdatedBranch), which forced an update
   before every merge that followed another. Run on demand for a repository whose pull requests carry attestations;
   dataverket/fabrikk is the first (apps/forgejo/README.md, "Merge commits only").
@@ -49,8 +50,8 @@ jobs:
         allowFailure: false
       - name: merge-commits-only
         description: >-
-          Merge commits on and the default; rebase, rebase with a merge commit, squash and update by rebase off. Only
-          the settings that differ are sent, and the forge's answer is checked.
+          Merge commits on and the default; fast-forward, rebase, rebase with a merge commit, squash and update by
+          rebase off. Only the settings that differ are sent, and the forge's answer is checked.
         task:
           type: model_method
           modelIdOrName: forgejo
@@ -63,6 +64,7 @@ jobs:
             allowRebase: false
             allowRebaseExplicit: false
             allowSquashMerge: false
+            allowFastForwardOnlyMerge: false
             allowRebaseUpdate: false
         dependsOn:
           - step: before
@@ -71,7 +73,7 @@ jobs:
         weight: 0
         allowFailure: false
       - name: merge-commits-only-in-force
-        description: The forge reports the six settings, read back after the write.
+        description: The forge reports the seven settings, read back after the write.
         task:
           type: assert
           expr: >-
@@ -80,6 +82,7 @@ jobs:
             data.latest("forgejo", "repo-merge-settings-" + inputs.owner + "-" + inputs.name).attributes.allowRebase == false &&
             data.latest("forgejo", "repo-merge-settings-" + inputs.owner + "-" + inputs.name).attributes.allowRebaseExplicit == false &&
             data.latest("forgejo", "repo-merge-settings-" + inputs.owner + "-" + inputs.name).attributes.allowSquashMerge == false &&
+            data.latest("forgejo", "repo-merge-settings-" + inputs.owner + "-" + inputs.name).attributes.allowFastForwardOnlyMerge == false &&
             data.latest("forgejo", "repo-merge-settings-" + inputs.owner + "-" + inputs.name).attributes.allowRebaseUpdate == false
           message: >-
             ${{ inputs.owner }}/${{ inputs.name }} does not report merge commits only:
