@@ -108,10 +108,13 @@ Desired state lives in what Flux applies, never in a swamp definition; swamp rea
    `/media-upload/`. Then the editor template: the tool, the drop target, the insert at the cursor, tried on the
    kind cluster against the pinned WriteFreely. ko, signed, the manifests in the artifact. The service holds the one
    S3 credential, from the sops Secret.
-5. **If needed, a cache.** Measured first: WriteFreely renders a page in milliseconds and the readership is small. If
+5. **Presence across sites.** The public pages and their images as a static snapshot served from member sites, with
+   `blogg.dataverket.org` answering the sites that are up: `docs/plans/2026-11-edge-presence-dns.md`. Authoring and
+   federation stay here.
+6. **If needed, a cache.** Measured first: WriteFreely renders a page in milliseconds and the readership is small. If
    a cache is wanted, an nginx-unprivileged pod in front of WriteFreely with the configuration of the appendix,
    bypassing on the ActivityPub `Accept` and on WriteFreely's session cookie.
-6. **Later: the gateway enforcing the boundary.** When `2026-10-s3-zitadel.md` brings standalone IAM, the service
+7. **Later: the gateway enforcing the boundary.** When `2026-10-s3-zitadel.md` brings standalone IAM, the service
    exchanges each author's ID token for STS credentials scoped to a bucket of their own, and goal 3's single bucket
    becomes one per author. The service's code changes in one place; the URLs do not.
 
@@ -127,7 +130,7 @@ Desired state lives in what Flux applies, never in a swamp definition; swamp rea
    or an HMAC of `sub` under a key the service holds, which never changes and names nobody.
 5. **Deleting.** versitygw has no lifecycle rules (`2026-10-versitygw-lifecycle.md`); an author leaving means the
    service, or a person with the account, deletes the prefix. Who, and on what request.
-6. **Whether a cache is wanted at all** before goal 5 is written.
+6. **Whether a cache is wanted at all** before goal 6 is written.
 7. **The hook's shape**: the toolbar tool, the drop target, or both; and whether pasting an image from the clipboard
    should upload too, which the same script can do.
 
