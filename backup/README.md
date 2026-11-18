@@ -56,6 +56,10 @@ the release: Forgejo generated them into `app.ini` on `gitea-shared-storage`, wh
 backup without them restores nothing usable. Both Secrets carry `kustomize.toolkit.fluxcd.io/prune: disabled`, so
 dropping a file from a kustomization never deletes the key.
 
+The forge's signing key is needed for the forge to start at all: its pod waits for the Secret
+`forgejo-ssh-signing-key`, which no cluster file holds. A person makes it from
+`vaults/operator/osl1/forgejo-signing.enc.json` (`docs/runbooks/forge-signing-key.md`, decision 036).
+
 ## Targets
 
 | Target | Location | Endpoint | Trust | Second copy |

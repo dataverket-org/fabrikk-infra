@@ -33,11 +33,36 @@ swamp workflow run @dataverket/forgejo-stagecraft-merge-settings \
 - "Update branch by merge" stays. It keeps the attested commit but moves the head, and fabrikk refuses a head that is
   not the attested commit; `validate-attestation` tells the reader to open a new pull request from the attested
   commit.
-- `requireSignedCommits` is off on `main`: the forge's own merge commits are unsigned.
+- `requireSignedCommits` is off on `main`: it refuses a merge of a branch with unsigned commits, and a commit on a
+  branch is unsigned by rule. The forge signs the merge instead, see below.
 - `validate-attestation` runs on every pull request as `validate-attestation / validate (pull_request)` and is not a
   required check on `main`: a change to the factory itself carries no attestation, so a required check would refuse
   it. Making it required is `branch_protection_ensure` with `enableStatusCheck` and that context, run from here,
   since fabrikk's token is refused on branch protection and gets no new scope.
+
+## The forge signs its merges
+
+A commit on a branch is unsigned, an agent's included; the signature is on the merge, where it attests the whole
+branch (decision 036). A merge made with the forge's button is signed by the forge's instance key, an ed25519 SSH
+key with the identity `git.dataverket.org <noreply@dataverket.org>`. `[repository.signing]` in
+`artifacts/forgejo/recipe/values.yaml` signs merges and nothing else: initial commits, web and API edits and wiki
+changes stay unsigned, since nobody reviewed them.
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAcfXj8LExrU6aA9kLpzMr9rJ3xZJzTgVIN2pqgix121
+```
+
+The forge serves the same line at `/api/v1/signing-key.ssh`. To verify a merge in a clone, put
+`noreply@dataverket.org ssh-ed25519 AAAA...` in a file and name it in `gpg.ssh.allowedSignersFile`.
+
+The private half is the Secret `forgejo-ssh-signing-key`, key `privateKey`, which the chart's `signing.ssh` values
+name. It is the one Secret here that is not a cluster file: a person makes it from
+`vaults/operator/osl1/forgejo-signing.enc.json`, and the chart's `configure-ssh-signing` init container installs it
+at `/data/git/.ssh-signing/key` and derives `key.pub` on every start. Without the Secret the pod does not start, so a
+rebuilt forge waits for a person: `docs/runbooks/forge-signing-key.md`. The key cannot be rotated.
+
+Tested on Forgejo 15.0.11 on 2026-11-18: with the private half missing a merge fails and none is made unsigned;
+with the public half missing the forge does not start; a private half readable by group or others is refused.
 
 ## The theme
 

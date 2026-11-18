@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: e1e3eb7062d2f4231795eac00e62f17272a0a6a0fab2811f5da200e8c502a7b6
+        checksum/config: 38595ce58117c7658b7dff52418dd7421de157c15beeebdebd2b5b00cb21bc76
         checksum/oauth_0: 0b4377bb0d9531bd935b80592cc02e03afd1bcffc542c24d468087eadcf4c441
       labels:
         app: forgejo
@@ -184,6 +184,26 @@ spec:
         - mountPath: /env-to-ini-mounts/inlines/
           name: inline-config-sources
       - command:
+        - /usr/sbin/configure_ssh_signing.sh
+        image: code.forgejo.org/forgejo/forgejo:15.0.11-rootless
+        imagePullPolicy: IfNotPresent
+        name: configure-ssh-signing
+        resources:
+          limits: {}
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /usr/sbin
+          name: init
+        - mountPath: /data
+          name: data
+        - mountPath: /raw
+          name: ssh-signing-key
+          readOnly: true
+      - command:
         - /usr/sbin/configure_gitea.sh
         env:
         - name: GITEA_APP_INI
@@ -268,6 +288,13 @@ spec:
           secretName: forgejo-inline-config
       - emptyDir: {}
         name: temp
+      - name: ssh-signing-key
+        secret:
+          defaultMode: 64
+          items:
+          - key: privateKey
+            path: ssh-signing-key
+          secretName: forgejo-ssh-signing-key
       - name: data
         persistentVolumeClaim:
           claimName: gitea-shared-storage
