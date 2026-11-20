@@ -17,7 +17,7 @@ mirror (decisions 022 and 023). Its admin, mailer and OAuth Secrets are `*.enc.y
 ## Merge commits only
 
 fabrikk attests a work item with a signed tag, `attestation/<commit>`, on the commit it verified. A rebase, a rebase
-with a merge commit or a squash on the forge makes a new, unsigned commit that carries neither, and "Update branch
+with a merge commit or a squash on the forge makes a new commit that the tag does not name, and "Update branch
 by rebase" rewrites the pull request's head before the merge. So a repository whose pull requests carry attestations
 merges with a merge commit only, the default style. Fast-forward would also keep the commit, and is off all the
 same, so every pull request shows in the branch's history as a merge. Its branch rule does not require an
@@ -63,6 +63,8 @@ rebuilt forge waits for a person: `docs/runbooks/forge-signing-key.md`. The key 
 
 Tested on Forgejo 15.0.11 on 2026-11-18: with the private half missing a merge fails and none is made unsigned;
 with the public half missing the forge does not start; a private half readable by group or others is refused.
+In use since 2026-11-20; the first merge the forge signed is `1ca7fa9` on this repository. The `health` workflow
+compares the key the forge serves with the one above (`forge-signing-key`).
 
 ## The theme
 

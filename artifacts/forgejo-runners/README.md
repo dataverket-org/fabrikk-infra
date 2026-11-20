@@ -2,8 +2,8 @@
 
 Two Forgejo Actions runners from the runner chart (`repo.yaml`). `org-dataverket-runner/` is registered at org level
 as `dataverket-runner` and runs as the chart documents it: an ordinary pod with a privileged dind sidecar.
-`fabrikk-release-runner` is the factory's release runner. Both registration tokens are hand-made Secrets
-(`bootstrap.sh`). Their volumes are in `docs/storage.md`.
+`fabrikk-release-runner` is the factory's release runner. The org runner's registration is the cluster file
+`runner-secret.enc.yaml`; the release runner's two Secrets are made by the `fabrikk-runner` workflow. Their volumes are in `docs/storage.md`.
 
 ## The org runner
 

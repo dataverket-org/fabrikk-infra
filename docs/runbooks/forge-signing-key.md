@@ -1,6 +1,7 @@
 # Runbook: put the forge's signing key back
 
-Written 2026-11-18. Not run for real yet: the first installation, at the end, uses step 2 and is the first run.
+Written 2026-11-18. Step 2 ran for real on 2026-11-19, as the key's first installation; the forge signed its first
+merge on 2026-11-20. Not yet run after a rebuild.
 
 ## Why
 
@@ -58,7 +59,8 @@ SHA256:4vCkwj+dF1F3zbrsmt3xoY/Zuew2ojWdis3/FC/40KA
 curl -s https://git.dataverket.org/api/v1/signing-key.ssh
 ```
 
-prints the public half above. Then merge any pull request with the forge's button and read the merge commit:
+prints the public half above, and `swamp behavior run forge-signing-key health` compares the two, as the `health`
+workflow does every run. Then merge any pull request with the forge's button and read the merge commit:
 
 ```sh
 swamp behavior run forgejo pr_get --input owner=<owner> --input name=<repo> --input index=<number>
@@ -89,7 +91,7 @@ swamp behavior run forgejo-pods exec --input podName=<forgejo pod> --input conta
   --input 'command:json=["ssh-keygen","-q","-t","ed25519","-N","","-C","git.dataverket.org instance signing","-f","/data/git/.ssh-signing/key"]'
 ```
 
-A person copies it into the operators' store, once, no touch, since encryption needs only public keys:
+A person copied it into the operators' store the same day, no touch, since encryption needs only public keys:
 
 ```sh
 kubectl --context dataverket-prod-admin -n forgejo exec deploy/forgejo -c forgejo -- cat /data/git/.ssh-signing/key |
@@ -98,6 +100,7 @@ kubectl --context dataverket-prod-admin -n forgejo exec deploy/forgejo -c forgej
     > vaults/operator/osl1/forgejo-signing.enc.json
 ```
 
-and makes the Secret with step 2 above, before the settings in `artifacts/forgejo/recipe/values.yaml` are pushed:
-with the settings applied and no Secret, the forge's pod does not start. Making the first Secret from the operators'
-copy, and not from the pod, is what tests the put-back on the first day.
+and made the Secret with step 2 above on 2026-11-19, before the settings in `artifacts/forgejo/recipe/values.yaml`
+were pushed: with the settings applied and no Secret, the forge's pod does not start. The first Secret came from
+the operators' copy, not from the pod, so the put-back was tested before the key was in use. The artifact was
+applied on 2026-11-20 at 09:00 UTC, and the first signed merge is `1ca7fa9` on this repository, eight minutes later.
