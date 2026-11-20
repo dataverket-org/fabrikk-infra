@@ -218,7 +218,10 @@ Decision 006 said the same thing about two repositories: a credential the cluste
 software factory copies it, never the other way around. Inside this repository it reads as "origin first", which
 is the rule above.
 
-Every Secret the cluster uses is here since 2026-10-05, when the last hand-made ones moved: the DirectAdmin login
+Every Secret the cluster uses is here since 2026-10-05, with one exception made on purpose: the forge's signing
+key, Secret `forgejo/forgejo-ssh-signing-key`, is made by a person from `vaults/operator/` and is no cluster file,
+so that nothing but a person can put it back (decision 036, `docs/runbooks/forge-signing-key.md`). The last
+hand-made ones moved on 2026-10-05: the DirectAdmin login
 keys, `cloud.conf`, the forge's admin, mailer and OAuth secrets and the runner's registration. A Secret is born into
 this store without a clear copy on disk: its value is piped into `sops --encrypt --filename-override <path>` from the
 repository root, so the cluster-files rule applies, then the file is listed in its directory's `kustomization.yaml`

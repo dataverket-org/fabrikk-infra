@@ -37,6 +37,16 @@ gitea:
       DISABLE_REGISTRATION: false
       SHOW_REGISTRATION_BUTTON: false
       ENABLE_NOTIFY_MAIL: true
+    # The forge signs the merge commits it makes, and nothing else it writes (README.md, decision 036).
+    repository.signing:
+      FORMAT: ssh
+      SIGNING_KEY: /data/git/.ssh-signing/key.pub
+      SIGNING_NAME: git.dataverket.org
+      SIGNING_EMAIL: noreply@dataverket.org
+      MERGES: always
+      INITIAL_COMMIT: never
+      CRUD_ACTIONS: never
+      WIKI: never
     ui:
       DEFAULT_THEME: dataverket-auto
       THEMES: dataverket-auto,dataverket-light,dataverket-dark
@@ -77,6 +87,12 @@ gitea:
         secretKeyRef:
           name: forgejo-security
           key: LFS_JWT_SECRET
+# The signing key comes from a Secret a person makes from vaults/operator/ (README.md, decision 036). An init
+# container installs it at /data/git/.ssh-signing/key and derives key.pub on every start.
+signing:
+  enabled: true
+  ssh:
+    existingSecret: forgejo-ssh-signing-key
 # The theme's ConfigMaps over Forgejo's custom paths (README.md). Optional: after a rebuild zot is empty until
 # bin/artifact forgejo-theme --push runs.
 extraVolumes:
