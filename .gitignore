@@ -32,3 +32,5 @@ backup/*/certs/*
 
 # Charts kustomize pulls while rendering an artifact recipe (artifacts/*/render.sh)
 artifacts/*/recipe/charts/
+# The runner chart has no chart repository to pull from, so it is kept here (artifacts/forgejo-runners/README.md).
+!artifacts/forgejo-runners/recipe/charts/

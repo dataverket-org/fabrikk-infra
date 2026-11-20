@@ -3,7 +3,13 @@
 Two Forgejo Actions runners from the runner chart (`repo.yaml`). `org-dataverket-runner/` is registered at org level
 as `dataverket-runner` and runs as the chart documents it: an ordinary pod with a privileged dind sidecar.
 `fabrikk-release-runner` is the factory's release runner. The org runner's registration is the cluster file
-`runner-secret.enc.yaml`; the release runner's two Secrets are made by the `fabrikk-runner` workflow. Their volumes are in `docs/storage.md`.
+`runner-secret.enc.yaml`; the release runner's two Secrets are made by the `fabrikk-runner` workflow.
+
+The chart is in git, `recipe/charts/forgejo-runner/`, unlike every other recipe's: the Forgejo project publishes
+no chart repository for it, so kustomize has nothing to pull and reads the directory. It is the tree of
+`code.forgejo.org/forgejo-helm/forgejo-runner` at commit `3ae5398156088d703afb5aefc1d6f38574ab30a6`, chart 0.7.5,
+unchanged; `bin/artifact forgejo-runners --check` proves `rendered/` true to it. A new chart version is that
+repository's archive at the new commit, unpacked over the directory. Their volumes are in `docs/storage.md`.
 
 ## The org runner
 

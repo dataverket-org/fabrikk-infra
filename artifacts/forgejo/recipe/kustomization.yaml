@@ -1,6 +1,6 @@
 # The recipe: what bin/artifact forgejo turns into ../rendered/ (decision 028). The Forgejo chart 17.3.2 with the
-# values that were the HelmRelease in apps/forgejo until the gitless plan's goal 2; the chart is vendored under
-# charts/ so a render needs nothing from code.forgejo.org. The release name and namespace are the ones Helm used,
+# values that were the HelmRelease in apps/forgejo until the gitless plan's goal 2; kustomize pulls the chart from
+# code.forgejo.org into charts/, which git ignores, so a render on a clean checkout needs that registry. The release name and namespace are the ones Helm used,
 # so the rendered objects are the ones Helm made and marked keep at the handover. The chart's three Secrets hold
 # app.ini and the init scripts, no credential; the credentials come from the *.enc.yaml beside rendered/ through
 # env, as before. They are allowed by plain-secrets.
