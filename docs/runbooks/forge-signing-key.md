@@ -1,7 +1,8 @@
 # Runbook: put the forge's signing key back
 
 Written 2026-11-18. Step 2 ran for real on 2026-11-19, as the key's first installation; the forge signed its first
-merge on 2026-11-20. Not yet run after a rebuild.
+merge on 2026-11-20. Tested the same day on an empty volume in a local kind cluster, below; not yet run in a
+real rebuild.
 
 ## Why
 
@@ -71,9 +72,27 @@ curl -s https://git.dataverket.org/api/v1/repos/<owner>/<repo>/commits?limit=1 |
 
 | Seen | Means |
 |---|---|
-| The pod stays in `ContainerCreating` or `Init` | The Secret is missing, or its key is not named `privateKey` |
+| The pod stays `Pending`, with the event `secret "forgejo-ssh-signing-key" not found` | The Secret is missing |
+| The pod stays `Pending`, with the event `references non-existent secret key: privateKey` | The Secret's key has another name; delete the Secret and run step 2 as written |
 | A merge answers "No private key found for public key" | The file on the volume is gone; restart the pod, the init container installs it again |
 | `signing-key.ssh` prints another key | Another key was installed. Stop: every merge signed from now on is by the wrong key |
+
+## Tested on an empty volume
+
+On 2026-11-20, in a kind cluster on an operator's machine, with a throwaway key: the chart's init scripts and its
+`init-directories` and `configure-ssh-signing` containers exactly as `artifacts/forgejo/rendered/` holds them, the
+same Forgejo image, and an empty data volume, as after a rebuild.
+
+| Step | Result |
+|---|---|
+| The pod with no Secret | `Pending`, event `secret "forgejo-ssh-signing-key" not found` |
+| A Secret whose key is `key`, not `privateKey` | `Pending`, event `references non-existent secret key: privateKey` |
+| The Secret as step 2 makes it | The pod starts by itself, with no restart, within two and a half minutes |
+| The files | `/data/git/.ssh-signing` mode 700, `key` mode 600, `key.pub` derived and equal to the key's public half, all owned by uid 1000 |
+| A merge | Signed, verified as `noreply@dataverket.org`; the forge serves the same key |
+
+What the test does not cover: a Cinder volume in place of an `emptyDir`, Postgres in place of sqlite, and `sops -d
+--extract` in place of `jq`, which step 2 already ran with for real on 2026-11-19.
 
 ## Not part of this
 

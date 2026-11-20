@@ -95,9 +95,10 @@ decision is its one exception. Artifact signing with a per-site cosign key is 02
 | The settings applied | `platform/forgejo-config` `current@sha256:c19eb918…` from the signed merge `337e33c`, applied 09:00 UTC; the forge serves the key at `/api/v1/signing-key.ssh` | done |
 | A signed merge | `1ca7fa9`, pull request 30 on this repository, verified as `git.dataverket.org <noreply@dataverket.org>` | done |
 | The key watched | Endpoint model `forge-signing-key` in the `health` workflow; it fails on a 404 and on another key, tested with a wrong key | done |
-| The put-back after a rebuild | `docs/runbooks/forge-signing-key.md`; no rebuild has been run | open |
+| The put-back on an empty volume | A kind cluster with the chart's own init containers and a throwaway key: the pod waits without the Secret, starts by itself when step 2 has run, and signs a merge (`docs/runbooks/forge-signing-key.md`, "Tested on an empty volume") | done |
+| The put-back in a real rebuild | No rebuild has been run (021's audit) | open |
 
 **Summary:** The forge signs its merges. The consequence that named this Secret "the one hand-made Secret in the
 cluster" was wrong about the release runner's Secrets, which a workflow makes, and reads correctly now.
 
-**Action Required:** Run the put-back as part of the first rebuild test.
+**Action Required:** Run the put-back as part of the first rebuild test, on a Cinder volume and with Postgres.
