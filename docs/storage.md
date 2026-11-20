@@ -157,7 +157,9 @@ mirror, `github.com/dataverket-org/fabrikk-infra`, which carries every repositor
    cluster last wrote; the application secrets are already in `*.enc.yaml`. `bootstrap.sh` ends with a base backup of
    each cluster, since the ScheduledBackup's `immediate` run races the recovery.
 4. zot comes back empty on a new Standard volume, filled by mirrors, artifacts and rebuilds; the runner volumes empty.
-5. Forgejo's repositories restored by hand from the GitHub mirrors, this repository with the rebuild commit among
+5. The forge's signing key put back first, by a person with a YubiKey: the forge's pod waits for the Secret
+   `forgejo-ssh-signing-key` and does not start without it (`docs/runbooks/forge-signing-key.md`, decision 036).
+   Then Forgejo's repositories restored by hand from the GitHub mirrors, this repository with the rebuild commit among
    them, before Forgejo's push mirror runs again, since it force-pushes. Then a last commit points `gotk-sync.yaml`
    back at `git.dataverket.org`. The forge starts without its theme until `bin/artifact forgejo-theme --push` and
    `bin/artifact www --push` have run again into the empty zot; one restart of the forgejo pod then serves the

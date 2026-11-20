@@ -71,8 +71,9 @@ The control on `main` is the pair: a branch rule that takes no direct pushes, an
   unverified.
 - Anyone with exec in the forge pod or read on its Secrets holds the key. Both need the admin context, which is
   minted for a working day (001).
-- The Secret is the one hand-made Secret in the cluster. The README's Secrets section and
-  `backup/README.md` name it as the exception.
+- The Secret is the only one a person makes by hand. The others that are not cluster files are made by a process:
+  the cluster's age key and the actions mirror's token by Jobs (003, 022), the release runner's by the
+  `fabrikk-runner` workflow. The README's Secrets section and `backup/README.md` name it as the exception.
 
 ## Decision Outcome
 
@@ -82,3 +83,22 @@ Signed merges from the forge, with the instance key held by the operators and re
 
 The operators' store is 016, and copying between stores is a person's step (002). A rebuild from git is 021; this
 decision is its one exception. Artifact signing with a per-site cosign key is 028.
+
+## Audit
+
+### 2026-11-20
+
+| Finding | Evidence | Status |
+|---|---|---|
+| The key | Made in the forge pod on 2026-11-18 through `forgejo-pods exec`; SHA256:4vCkwj+dF1F3zbrsmt3xoY/Zuew2ojWdis3/FC/40KA | done |
+| The operators' copy and the Secret | `vaults/operator/osl1/forgejo-signing.enc.json`, commit `4893a9b`; the Secret made from that copy by a person on 2026-11-19 | done |
+| The settings applied | `platform/forgejo-config` `current@sha256:c19eb918…` from the signed merge `337e33c`, applied 09:00 UTC; the forge serves the key at `/api/v1/signing-key.ssh` | done |
+| A signed merge | `1ca7fa9`, pull request 30 on this repository, verified as `git.dataverket.org <noreply@dataverket.org>` | done |
+| The key watched | Endpoint model `forge-signing-key` in the `health` workflow; it fails on a 404 and on another key, tested with a wrong key | done |
+| The put-back on an empty volume | A kind cluster with the chart's own init containers and a throwaway key: the pod waits without the Secret, starts by itself when step 2 has run, and signs a merge (`docs/runbooks/forge-signing-key.md`, "Tested on an empty volume") | done |
+| The put-back in a real rebuild | No rebuild has been run (021's audit) | open |
+
+**Summary:** The forge signs its merges. The consequence that named this Secret "the one hand-made Secret in the
+cluster" was wrong about the release runner's Secrets, which a workflow makes, and reads correctly now.
+
+**Action Required:** Run the put-back as part of the first rebuild test, on a Cinder volume and with Postgres.

@@ -1,0 +1,20 @@
+type: '@dataverket/http/endpoint'
+typeVersion: 2026.11.12.1
+id: 815f37f3-01a0-4b8f-904b-1e2e70fdef0a
+name: forge-signing-key
+version: 1
+tags: {}
+# Signing: the key the forge signs its merge commits with, as the forge serves it (decision 036,
+# docs/runbooks/forge-signing-key.md). A forge without the key answers 404; another key fails the comparison.
+globalArguments:
+  url: 'https://git.dataverket.org/api/v1/signing-key.ssh'
+  expectStatus: 200
+  followRedirects: false
+  maxRedirects: 0
+  bodyContains: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAcfXj8LExrU6aA9kLpzMr9rJ3xZJzTgVIN2pqgix121'
+  bodyJson: {}
+  bodyJsonShowValues: false
+  timeoutMs: 10000
+  caFile: ''
+  userAgent: swamp @dataverket/http
+methods: {}

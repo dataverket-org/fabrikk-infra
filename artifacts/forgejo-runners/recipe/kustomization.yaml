@@ -1,6 +1,6 @@
 # The recipe: what bin/artifact forgejo-runners turns into ../rendered/ (decision 028). The forgejo-runner chart
-# 0.7.5 at commit 3ae5398156088d703afb5aefc1d6f38574ab30a6 of code.forgejo.org/forgejo-helm/forgejo-runner, vendored
-# under charts/, with the values that were the HelmRelease in apps/forgejo-runners until the gitless plan's goal 2;
+# 0.7.5 at commit 3ae5398156088d703afb5aefc1d6f38574ab30a6 of code.forgejo.org/forgejo-helm/forgejo-runner, kept in
+# git under charts/forgejo-runner since no chart repository serves it (../README.md), with the values that were the HelmRelease in apps/forgejo-runners until the gitless plan's goal 2;
 # the release name and namespace are Helm's, so the rendered objects are the ones Helm made and marked keep. The
 # chart's one Secret is the runner's config file; the registration token is runner-secret.enc.yaml beside rendered/.
 apiVersion: kustomize.config.k8s.io/v1beta1

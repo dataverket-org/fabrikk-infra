@@ -1,6 +1,8 @@
 # Runbook: put the forge's signing key back
 
-Written 2026-11-18. Not run for real yet: the first installation, at the end, uses step 2 and is the first run.
+Written 2026-11-18. Step 2 ran for real on 2026-11-19, as the key's first installation; the forge signed its first
+merge on 2026-11-20. Tested the same day on an empty volume in a local kind cluster, below; not yet run in a
+real rebuild.
 
 ## Why
 
@@ -58,7 +60,8 @@ SHA256:4vCkwj+dF1F3zbrsmt3xoY/Zuew2ojWdis3/FC/40KA
 curl -s https://git.dataverket.org/api/v1/signing-key.ssh
 ```
 
-prints the public half above. Then merge any pull request with the forge's button and read the merge commit:
+prints the public half above, and `swamp behavior run forge-signing-key health` compares the two, as the `health`
+workflow does every run. Then merge any pull request with the forge's button and read the merge commit:
 
 ```sh
 swamp behavior run forgejo pr_get --input owner=<owner> --input name=<repo> --input index=<number>
@@ -69,9 +72,27 @@ curl -s https://git.dataverket.org/api/v1/repos/<owner>/<repo>/commits?limit=1 |
 
 | Seen | Means |
 |---|---|
-| The pod stays in `ContainerCreating` or `Init` | The Secret is missing, or its key is not named `privateKey` |
+| The pod stays `Pending`, with the event `secret "forgejo-ssh-signing-key" not found` | The Secret is missing |
+| The pod stays `Pending`, with the event `references non-existent secret key: privateKey` | The Secret's key has another name; delete the Secret and run step 2 as written |
 | A merge answers "No private key found for public key" | The file on the volume is gone; restart the pod, the init container installs it again |
 | `signing-key.ssh` prints another key | Another key was installed. Stop: every merge signed from now on is by the wrong key |
+
+## Tested on an empty volume
+
+On 2026-11-20, in a kind cluster on an operator's machine, with a throwaway key: the chart's init scripts and its
+`init-directories` and `configure-ssh-signing` containers exactly as `artifacts/forgejo/rendered/` holds them, the
+same Forgejo image, and an empty data volume, as after a rebuild.
+
+| Step | Result |
+|---|---|
+| The pod with no Secret | `Pending`, event `secret "forgejo-ssh-signing-key" not found` |
+| A Secret whose key is `key`, not `privateKey` | `Pending`, event `references non-existent secret key: privateKey` |
+| The Secret as step 2 makes it | The pod starts by itself, with no restart, within two and a half minutes |
+| The files | `/data/git/.ssh-signing` mode 700, `key` mode 600, `key.pub` derived and equal to the key's public half, all owned by uid 1000 |
+| A merge | Signed, verified as `noreply@dataverket.org`; the forge serves the same key |
+
+What the test does not cover: a Cinder volume in place of an `emptyDir`, Postgres in place of sqlite, and `sops -d
+--extract` in place of `jq`, which step 2 already ran with for real on 2026-11-19.
 
 ## Not part of this
 
@@ -89,7 +110,7 @@ swamp behavior run forgejo-pods exec --input podName=<forgejo pod> --input conta
   --input 'command:json=["ssh-keygen","-q","-t","ed25519","-N","","-C","git.dataverket.org instance signing","-f","/data/git/.ssh-signing/key"]'
 ```
 
-A person copies it into the operators' store, once, no touch, since encryption needs only public keys:
+A person copied it into the operators' store the same day, no touch, since encryption needs only public keys:
 
 ```sh
 kubectl --context dataverket-prod-admin -n forgejo exec deploy/forgejo -c forgejo -- cat /data/git/.ssh-signing/key |
@@ -98,6 +119,7 @@ kubectl --context dataverket-prod-admin -n forgejo exec deploy/forgejo -c forgej
     > vaults/operator/osl1/forgejo-signing.enc.json
 ```
 
-and makes the Secret with step 2 above, before the settings in `artifacts/forgejo/recipe/values.yaml` are pushed:
-with the settings applied and no Secret, the forge's pod does not start. Making the first Secret from the operators'
-copy, and not from the pod, is what tests the put-back on the first day.
+and made the Secret with step 2 above on 2026-11-19, before the settings in `artifacts/forgejo/recipe/values.yaml`
+were pushed: with the settings applied and no Secret, the forge's pod does not start. The first Secret came from
+the operators' copy, not from the pod, so the put-back was tested before the key was in use. The artifact was
+applied on 2026-11-20 at 09:00 UTC, and the first signed merge is `1ca7fa9` on this repository, eight minutes later.
