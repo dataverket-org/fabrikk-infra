@@ -1,0 +1,321 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Renovate proposes; a person merges, and a person finishes what Renovate cannot: rendered/, a vendored file, a checksum.",
+    "What each kind of pull request needs is in docs/runbooks/renovate-pull-request.md."
+  ],
+  "extends": [
+    "config:recommended"
+  ],
+  "automerge": false,
+  "minimumReleaseAge": "7 days",
+  "osvVulnerabilityAlerts": true,
+  "semanticCommits": "enabled",
+  "semanticCommitScope": "deps",
+  "ignorePaths": [
+    "**/rendered/**",
+    "**/recipe/charts/**",
+    "artifacts/cnpg/cnpg-*.yaml",
+    "artifacts/cnpg/plugin-barman-cloud-*.yaml"
+  ],
+  "kubernetes": {
+    "managerFilePatterns": [
+      "/^(artifacts|backup|bootstrap|infrastructure)/.+\\.yaml$/"
+    ]
+  },
+  "customManagers": [
+    {
+      "description": "A CloudNativePG cluster's Postgres image, and the base of the image Zulip's cluster runs",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/postgres\\.yaml$/",
+        "/^backup/restore-test/.+\\.yaml$/",
+        "/^artifacts/zulip/postgres-image\\.sh$/"
+      ],
+      "matchStrings": [
+        "imageName: (?<depName>ghcr\\.io/cloudnative-pg/postgresql):(?<currentValue>[^@\\s]+)",
+        "\\ntag=(?<currentValue>\\d+\\.\\d+-system-trixie)\\n"
+      ],
+      "depNameTemplate": "ghcr.io/cloudnative-pg/postgresql",
+      "datasourceTemplate": "docker"
+    },
+    {
+      "description": "jq, which a Job or a workflow downloads from its GitHub release: the version, then its SHA-256",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^(artifacts|bootstrap)/.+\\.yaml$/",
+        "/^\\.forgejo/workflows/.+\\.yaml$/"
+      ],
+      "matchStrings": [
+        "- name: JQ_VERSION\\n\\s+value: (?<currentValue>jq-[\\d.]+)\\n\\s+- name: JQ_SHA256\\n\\s+value: (?<currentDigest>[a-f0-9]{64})",
+        "JQ_VERSION: (?<currentValue>jq-[\\d.]+)\\n\\s+JQ_SHA256: (?<currentDigest>[a-f0-9]{64})"
+      ],
+      "depNameTemplate": "jq",
+      "packageNameTemplate": "jqlang/jq",
+      "datasourceTemplate": "github-release-attachments",
+      "versioningTemplate": "regex:^jq-(?<major>\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$"
+    },
+    {
+      "description": "age in the key Job, likewise",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^bootstrap/.+\\.yaml$/"
+      ],
+      "matchStrings": [
+        "- name: AGE_VERSION\\n\\s+value: (?<currentValue>v[\\d.]+)\\n\\s+- name: AGE_SHA256\\n\\s+value: (?<currentDigest>[a-f0-9]{64})"
+      ],
+      "depNameTemplate": "age",
+      "packageNameTemplate": "FiloSottile/age",
+      "datasourceTemplate": "github-release-attachments"
+    },
+    {
+      "description": "grype in the image scan, likewise",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.forgejo/workflows/.+\\.yaml$/"
+      ],
+      "matchStrings": [
+        "GRYPE_VERSION: (?<currentValue>v[\\d.]+)\\n\\s+GRYPE_SHA256: (?<currentDigest>[a-f0-9]{64})"
+      ],
+      "depNameTemplate": "grype",
+      "packageNameTemplate": "anchore/grype",
+      "datasourceTemplate": "github-release-attachments"
+    },
+    {
+      "description": "kubectl, which dl.k8s.io serves: the version only, the SHA-256 is a person's",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^(artifacts|bootstrap)/.+\\.yaml$/"
+      ],
+      "matchStrings": [
+        "- name: KUBECTL_VERSION\\n\\s+value: (?<currentValue>v\\S+)"
+      ],
+      "depNameTemplate": "kubectl",
+      "packageNameTemplate": "kubernetes/kubernetes",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "description": "yq in the check workflow, written into the URL",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.forgejo/workflows/.+\\.yaml$/"
+      ],
+      "matchStrings": [
+        "github\\.com/mikefarah/yq/releases/download/(?<currentValue>v[\\d.]+)/yq_linux_amd64\\n\\s+echo \"(?<currentDigest>[a-f0-9]{64}) "
+      ],
+      "depNameTemplate": "yq",
+      "datasourceTemplate": "github-release-attachments",
+      "packageNameTemplate": "mikefarah/yq"
+    },
+    {
+      "description": "The vendored CloudNativePG manifest: every place its version is written (decision 035)",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^share/vendor\\.sh$/",
+        "/^artifacts/cnpg/kustomization\\.yaml$/"
+      ],
+      "matchStrings": [
+        "[|/ ]cnpg-(?<currentValue>\\d+\\.\\d+\\.\\d+)\\.yaml",
+        "CloudNativePG (?<currentValue>\\d+\\.\\d+\\.\\d+) "
+      ],
+      "depNameTemplate": "cloudnative-pg",
+      "packageNameTemplate": "cloudnative-pg/cloudnative-pg",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "description": "The vendored Barman Cloud plugin manifest, likewise",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^share/vendor\\.sh$/",
+        "/^artifacts/cnpg/kustomization\\.yaml$/"
+      ],
+      "matchStrings": [
+        "plugin-barman-cloud-(?<currentValue>v\\d+\\.\\d+\\.\\d+)\\.yaml",
+        "plugin-barman-cloud/releases/download/(?<currentValue>v\\d+\\.\\d+\\.\\d+)/",
+        "Barman Cloud plugin (?<currentValue>v\\d+\\.\\d+\\.\\d+),"
+      ],
+      "depNameTemplate": "plugin-barman-cloud",
+      "packageNameTemplate": "cloudnative-pg/plugin-barman-cloud",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "description": "The runner chart kept in git: the commit of its repository the tree is (artifacts/forgejo-runners/README.md)",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^artifacts/forgejo-runners/recipe/kustomization\\.yaml$/",
+        "/^artifacts/forgejo-runners/README\\.md$/"
+      ],
+      "matchStrings": [
+        "at commit `?(?<currentDigest>[a-f0-9]{40})`?"
+      ],
+      "depNameTemplate": "forgejo-runner-chart",
+      "packageNameTemplate": "https://code.forgejo.org/forgejo-helm/forgejo-runner",
+      "currentValueTemplate": "main",
+      "datasourceTemplate": "git-refs"
+    },
+    {
+      "description": "The runner and its dind sidecar, named in the recipe's values over the chart's own",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^artifacts/forgejo-runners/recipe/values\\.yaml$/"
+      ],
+      "matchStrings": [
+        "\\nimage:\\n  tag: (?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})",
+        "\\ndind:\\n  image:\\n    tag: (?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "depNameTemplate": "{{#if (containsString currentValue 'dind')}}docker.io/library/docker{{else}}code.forgejo.org/forgejo/runner{{/if}}",
+      "datasourceTemplate": "docker"
+    },
+    {
+      "description": "A repository of our own that an artifact is rendered from, at a commit (recipe/source.env)",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^artifacts/[^/]+/recipe/source\\.env$/"
+      ],
+      "matchStrings": [
+        "[A-Z]+_REPO=(?<packageName>\\S+)\\n[A-Z]+_COMMIT=(?<currentDigest>[a-f0-9]{40})"
+      ],
+      "depNameTemplate": "{{{replace 'https://git.dataverket.org/dataverket/' '' packageName}}}",
+      "currentValueTemplate": "main",
+      "datasourceTemplate": "git-refs"
+    },
+    {
+      "description": "kubectl and helm in the check workflow, the versions rendered/ is made with: the version only, the SHA-256 is a person's",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.forgejo/workflows/.+\\.yaml$/"
+      ],
+      "matchStrings": [
+        "(?<depName>KUBECTL|HELM)_VERSION: (?<currentValue>v[\\d.]+)"
+      ],
+      "depNameTemplate": "{{#if (equals depName 'HELM')}}helm-render{{else}}kubectl-render{{/if}}",
+      "packageNameTemplate": "{{#if (equals depName 'HELM')}}helm/helm{{else}}kubernetes/kubernetes{{/if}}",
+      "datasourceTemplate": "github-releases"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Every update is a chore, whatever kind of dependency it is",
+      "matchPackageNames": [
+        "*"
+      ],
+      "semanticCommitType": "chore"
+    },
+    {
+      "description": "A new Postgres major is a migration, never a pull request",
+      "matchPackageNames": [
+        "ghcr.io/cloudnative-pg/postgresql"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Forgejo stays on its LTS line: a chart major carries a Forgejo major, and that is a decision, never a pull request",
+      "matchManagers": [
+        "kustomize"
+      ],
+      "matchDepNames": [
+        "forgejo"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "kubectl follows the cluster's minor; a patch is proposed, and its SHA-256 is set on the branch from dl.k8s.io",
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "enabled": false,
+      "matchDepNames": [
+        "kubectl"
+      ]
+    },
+    {
+      "description": "What a kubectl pull request still needs, said in the pull request",
+      "prBodyNotes": [
+        "Set `KUBECTL_SHA256` on this branch from `https://dl.k8s.io/release/{{{newValue}}}/bin/linux/amd64/kubectl.sha256`; the Job fails its checksum until then."
+      ],
+      "matchDepNames": [
+        "kubectl"
+      ]
+    },
+    {
+      "description": "The runner chart's repository moves daily with its own tooling; once a month is enough to look",
+      "schedule": [
+        "* * 1 * *"
+      ],
+      "minimumReleaseAge": null,
+      "matchDepNames": [
+        "forgejo-runner-chart"
+      ]
+    },
+    {
+      "description": "The registries below give no release time, so the seven days cannot be counted; these are proposed at once, and the person merging reads the release date",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "code.forgejo.org/**",
+        "ghcr.io/**",
+        "quay.io/**",
+        "registry.k8s.io/**"
+      ],
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
+    },
+    {
+      "description": "Our own repositories are not quarantined",
+      "matchDatasources": [
+        "git-refs"
+      ],
+      "matchPackageNames": [
+        "https://git.dataverket.org/**"
+      ],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Images our own pipelines build and pin; nothing upstream to follow",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "registry.dataverket.org/**"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "A workflow's actions resolve on this forge's own actions org (DEFAULT_ACTIONS_URL=self), so their versions are read there",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDatasources": [
+        "github-tags"
+      ],
+      "overrideDatasource": "forgejo-tags",
+      "registryUrls": [
+        "https://git.dataverket.org"
+      ]
+    },
+    {
+      "description": "What a pull request for a render tool still needs, said in the pull request",
+      "matchDepNames": [
+        "kubectl-render",
+        "helm-render"
+      ],
+      "prBodyNotes": [
+        "Set the SHA-256 beside the version on this branch, from `https://dl.k8s.io/release/<version>/bin/linux/amd64/kubectl.sha256` or `https://get.helm.sh/helm-<version>-linux-amd64.tar.gz.sha256sum`, and render every artifact with the same version (`bin/artifact <name>`), so `rendered/` and the check agree."
+      ]
+    }
+  ],
+  "flux": {
+    "managerFilePatterns": [
+      "/^clusters/.+/gotk-components\\.yaml$/",
+      "/^(artifacts|infrastructure)/[^/]+/(release|repo)\\.yaml$/"
+    ]
+  }
+}

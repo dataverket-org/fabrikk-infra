@@ -1,5 +1,8 @@
-# bin/check-recipients on every push: public keys only, no secret, no YubiKey (decisions 001, 002 and 016). yq is
-# pinned by sha256. Runs on dataverket-runner (apps/forgejo-runners/README.md).
+# On every push, three checks that need no secret and no YubiKey: bin/check-recipients (decisions 001, 002 and 016),
+# bin/vendor --check (decision 035) and bin/artifact --check (decision 028). The last two are what a pull request
+# from Renovate fails until a person has finished it (docs/runbooks/renovate-pull-request.md). Tools are pinned by
+# sha256; kubectl and helm are the versions rendered/ was made with. Runs on dataverket-runner
+# (artifacts/forgejo-runners/README.md).
 name: check
 on:
   push:
@@ -18,3 +21,35 @@ jobs:
           chmod +x /usr/local/bin/yq
       - name: Check recipients
         run: bin/check-recipients
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check vendored manifests
+        env:
+          LOG_FILE: ""
+        run: bin/vendor --check
+  artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install yq, kubectl and helm
+        env:
+          KUBECTL_VERSION: v1.37.2
+          KUBECTL_SHA256: c04487523e7aa7d1493f7808174c899db93d7a9cf57531420cd76b9bd415f8f4
+          HELM_VERSION: v4.3.2
+          HELM_SHA256: d1c0278d46beab79582d7e50f5b3dc206944ba8e577cde618513fd07daa53983
+        run: |
+          curl -sfL -o /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_linux_amd64
+          echo "8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f  /usr/local/bin/yq" \
+            | sha256sum -c -
+          curl -sfL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          curl -sfL -o /tmp/helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          printf '%s  /usr/local/bin/kubectl\n%s  /tmp/helm.tar.gz\n' "$KUBECTL_SHA256" "$HELM_SHA256" | sha256sum -c -
+          tar -xzf /tmp/helm.tar.gz -C /usr/local/bin --strip-components=1 linux-amd64/helm
+          chmod +x /usr/local/bin/yq /usr/local/bin/kubectl /usr/local/bin/helm
+      - name: Check rendered artifacts
+        env:
+          LOG_FILE: ""
+        run: bin/artifact --check
