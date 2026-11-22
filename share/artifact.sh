@@ -65,6 +65,8 @@ function render_recipe()
 	local dir="$1"
 	local out="$2"
 	local file kind status=0
+	# The globs below give the order of rendered/kustomization.yaml, and a glob sorts by the locale.
+	local LC_ALL=C
 
 	run kubectl kustomize --enable-helm "$dir/recipe" -o "$out" || return $?
 

@@ -28,6 +28,12 @@ environment variable, as the operator rules require.
 |---|---|---|
 | [swamp-host-key.md](swamp-host-key.md) | Give a host that runs swamp here its own process key for `vaults/infra/`, or take a host's key away | decisions 001, 002, 016 |
 | [forge-signing-key.md](forge-signing-key.md) | Put the forge's signing key back from the operators' store, after a rebuild or when its Secret is gone | decisions 016, 036 |
+| [forge-upgrade.md](forge-upgrade.md) | Move the forge to a new Forgejo release on its LTS line: the chart version, the render, the theme, the backup before, the push | decisions 028, 036 |
+| [postgres-minor-upgrade.md](postgres-minor-upgrade.md) | Move a database to a new Postgres minor, and the CloudNativePG operator and its Barman Cloud plugin with it, with what each restart costs | decisions 018, 035 |
+| [runner-upgrade.md](runner-upgrade.md) | Move the org runner to a new runner or docker release, after reading every workflow in the organization for what the release removes | decisions 021, 028 |
+| [renovate-bring-up.md](renovate-bring-up.md) | Bring Renovate up on the forge: the artifact, the bot's team, the branch rule that keeps it off a default branch, the GitHub token; and give it one more repository | decisions 001, 028 |
+| [renovate-pull-request.md](renovate-pull-request.md) | Take a pull request from Renovate to a deployed change: what each kind needs finished on its branch, the merge, the push; and how to read the dashboard | decisions 028, 035, 036 |
+| [image-scan.md](image-scan.md) | Read a red image scan and answer each finding: an upgrade, an acceptance with a last day, or a service changed | decision 028 |
 | [zitadel-rescue.md](zitadel-rescue.md) | Serve `id.dataverket.org` from another site: the database from the hov1 archive, the new alias in and the old out through the System API user. A draft until a second cluster exists | decisions 031, 032 |
 
 Procedures that live beside what they operate stay there for now: reading the osl1 gateway
