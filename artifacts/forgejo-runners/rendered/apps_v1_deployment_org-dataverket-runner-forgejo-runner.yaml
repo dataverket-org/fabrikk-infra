@@ -48,7 +48,7 @@ spec:
           value: /certs/client
         - name: DOCKER_TLS_VERIFY
           value: "1"
-        image: code.forgejo.org/forgejo/runner:12.7.3
+        image: code.forgejo.org/forgejo/runner:13.2.2@sha256:a8543a45fe62bebef0534d5c223cf485d3294e6dd2e42a82dbcbfd40c54a6a22
         imagePullPolicy: IfNotPresent
         name: runner
         resources:
@@ -67,7 +67,7 @@ spec:
       - env:
         - name: DOCKER_TLS_CERTDIR
           value: /certs
-        image: docker.io/library/docker:29.5.2-dind@sha256:6b9cd914eb9c6b342c040a49a27a5eb3804453bae6ecc90f7ff96133595a95e8
+        image: docker.io/library/docker:29.10.0-dind@sha256:4bbc7223f81db790097c6dea42fb93e05b8fead4f0431fbe6ccaba6e8473201c
         imagePullPolicy: IfNotPresent
         name: dind
         resources:
@@ -88,7 +88,7 @@ spec:
         - /bin/cp
         - /etc/runner/.runner
         - /data/.runner
-        image: code.forgejo.org/forgejo/runner:12.7.3
+        image: code.forgejo.org/forgejo/runner:13.2.2@sha256:a8543a45fe62bebef0534d5c223cf485d3294e6dd2e42a82dbcbfd40c54a6a22
         imagePullPolicy: IfNotPresent
         name: make-config-writeable
         resources:

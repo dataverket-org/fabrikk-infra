@@ -1,6 +1,11 @@
 # The chart's values, as the HelmRelease carried them. A file, not valuesInline: kustomize drops a null when it
 # serialises inline values, and a null here deletes a chart default (the runner's sample envs).
+# Named here over the chart's own: the chart has no release after the one in git, and its version labels keep its appVersion.
+image:
+  tag: 13.2.2@sha256:a8543a45fe62bebef0534d5c223cf485d3294e6dd2e42a82dbcbfd40c54a6a22
 dind:
+  image:
+    tag: 29.10.0-dind@sha256:4bbc7223f81db790097c6dea42fb93e05b8fead4f0431fbe6ccaba6e8473201c
   resources:
     requests:
       cpu: "1"

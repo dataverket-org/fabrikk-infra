@@ -11,6 +11,10 @@ no chart repository for it, so kustomize has nothing to pull and reads the direc
 unchanged; `bin/artifact forgejo-runners --check` proves `rendered/` true to it. A new chart version is that
 repository's archive at the new commit, unpacked over the directory. Their volumes are in `docs/storage.md`.
 
+The chart has had no release since the one in git, so `recipe/values.yaml` names the runner and dind images
+itself, by tag and digest, and the `app.kubernetes.io/version` labels keep saying the chart's own `appVersion`.
+`docs/runbooks/runner-upgrade.md` is the job.
+
 ## The org runner
 
 **Out of Kata since 2026-10-16.** It ran under the `kata` RuntimeClass from its first commit. In the guest dind was
