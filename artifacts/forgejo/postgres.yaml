@@ -8,7 +8,7 @@ spec:
   instances: 1
   enablePDB: false
   # Recovery needs the archive's Postgres major; the same image the cluster ran before.
-  imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.7-system-trixie
   storage:
     storageClass: csi-cinder-sc-delete
     # 20Gi since 2026-10-06: the volume filled with WAL while the hov1 gateway was down for two days after a host
