@@ -1,0 +1,39 @@
+# bin/image-scan every morning, and when an artifact or the accepted list changes: every image the artifacts name,
+# scanned with grype; fails on a known-exploited finding and on a Critical one its distribution has fixed
+# (docs/runbooks/image-scan.md). Reads registries and grype's database; no secret, no cluster. grype and jq are
+# pinned by sha256. Runs on dataverket-runner (artifacts/forgejo-runners/README.md).
+name: image-scan
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  push:
+    paths:
+      - artifacts/**
+      - share/image-scan-accepted
+      - bin/image-scan
+      - .forgejo/workflows/image-scan.yaml
+  workflow_dispatch:
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Resolved on the forge's own actions org (decision 022).
+      - uses: actions/checkout@v4
+      - name: Install grype and jq
+        env:
+          GRYPE_VERSION: v0.122.1
+          GRYPE_SHA256: f1ba7e2917ee1395618de20a98da0aa7c0fb1788927797651047c50502a37538
+          JQ_VERSION: jq-1.8.2
+          JQ_SHA256: b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f
+        run: |
+          curl -sfL -o /tmp/grype.tar.gz \
+            "https://github.com/anchore/grype/releases/download/${GRYPE_VERSION}/grype_${GRYPE_VERSION#v}_linux_amd64.tar.gz"
+          curl -sfL -o /usr/local/bin/jq \
+            "https://github.com/jqlang/jq/releases/download/${JQ_VERSION}/jq-linux-amd64"
+          printf '%s  /tmp/grype.tar.gz\n%s  /usr/local/bin/jq\n' "$GRYPE_SHA256" "$JQ_SHA256" | sha256sum -c -
+          tar -xzf /tmp/grype.tar.gz -C /usr/local/bin grype
+          chmod +x /usr/local/bin/grype /usr/local/bin/jq
+      - name: Scan
+        env:
+          LOG_FILE: ""
+        run: bin/image-scan

@@ -1,0 +1,203 @@
+#!/usr/bin/env bash
+#
+# Every image the artifacts name, scanned with grype, and what must not be
+# left running named: a finding on the known-exploited list, and a Critical
+# finding its distribution has fixed. A finding a person has accepted, in
+# share/image-scan-accepted with a reason and a last day, is listed and does
+# not fail the scan (docs/runbooks/image-scan.md).
+#
+#	bin/image-scan			scan every image under artifacts/
+#	bin/image-scan --list		print those images, scan nothing
+#	bin/image-scan <image> ...	scan these images
+#
+# Reads the registries and grype's database, writes nothing. Needs grype and
+# jq on PATH; no cluster, no key and no login.
+#
+
+# shellcheck source=share/logging.sh
+source "${0%/*}/../share/logging.sh" || exit $?
+
+repo_dir="$(cd "${0%/*}/.." && pwd)" || exit $?
+accepted_file="$repo_dir/share/image-scan-accepted"
+today="$(TZ=UTC printf '%(%Y-%m-%d)T' "$EPOCHSECONDS")"
+# A line of share/image-scan-accepted holds for at most this many days from today.
+accepted_days=31
+latest="$(TZ=UTC printf '%(%Y-%m-%d)T' "$(( EPOCHSECONDS + accepted_days * 86400 ))")"
+action="scan"
+images=()
+failures=0
+
+#
+# Prints usage information.
+#
+function usage()
+{
+	cat <<USAGE
+usage: bin/image-scan [--list] [IMAGE ...]
+
+Options:
+
+	--list		Print the images the artifacts name, scan nothing
+	-D, --debug	Enable debug messages
+	-h, --help	Prints this message
+
+Examples:
+
+	$ bin/image-scan
+	$ bin/image-scan code.forgejo.org/forgejo/forgejo:15.0.12-rootless
+USAGE
+}
+
+#
+# Parses the command line.
+#
+function parse_options()
+{
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			--list)		action="list"; shift ;;
+			-D|--debug)	enable_debug=1; shift ;;
+			-h|--help)	usage; exit ;;
+			-*)		echo "image-scan: unrecognized option $1" >&2
+					return 1 ;;
+			*)		images+=("$1"); shift ;;
+		esac
+	done
+}
+
+#
+# Prints every image a manifest under artifacts/ names, one per line: as an
+# image or imageName, as the reference of an image volume, or in an argument
+# that ends in -image=. A recipe is left out: what it renders is in rendered/.
+#
+function artifact_images()
+{
+	grep -rhoE '^\s*(- )?(image|imageName|reference):\s*\S+|-image=[^"'"'"' ]+' \
+		"$repo_dir/artifacts" --include='*.yaml' --exclude-dir=recipe |
+		sed -E 's/^.*-image=//; s/^.*(image|imageName|reference):\s*//' |
+		tr -d "\"'" | grep -E '[/:]' | LC_ALL=C sort -u
+}
+
+#
+# Prints an image without its tag and digest.
+#
+function repository_of()
+{
+	local image="$1"
+	local name="${image%%@*}"
+
+	[[ "${name##*/}" == *:* ]] && name="${name%:*}"
+	echo "$name"
+}
+
+#
+# Prints the reason a finding of an image is accepted for, when it is
+# accepted today; fails when it is not. A line of the file is the finding, the
+# image without tag, the last day it holds, and the reason.
+#
+function accepted_reason()
+{
+	local id="$1"
+	local repository="$2"
+	local line_id line_repository until reason
+
+	[[ -f "$accepted_file" ]] || return 1
+
+	while read -r line_id line_repository until reason; do
+		[[ "$line_id" == "$id" ]]                 || continue
+		[[ "$line_repository" == "$repository" ]] || continue
+		if [[ ! "$until" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ || "$until" > "$latest" ]]; then
+			warn "$id $repository: the last day must be a date within" \
+			     "$accepted_days days, not $until; the line does not hold"
+			continue
+		fi
+		[[ ! "$today" > "$until" ]]               || continue
+		echo "until $until: $reason"
+		return 0
+	done < <(grep -vE '^\s*(#|$)' "$accepted_file")
+
+	return 1
+}
+
+#
+# Scans one image and prints its findings that count, one per line: the id,
+# the package and its version, the fixed version, and why it counts.
+#
+function findings_of()
+{
+	local image="$1"
+
+	# select(.matches | type == "array") and -e: an empty or foreign answer is a failed scan, not a clean one.
+	run grype "registry:$image" -o json -q | jq -re '
+		select(.matches | type == "array") |
+		[.matches[]
+		 | (.vulnerability.knownExploited // [] | length > 0) as $exploited
+		 | (.vulnerability.severity == "Critical" and
+		    .vulnerability.fix.state == "fixed") as $fixable
+		 | select($exploited or $fixable)
+		 | [.vulnerability.id, .artifact.name, .artifact.version,
+		    ((.vulnerability.fix.versions // []) | join(",") | if . == "" then "-" else . end),
+		    (if $exploited then "known-exploited" else "critical-fixable" end)]
+		 | join(" ")] | unique | if length == 0 then "" else .[] end'
+	(( PIPESTATUS[0] == 0 && PIPESTATUS[1] == 0 )) || return 1
+}
+
+#
+# Scans one image, prints what counts, and adds what is not accepted to
+# failures.
+#
+function scan_image()
+{
+	local image="$1"
+	local repository found id package version fix why reason
+	local open=0 accepted=0
+
+	repository="$(repository_of "$image")"
+	# A registry or the database download fails now and then; once more before it counts.
+	if ! found="$(findings_of "$image")" && ! found="$(findings_of "$image")"; then
+		error "$image: the scan itself failed!"
+		(( failures++ ))
+		return 0
+	fi
+
+	while read -r id package version fix why; do
+		[[ -n "$id" ]] || continue
+		if reason="$(accepted_reason "$id" "$repository")"; then
+			echo "  accepted  $id $package $version -> $fix ($why; $reason)"
+			(( accepted++ ))
+		else
+			echo "  OPEN      $id $package $version -> $fix ($why)"
+			(( open++ ))
+		fi
+	done <<<"$found"
+
+	if (( open > 0 )); then
+		error "$image: $open open, $accepted accepted"
+		(( failures += open ))
+	else
+		log "$image: nothing open, $accepted accepted"
+	fi
+}
+
+parse_options "$@" || exit $?
+
+if [[ "${#images[*]}" -eq 0 ]]; then
+	mapfile -t images < <(artifact_images)
+fi
+[[ "${#images[*]}" -gt 0 ]] || fail "No image found under artifacts/!"
+
+if [[ "$action" == list ]]; then
+	printf '%s\n' "${images[@]}"
+	exit
+fi
+
+for tool in grype jq; do
+	command -v "$tool" >/dev/null || fail "$tool is not on PATH!"
+done
+
+for image in "${images[@]}"; do
+	scan_image "$image"
+done
+
+(( failures == 0 )) || fail "$failures findings open or scans failed, in ${#images[*]} images!"
+log "${#images[*]} images scanned, nothing open"

@@ -1,0 +1,18 @@
+# Findings bin/image-scan reports and a person has accepted for a time (docs/runbooks/image-scan.md). One a line:
+#
+#	<finding> <image without tag> <last day, YYYY-MM-DD> <reason>
+#
+# After its last day a line no longer holds and the scan fails on the finding again. A line is added in a pull
+# request, so the merge that accepts a finding is signed.
+
+# zlib 1.4, which fixes it, is in Alpine; the newest release of each image below was built before it. Checked
+# 2026-11-22 on forgejo 15.0.12, runner 13.2.2, docker 29.10.0 and curl 8.23.0.
+CVE-2026-4738 code.forgejo.org/forgejo/forgejo 2026-12-22 no release carries zlib 1.4 yet; move to the first that does
+CVE-2026-4738 code.forgejo.org/forgejo/runner 2026-12-22 no release carries zlib 1.4 yet; move to the first that does
+CVE-2026-4738 docker.io/library/docker 2026-12-22 no release carries zlib 1.4 yet; move to the first that does
+CVE-2026-4738 docker.io/curlimages/curl 2026-12-22 no release carries zlib 1.4 yet; move to the first that does
+
+# golang.org/x/net 0.60.0 fixes it; runner 13.2.2 is built on 0.58.0, and runc, containerd-shim and ctr in docker
+# 29.10.0 on 0.55.0 to 0.58.0. Checked 2026-11-22.
+GO-2026-6612 code.forgejo.org/forgejo/runner 2026-12-22 no runner release is built on x/net 0.60.0 yet
+GO-2026-6612 docker.io/library/docker 2026-12-22 runc and containerd in no docker release are built on x/net 0.60.0 yet
