@@ -87,7 +87,11 @@ name=""
 
 parse_options "$@" || exit $?
 
-for tool in kubectl helm flux sops jq git; do
+# A render or a check reads no secret and pushes nothing, so CI runs it with these three.
+tools=(kubectl helm git)
+[[ "$action" == push ]] && tools+=(flux sops jq)
+
+for tool in "${tools[@]}"; do
 	command -v "$tool" >/dev/null || fail "$tool is not on PATH"
 done
 
