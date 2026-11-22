@@ -67,7 +67,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: bootstrap
-          image: docker.io/curlimages/curl:8.17.0@sha256:43ebaa53d3806db6b1ce4353b6b26ae638ec1c167ee351524b05690f988bb20d
+          image: docker.io/curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -83,13 +83,13 @@ spec:
             - name: ORG
               value: actions
             - name: JQ_VERSION
-              value: jq-1.7.1
+              value: jq-1.8.2
             - name: JQ_SHA256
-              value: 5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5
+              value: b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f
             - name: KUBECTL_VERSION
-              value: v1.36.4
+              value: v1.36.6
             - name: KUBECTL_SHA256
-              value: 8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
+              value: 29818b6729dc9262b692307470d0558d027725e738be5dd47c760261868a2634
           command:
             - sh
             - -euc
@@ -169,7 +169,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: mirror
-              image: docker.io/curlimages/curl:8.17.0@sha256:43ebaa53d3806db6b1ce4353b6b26ae638ec1c167ee351524b05690f988bb20d
+              image: docker.io/curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
@@ -192,9 +192,9 @@ spec:
                       name: actions-mirror-token
                       key: token
                 - name: JQ_VERSION
-                  value: jq-1.7.1
+                  value: jq-1.8.2
                 - name: JQ_SHA256
-                  value: 5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5
+                  value: b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f
               command:
                 - sh
                 - -euc
