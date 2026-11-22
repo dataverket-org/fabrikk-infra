@@ -246,7 +246,9 @@ diff of `rendered/` is the review of a chart upgrade, and the cluster reads no c
 `artifacts/www/`, the website and the Signal short link, is the fourth, plain manifests again, with the website as
 an image of its own that the pods mount as a volume. `artifacts/forgejo-theme/` is the fifth, rendered: the forge's
 theme as four ConfigMaps, built from a pinned commit of the theme repository and the locale of the Forgejo release
-the chart runs, applied by `apps/forgejo/theme.yaml`.
+the chart runs, applied by `apps/forgejo/theme.yaml`. `artifacts/renovate/` is rendered the same way, from a
+pinned commit of the renovate repository: the CronJob that proposes updates on the forge, a Job that makes its
+user and token, and a guard that stops a run when that user could reach a default branch.
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
 directory straight from the repository, without prune, until zot serves its first artifact, and again whenever a bad

@@ -1,0 +1,67 @@
+# render.sh copies this into a checkout of the renovate repository at RENOVATE_COMMIT, so kube/ is that repository's.
+# The patch is what the cluster adds to its CronJob (../README.md).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - kube
+patches:
+  - target:
+      kind: CronJob
+      name: renovate
+    patch: |
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: renovate
+      spec:
+        jobTemplate:
+          spec:
+            template:
+              spec:
+                automountServiceAccountToken: false
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 12021
+                  runAsGroup: 12021
+                  fsGroup: 12021
+                  seccompProfile:
+                    type: RuntimeDefault
+                initContainers:
+                  # render.sh gives it the image of the renovate container.
+                  - name: guard
+                    command: [node, /guard/guard.mjs]
+                    env:
+                      - name: FORGEJO_API
+                        value: https://git.dataverket.org/api/v1
+                    envFrom:
+                      - secretRef:
+                          name: renovate
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities:
+                        drop: [ALL]
+                    volumeMounts:
+                      - name: guard
+                        mountPath: /guard
+                        readOnly: true
+                containers:
+                  - name: renovate
+                    env:
+                      - name: RENOVATE_GIT_AUTHOR
+                        value: Renovate <renovate@noreply.git.dataverket.org>
+                    envFrom:
+                      - secretRef:
+                          name: renovate
+                      # RENOVATE_GITHUB_COM_TOKEN, when a person has made it (docs/runbooks/renovate-bring-up.md).
+                      - secretRef:
+                          name: renovate-github
+                          optional: true
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop: [ALL]
+                volumes:
+                  - name: guard
+                    configMap:
+                      name: renovate-guard
