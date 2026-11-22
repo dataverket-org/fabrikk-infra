@@ -1,9 +1,9 @@
-# CloudNativePG 1.30.0 and its Barman Cloud plugin v0.15.0, the upstream release manifests kept here and pinned by
+# CloudNativePG 1.30.2 and its Barman Cloud plugin v0.16.0, the upstream release manifests kept here and pinned by
 # SHA-256 in share/vendor.sh (decision 035; bin/vendor fetches them), delivered as one config artifact,
 # platform/cnpg-config (decision 013; the gitless plan). Bump: the row in share/vendor.sh, bin/vendor, the file
 # name here. backup/README.md says what the plugin does.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - cnpg-1.30.0.yaml
-  - plugin-barman-cloud-v0.15.0.yaml
+  - cnpg-1.30.2.yaml
+  - plugin-barman-cloud-v0.16.0.yaml

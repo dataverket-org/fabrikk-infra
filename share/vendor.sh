@@ -16,8 +16,8 @@ repo_dir="${BASH_SOURCE[0]%/*}/.."
 
 # dir|file|url|sha256
 vendored=(
-	"artifacts/cnpg|cnpg-1.30.0.yaml|https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.30/releases/cnpg-1.30.0.yaml|f8bede43fe4ee0d478c2355b204a36876b2ae4faac60f2a9452280b293da3b88"
-	"artifacts/cnpg|plugin-barman-cloud-v0.15.0.yaml|https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.15.0/manifest.yaml|1c483eae12a7424ad28ac66bdfee771b510ee8e234cb8756c3ade7254cef2fad"
+	"artifacts/cnpg|cnpg-1.30.2.yaml|https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.30/releases/cnpg-1.30.2.yaml|ea4cc355b394e10661d30c6b409cefb19029dd973bccb76b1ed8c789985bc68c"
+	"artifacts/cnpg|plugin-barman-cloud-v0.16.0.yaml|https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.16.0/manifest.yaml|aee614683892dd4b44ff9f7afaca55254f1c28de17abbaa0552bf2e1228f7155"
 )
 
 #
