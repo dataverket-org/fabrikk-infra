@@ -4,6 +4,7 @@ resources:
   - forgejo
   - forgejo-runners
   - offentlig-data
+  - renovate
   - www
   - versitygw
   - zitadel

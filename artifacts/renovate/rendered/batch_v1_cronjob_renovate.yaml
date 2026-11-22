@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: renovate
+  namespace: renovate
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          automountServiceAccountToken: false
+          containers:
+            - env:
+                - name: RENOVATE_GIT_AUTHOR
+                  value: Renovate <renovate@noreply.git.dataverket.org>
+                - name: RENOVATE_CONFIG_FILE
+                  value: /config/config.js
+                - name: LOG_LEVEL
+                  value: info
+              envFrom:
+                - secretRef:
+                    name: renovate
+                - secretRef:
+                    name: renovate-github
+                    optional: true
+              image: ghcr.io/renovatebot/renovate:44.251.0
+              name: renovate
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - mountPath: /config
+                  name: config
+                  readOnly: true
+                - mountPath: /tmp/renovate
+                  name: cache
+          initContainers:
+            - command:
+                - node
+                - /guard/guard.mjs
+              env:
+                - name: FORGEJO_API
+                  value: https://git.dataverket.org/api/v1
+              envFrom:
+                - secretRef:
+                    name: renovate
+              name: guard
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /guard
+                  name: guard
+                  readOnly: true
+              image: ghcr.io/renovatebot/renovate:44.251.0
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 12021
+            runAsGroup: 12021
+            runAsNonRoot: true
+            runAsUser: 12021
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+            - configMap:
+                name: renovate-guard
+              name: guard
+            - configMap:
+                name: renovate-config
+              name: config
+            - emptyDir: {}
+              name: cache
+  schedule: 0 * * * *
+  successfulJobsHistoryLimit: 1

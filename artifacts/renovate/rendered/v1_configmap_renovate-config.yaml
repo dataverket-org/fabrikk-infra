@@ -1,0 +1,24 @@
+apiVersion: v1
+data:
+  config.js: |
+    // Renovate's configuration for cluster mode: which server, which
+    // repositories, and what holds for all of them. The token comes from the
+    // Secret, see secret.example.yaml.
+    // https://docs.renovatebot.com/self-hosted-configuration/
+    module.exports = {
+      platform: 'forgejo',
+      endpoint: 'https://git.dataverket.org/api/v1',
+
+      // Every repository the token's user can write to, in these owners.
+      autodiscover: true,
+      autodiscoverFilter: ['dataverket/*'],
+
+      // Only repositories that already have a Renovate configuration are touched,
+      // and none gets an onboarding pull request.
+      onboarding: false,
+      requireConfig: 'required',
+    };
+kind: ConfigMap
+metadata:
+  name: renovate-config
+  namespace: renovate
