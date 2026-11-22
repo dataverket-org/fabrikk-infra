@@ -22,6 +22,7 @@ brew "sops"
 brew "age"
 brew "age-plugin-yubikey"
 brew "bash"                     # every bin/ script wants bash 5; macOS has 3.2 as /bin/bash
+brew "grype"                    # bin/image-scan, the scan the image-scan workflow runs (docs/runbooks/image-scan.md)
 brew "jq"
 brew "yq"
 brew "git"
