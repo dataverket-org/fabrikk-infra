@@ -34,7 +34,10 @@ gitea:
     service:
       ENABLE_INTERNAL_SIGNIN: false
       ENABLE_BASIC_AUTHENTICATION: false
+      # Registration stays on so a first Zitadel login makes the account, and only that way: without this the
+      # local form at /user/sign_up takes a password from anyone, button hidden or not.
       DISABLE_REGISTRATION: false
+      ALLOW_ONLY_EXTERNAL_REGISTRATION: true
       SHOW_REGISTRATION_BUTTON: false
       ENABLE_NOTIFY_MAIL: true
     # The forge signs the merge commits it makes, and nothing else it writes (README.md, decision 036).
