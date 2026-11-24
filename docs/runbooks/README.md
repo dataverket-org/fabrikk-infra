@@ -31,8 +31,11 @@ environment variable, as the operator rules require.
 | [forge-upgrade.md](forge-upgrade.md) | Move the forge to a new Forgejo release on its LTS line: the chart version, the render, the theme, the backup before, the push | decisions 028, 036 |
 | [postgres-minor-upgrade.md](postgres-minor-upgrade.md) | Move a database to a new Postgres minor, and the CloudNativePG operator and its Barman Cloud plugin with it, with what each restart costs | decisions 018, 035 |
 | [runner-upgrade.md](runner-upgrade.md) | Move the org runner to a new runner or docker release, after reading every workflow in the organization for what the release removes | decisions 021, 028 |
-| [renovate-bring-up.md](renovate-bring-up.md) | Bring Renovate up on the forge: the artifact, the bot's team, the branch rule that keeps it off a default branch, the GitHub token; and give it one more repository | decisions 001, 028 |
-| [renovate-pull-request.md](renovate-pull-request.md) | Take a pull request from Renovate to a deployed change: what each kind needs finished on its branch, the merge, the push; and how to read the dashboard | decisions 028, 035, 036 |
+| [renovate-bring-up.md](renovate-bring-up.md) | Bring Renovate up on a cluster: the artifact, the bot's team, the GitHub token | decisions 001, 028 |
+| [renovate-repository.md](renovate-repository.md) | Give Renovate a repository: the branch rule on `main` first, then the team | decision 036 |
+| [renovate-pull-request.md](renovate-pull-request.md) | Take a pull request from Renovate to a deployed change: finish it on its branch, merge, push the artifact | decisions 028, 035, 036 |
+| [renovate-change.md](renovate-change.md) | Change Renovate's schedule, version or global settings: merge in the renovate repository, pin, push | decision 028 |
+| [renovate-token-lost.md](renovate-token-lost.md) | Make the bot's token again when its Secret is lost | decision 001 |
 | [image-scan.md](image-scan.md) | Read a red image scan and answer each finding: an upgrade, an acceptance with a last day, or a service changed | decision 028 |
 | [zitadel-rescue.md](zitadel-rescue.md) | Serve `id.dataverket.org` from another site: the database from the hov1 archive, the new alias in and the old out through the System API user. A draft until a second cluster exists | decisions 031, 032 |
 
