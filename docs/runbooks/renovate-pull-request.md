@@ -1,14 +1,16 @@
 # Runbook: take a pull request from Renovate to a deployed change
 
-Written 2026-11-22. The pull requests were made that day in a local kind cluster by Renovate 44.251.0; none has yet
-been taken to the cluster this way.
+Written 2026-11-22, updated 2026-11-24 after Renovate's first real run. Renovate has opened pull requests here
+since that day; none has yet been taken to the cluster this way.
 
 ## Why
 
-Renovate changes a pin and nothing else. In this repository a pin is rarely the whole change: a chart version
-needs `rendered/` made again, a vendored manifest needs its file and its SHA-256, a database image needs a
-restart done with care. So a pull request from Renovate is a proposal a person finishes on its branch, merges, and
-ships. `check / vendor` and `check / artifacts` stay red until it is finished, and a red pull request is never merged.
+After this job a pull request from Renovate is merged and its change runs in the cluster. Renovate only changes a
+pin, so a person finishes the pull request on its branch, merges it, and pushes the artifact. A red pull request is
+never merged: `check / vendor` and `check / artifacts` stay red until the branch is finished.
+
+Renovate opens one pull request per artifact, so one pull request is one render and one push.
+`artifacts/renovate/README.md` has the settings and the dashboard's headings.
 
 ## What it touches
 
@@ -21,13 +23,12 @@ ships. `check / vendor` and `check / artifacts` stay red until it is finished, a
 
 ## Steps
 
-1. Read the pull request: what moves, from which version to which, and when the new one was released. Renovate
-   waits seven days after a release it knows the date of. Docker Hub and GitHub give one; `code.forgejo.org`,
-   `ghcr.io`, `quay.io` and `registry.k8s.io` do not, so an image from those is proposed the day it appears, and
-   the seven days are yours to count from the project's release page. A pull request marked `[security]` fixes a
-   known vulnerability in a Go module and did not wait.
+1. Read the pull request: every pin it moves, from which version to which, and when each new version was
+   released. Images from `code.forgejo.org`, `ghcr.io`, `quay.io` and `registry.k8s.io` may be proposed the day
+   they appear; for those, read the release date on the project's page and count the seven days yourself.
 
-2. Check the branch out and finish it by its kind. Commit what the commands write, and push to the same branch:
+2. Check the branch out. Finish each pin it moves by its kind, in the table below, then render the artifact once.
+   Commit what the commands write and push to the same branch. Put a pin you do not want back by hand.
 
    ```sh
    git fetch origin && git switch renovate/<something>
@@ -56,9 +57,9 @@ ships. `check / vendor` and `check / artifacts` stay red until it is finished, a
    bin/vendor --check && bin/artifact --check && bin/check-recipients
    ```
 
-4. When every check on the pull request is green, merge it with the forge's button. A merge commit, never a squash
-   or a rebase; the forge signs it (decision 036). Renovate's documentation says it leaves a branch alone once
-   someone else has pushed to it; that has not been tried here, so read the branch's last commits before the merge.
+4. When every check is green, merge with the forge's button. Use a merge commit, never a squash or a rebase. The
+   forge signs the merge (decision 036). Read the branch's last commits first: whether Renovate leaves a branch
+   alone after a person has pushed to it has not been tried here.
 
 5. Ship it. A change under `artifacts/<name>/` reaches the cluster only when the artifact is pushed. YubiKey, two
    touches, from a clean checkout of `main` at the merge:
@@ -70,28 +71,26 @@ ships. `check / vendor` and `check / artifacts` stay red until it is finished, a
 
    A service with a runbook of its own is shipped by that runbook, since the order and the waiting matter there.
 
-## The dashboard
+## Which pull request first
 
-Each repository Renovate reads has one issue, "Dependency Dashboard", that lists everything it knows:
+1. A known-exploited finding of `bin/image-scan`.
+2. A pull request marked `[security]`.
+3. The rest.
 
-| Heading | What is under it | A tick does |
-|---|---|---|
-| Rate-Limited | Updates waiting for their turn; two pull requests are opened an hour | Opens that one on the next run |
-| Pending Status Checks | Updates younger than seven days | Opens that one now. For a security release that cannot wait |
-| Open | The pull requests | Rebases that one on `main` |
-| Detected Dependencies | Every pin Renovate read, by file | Nothing; a pin missing here is a pin `renovate.json` does not cover |
-| Repository Problems | What Renovate could not do | Nothing; `renovate-bring-up.md` has the usual ones |
-
-Work from the top of what matters, not from the top of the list: a known-exploited finding of `bin/image-scan`
-first, then security releases, then the rest. An update nobody wants is closed as a pull request; by Renovate's
-documentation it is then not opened again for that version, which has not been tried here.
+An update that waits under "Pending Status Checks" or "Rate-Limited" on the dashboard issue is opened by a tick, on
+the next run. Runs are at 01, 07, 13 and 19 Oslo time; `renovate-repository.md`, step 4, starts one now. An update
+nobody wants is closed as a pull request. By Renovate's documentation it is then not opened again for that
+version; that has not been tried here.
 
 ## Proof
 
-`main` holds the merge, signed by the forge; the pull request's checks were green at the merge; the artifact's
-`current` tag in zot is at the merge commit, which `flux --context dataverket-prod-readers get kustomization <name>`
-shows as the applied revision;
-and the service answers as its own runbook says. Then `bin/image-scan <the new image>` has nothing open.
+```sh
+flux --context dataverket-prod-readers get kustomization <name>
+bin/image-scan <the new image>
+```
+
+The first shows the merge commit as the applied revision. The second has nothing open. `main` holds the merge,
+signed by the forge, and the service answers as its own runbook says.
 
 | Seen | Means |
 |---|---|
@@ -100,9 +99,12 @@ and the service answers as its own runbook says. Then `bin/image-scan <the new i
 | The Job that downloads kubectl fails its checksum after a merge | `KUBECTL_SHA256` was not set on the branch; set it in a new pull request |
 | Renovate opens the same update again | The earlier pull request was merged without its branch being finished, and reverted; or the pin is written in a second place `renovate.json` does not read |
 | A pull request for a Postgres or a Forgejo major | `renovate.json` no longer disables it; it is never merged as a pull request |
+| One pull request per image again, not per artifact | The rule with `groupName` is gone from `renovate.json`, or the file is under a path it does not match |
+| Renovate closes its own pull requests and opens others | The grouping or a version changed between runs; the new ones replace the old |
 
 ## Not part of this
 
-Letting Renovate merge: `automerge` is off in every repository and stays off. Accepting a finding of the image
+Letting Renovate merge: `automerge` is off in every repository and stays off, and the branch rule of
+`renovate-bring-up.md` refuses its merge whatever the configuration says. Accepting a finding of the image
 scan (`image-scan.md`). A change to what Renovate reads, which is a change to `renovate.json` and is tried first
 with `task local` in the renovate repository.

@@ -131,7 +131,7 @@ spec:
                   --must-change-password=false >/dev/null
                 echo "user $BOT created"
               fi
-              # A second token of the same name is refused; recovery is in docs/runbooks/renovate-bring-up.md.
+              # A second token of the same name is refused; recovery is in docs/runbooks/renovate-token-lost.md.
               fj admin user generate-access-token --username "$BOT" --token-name renovate-cluster --raw \
                 --scopes write:repository,write:issue,read:user,read:organization > /work/raw
               # The CronJob reads the Secret as environment, where a trailing newline would be part of the token.
