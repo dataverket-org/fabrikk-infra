@@ -43,7 +43,8 @@ Renovate opens one pull request per artifact, so one pull request is one render 
    | The version of a vendored manifest in `share/vendor.sh` and `artifacts/cnpg/kustomization.yaml` | `git mv` the file to its new name, set the row's SHA-256 from `curl -fsSL <url> \| shasum -a 256`, a new minor also the `release-<x.y>` in the URL, then `bin/vendor`; `postgres-minor-upgrade.md` for the rest |
    | The runner or docker tag in `artifacts/forgejo-runners/recipe/values.yaml` | `bin/artifact forgejo-runners`, and `runner-upgrade.md` from its step 1 |
    | The runner chart's commit | Unpack `https://code.forgejo.org/forgejo-helm/forgejo-runner/archive/<commit>.tar.gz` over `artifacts/forgejo-runners/recipe/charts/forgejo-runner/`, then `bin/artifact forgejo-runners` |
-   | A commit in `artifacts/<name>/recipe/source.env` | `bin/artifact <name>`; for `renovate`, step 1 of `renovate-bring-up.md` when the image tag moved |
+   | A commit in `artifacts/<name>/recipe/source.env` | `bin/artifact <name>` |
+   | Renovate's own image in `artifacts/renovate/cronjob.yaml` | Step 2 of `renovate-change.md`: check who signed the image |
    | `KUBECTL_VERSION` in a Job | Set `KUBECTL_SHA256` beside it from `https://dl.k8s.io/release/<version>/bin/linux/amd64/kubectl.sha256` |
    | `KUBECTL_VERSION` or `HELM_VERSION` in `.forgejo/workflows/check.yaml` | These are the versions `rendered/` is made with. Set the SHA-256 beside it, install the same version here, and render every artifact with it |
    | A chart `version` in a `release.yaml` under `artifacts/` or `infrastructure/` | Nothing to make; Flux installs the chart. Read the chart's notes |
@@ -107,4 +108,4 @@ signed by the forge, and the service answers as its own runbook says.
 Letting Renovate merge: `automerge` is off in every repository and stays off, and the branch rule of
 `renovate-bring-up.md` refuses its merge whatever the configuration says. Accepting a finding of the image
 scan (`image-scan.md`). A change to what Renovate reads, which is a change to `renovate.json` and is tried first
-with `task local` in the renovate repository.
+with `bin/renovate-local`.

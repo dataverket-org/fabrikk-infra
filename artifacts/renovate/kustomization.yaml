@@ -1,14 +1,17 @@
-# Renovate for the repositories on the forge, delivered as a config artifact rendered in the factory (decisions 013,
-# 028): platform/renovate-config. rendered/ is the renovate repository's kube/ with the cluster's patch; the rest is
-# ours: the Job that makes the bot and its token, the guard that runs before every Renovate run, and the GitHub
-# token Renovate reads upstream releases with (README.md).
+# Renovate for the repositories on the forge, a config artifact of plain manifests (decision 013):
+# platform/renovate-config. What each file is, is in README.md.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - rendered
+  - namespace.yaml
+  - cronjob.yaml
   - bootstrap.yaml
   - renovate-github.enc.yaml
 configMapGenerator:
+  - name: renovate-config
+    namespace: renovate
+    files:
+      - config.js
   - name: renovate-guard
     namespace: renovate
     files:

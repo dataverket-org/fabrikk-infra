@@ -293,6 +293,21 @@
       "minimumReleaseAgeBehaviour": "timestamp-optional"
     },
     {
+      "description": "Renovate's own image: a pull request of its own, on Mondays. The three days count only when ghcr.io gives a release time (artifacts/renovate/README.md, Known limits)",
+      "matchDepNames": [
+        "ghcr.io/renovatebot/renovate"
+      ],
+      "groupName": "renovate image",
+      "groupSlug": "renovate-image",
+      "schedule": [
+        "* * * * 1"
+      ],
+      "minimumReleaseAge": "3 days",
+      "prBodyNotes": [
+        "Check who signed the new image before the merge: step 2 of `docs/runbooks/renovate-change.md`."
+      ]
+    },
+    {
       "description": "Our own repositories are not quarantined",
       "matchDatasources": [
         "git-refs"

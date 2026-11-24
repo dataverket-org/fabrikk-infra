@@ -21,14 +21,13 @@ forge, and the GitHub token. Reasons and facts are in `artifacts/renovate/README
 
 ## Steps
 
-1. Check who signed the Renovate image, and that the rendering is true. It must print `signed`.
+1. Check who signed the Renovate image. It must print `signed`.
 
    ```sh
    cosign verify \
      --certificate-identity https://github.com/renovatebot/renovate/.github/workflows/build.yml@refs/heads/main \
      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-     "$(yq '.spec.jobTemplate.spec.template.spec.containers[0].image' artifacts/renovate/rendered/batch_v1_cronjob_renovate.yaml)" >/dev/null && echo signed
-   bin/artifact renovate --check
+     "$(yq '.spec.jobTemplate.spec.template.spec.containers[0].image' artifacts/renovate/cronjob.yaml)" >/dev/null && echo signed
    ```
 
 2. YubiKey, two touches. Push the artifact from a clean checkout of `main`. The log must end
