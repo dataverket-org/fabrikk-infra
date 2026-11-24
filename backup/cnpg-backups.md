@@ -136,8 +136,8 @@ check. **Pause scheduled backups** (a migration, a maintenance window): set `spe
 ScheduledBackup in git; WAL archiving continues. **Stop archiving entirely**: remove the `plugins` entry from the
 Cluster; expect a rolling restart, and know the archive stops being restorable past that point.
 
-**Rotate the writer key**: on the site, `../versitygw/bin/user cnpg-forgejo forgejo --rotate` piped into the same
-sops file (`versitygw/README.md`, "Rotate a writer key"), commit at once, reconcile. Between mint and apply,
+**Rotate the writer key**: on the site, `bin/user cnpg-forgejo forgejo --rotate` piped into the same
+sops file (`s3/README.md` in the `hov1` repository, "Rotate a writer key"), commit at once, reconcile. Between mint and apply,
 archiving fails and retries; `pg_stat_archiver.failed_count` grows and stops.
 
 **Rolling restarts**: any change to the plugin stanza or the sidecar image restarts every instance one by one and
@@ -173,7 +173,7 @@ time add `recoveryTarget.targetTime` under `bootstrap.recovery`.
 
 | You see | It means | Do |
 |---|---|---|
-| `ContinuousArchiving` False, `failed_count` climbing, sidecar log `connection refused` / `i/o timeout` to 213.128.185.82 | hov1 unreachable | Site: `docker compose ps`, uplink, port forward. Headroom about a day of WAL, then the partition fills |
+| `ContinuousArchiving` False, `failed_count` climbing, sidecar log `connection refused` / `i/o timeout` to 213.128.185.82 | hov1 unreachable | Site: `task status` in the `hov1` repository, uplink, port forward. Headroom about a day of WAL, then the partition fills |
 | Sidecar log `x509: certificate signed by unknown authority` | `hov1-s3` CA does not match the site's certificate | Site: `bin/cert` history; regenerate `hov1-s3` with `bin/site-secret` and commit |
 | `SignatureDoesNotMatch` / `InvalidAccessKeyId` | Writer key wrong or rotated without the commit | Check the sops file matches the account on the site |
 | `IncorrectRegion` | Client region differs from the gateway's | `REGION` in `hov1-s3` must equal the site's `.env` |

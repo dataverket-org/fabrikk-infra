@@ -123,7 +123,7 @@ hov1 site failed: the `ContinuousArchiving` condition is `False` and the gateway
 check (`swamp model method run hov1-s3 health`, no key needed).
 
 1. **Fix the archive target first**, or the grown volume fills again. On 2026-10-04 the hov1 host rebooted and the
-   gateway did not come back (`backup/versitygw/README.md`, the troubleshooting row).
+   gateway did not come back (`s3/README.md` in the `hov1` repository, "Failure modes").
 2. **Suspend Flux's `apps` Kustomization**, so the manifest's old size cannot be reconciled against the live
    object while git lags: `flux suspend kustomization apps`.
 3. **Grow the claim by hand.** In this phase the operator never reaches its own resize step: every reconcile stops
@@ -180,7 +180,7 @@ Deploying this table is the follow-up the incident leaves.
 | Alert | Threshold | Meaning |
 |---|---|---|
 | CNPG WAL archiving failing | over 2 hours | the hov1 site unreachable; about two days of headroom from the alert |
-| Certificate at `213.128.185.82:443` | expires within 30 days | nothing at the site renews it; reissue is a runbook in `backup/versitygw/README.md` |
+| Certificate at `213.128.185.82:443` | expires within 30 days | nothing at the site renews it; reissue is a runbook in `s3/README.md` in the `hov1` repository |
 | CNPG last successful base backup | older than 36 hours | the ScheduledBackup did not complete |
 | Any volume, user volumes included | above 70 percent | `fleet-volumes` on a schedule feeds it for the worker disks; zot's volume grows first |
 | WAL retained by a replication slot | above 384 MB | below the 512 MB at which the slot is invalidated |

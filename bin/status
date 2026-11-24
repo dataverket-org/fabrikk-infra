@@ -302,7 +302,7 @@ function tier3_rows()
 			"the two YubiKeys and nothing else"
 	else
 		row "vaults/operator/" empty humans - - \
-			"the two YubiKeys; break-glass and hov1 fill it"
+			"the two YubiKeys; break-glass fills it"
 	fi
 
 	# The process key lives in its own file, named after the process, and the

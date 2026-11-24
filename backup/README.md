@@ -1,22 +1,22 @@
 # Backups
 
 Status: **live since 2026-09-20 21:10 UTC: both Postgres clusters archive WAL to hov1 continuously; daily base backups at 03:00 and 03:30 UTC; first restore test passed 2026-09-21.** The
-decision is 020; what the backups protect is `docs/storage.md`. The gateway's lifecycle is `docker compose` from
-the site directory; accounts and certificates are the scripts in `versitygw/bin`. A swamp model for the lifecycle is
-pending: the registry's `@smith/docker-compose` fails on current swamp and declares neither a repository to report to nor a license to fork under, so a `@dataverket` one is the
-follow-up.
+decision is 020; what the backups protect is `docs/storage.md`. The gateway is a
+service of the hov1 site and lives in the `hov1` repository, a checkout beside this one: its
+scripts for accounts and certificates, its runbooks and its secrets (`s3/README.md` there). This directory is the
+cluster's side: what is written, by whom, what fires when it stops, and how a restore is tested.
 
 What the gateway holds is read through swamp: the model `hov1-s3` (`@dataverket/versitygw/gateway`, read-only) has
 `health`, `accounts`, `buckets`, `bucketSettings`, `inventory` and `check`; `check` finds a bucket not owned by the
 account of its own name, an account owning nothing, an `admin` role on a writer, versioning without object lock, lock
 without versioning, a `COMPLIANCE` default retention, or a policy granting anyone. Every admin call signs with the
-root key pair, supplied for one run from `vaults/operator/hov1/root.enc.json` (`vaults/operator/README.md`); without
+root key pair, supplied for one run from `vaults/operator/s3/root.enc.json` in the `hov1` repository (`hov1/README.md`); without
 it `swamp model validate hov1-s3 --label policy` still validates the definition. No account secret and no root key is
 ever recorded.
 
 Every backup of dataverket-prod lands outside the provider, on the hov1 site, in one bucket per writer. This page is
 the map: what is copied, by what, to where, how far back, and what fires when it stops. How the target runs is in
-`versitygw/README.md`; what makes hov1 hov1 is in `hov1/README.md`.
+the `hov1` repository; what the cluster needs to know about it is in `hov1/README.md`.
 
 ## Directory map
 
@@ -25,8 +25,8 @@ the map: what is copied, by what, to where, how far back, and what fires when it
 | `README.md` | Sources, targets, retention, alerts, restore-test log | You need to know what is backed up or where a restore starts |
 | `cnpg-backups.md` | The kubectl-only operator's guide to the Postgres backups: health check, logs, values, changes, restore, failure signatures | You are on call for the databases |
 | `restore-test/` | The restore-test Cluster manifests, one per production cluster | You run the quarterly restore test |
-| `versitygw/` | The S3 gateway stack (versitygw behind a private CA made with `step`) and its scripts; names no site | You operate the gateway: bring-up, accounts, certificates, recovery |
-| `hov1/` | The first site: `.env` (never committed), `certs/ca.crt` (committed), site facts | You touch the hov1 host or its address |
+| `hov1/` | The cluster's view of the hov1 site: endpoint, buckets, the CA root every client pins (`certs/ca.crt`), how the `hov1-s3` model is run | You need the target's facts, or check what the gateway holds |
+| The `hov1` repository, `s3/` | The S3 gateway (versitygw behind a private CA made with `step`), its scripts and runbooks | You operate the gateway: bring-up, accounts, certificates, recovery |
 
 ## Sources and targets
 
@@ -46,7 +46,7 @@ Account names equal bucket names. Each account owns its bucket and sees nothing 
 |---|---|
 | The in-cluster versitygw volume (zot blobs) | Mirrors re-copy, artifacts come from git, product images rebuild |
 | Runner caches | Disposable |
-| The hov1 gateway itself | It is the backup; `versitygw/README.md` rebuilds it, the next base backup refills it |
+| The hov1 gateway itself | It is the backup; `s3/README.md` in the `hov1` repository rebuilds it, the next base backup refills it |
 
 ### Needed for any restore
 
@@ -64,7 +64,7 @@ The forge's signing key is needed for the forge to start at all: its pod waits f
 
 | Target | Location | Endpoint | Trust | Second copy |
 |---|---|---|---|---|
-| hov1 | The hov1 site, stack `versitygw/`, instance `hov1/` | `https://213.128.185.82:443`, path-style, region `us-east-1` | The site's private CA root (three years), in Secret `hov1-s3` of each writing namespace | None yet. Nexthop Object Storage as a second `ObjectStore` if the site proves unreachable too often |
+| hov1 | The hov1 site; the gateway in the `hov1` repository, `s3/` | `https://213.128.185.82:443`, path-style, region `us-east-1` | The site's private CA root (three years), in Secret `hov1-s3` of each writing namespace | None yet. Nexthop Object Storage as a second `ObjectStore` if the site proves unreachable too often |
 | Omni | Sidero's hosted Omni; not configured, so etcd has no backup. `talosctl etcd snapshot` to the hov1 site is in `docs/plans/2026-10-talosctl-over-omni.md` | none | none | none |
 
 ### Retention and protection
@@ -78,9 +78,9 @@ The forge's signing key is needed for the forge to start at all: its pod waits f
 
 | Alert | Threshold | Meaning | First action |
 |---|---|---|---|
-| CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so the smallest headroom, about 9 GiB on Forgejo's volume and 9.5 GiB on Zitadel's partition, lasts about two days | Reach the site: `versitygw/README.md`, failure modes |
+| CNPG WAL archiving failing | Over 2 hours | hov1 unreachable. Postgres keeps every unarchived segment; at the default 5-minute `archive_timeout` that is about 190 MiB an hour, so the smallest headroom, about 9 GiB on Forgejo's volume and 9.5 GiB on Zitadel's partition, lasts about two days | Reach the site: `s3/README.md` in the `hov1` repository, failure modes |
 | CNPG last successful base backup | Older than 36 hours | The `ScheduledBackup` did not complete | `kubectl cnpg status`, then the plugin's Backup objects |
-| Certificate at `213.128.185.82:443` | Expires within 30 days | The three-year certificate or root is running out; nothing at the site renews it | `versitygw/README.md`, runbook "Reissue the certificate" |
+| Certificate at `213.128.185.82:443` | Expires within 30 days | The three-year certificate or root is running out; nothing at the site renews it | `s3/README.md` in the `hov1` repository, runbook "Reissue the certificate" |
 | kopia snapshot, once it exists | Older than 48 hours | The CronJob failed or cannot reach hov1 | The CronJob's last Job logs |
 
 ## Restore

@@ -5,20 +5,22 @@ nothing else; the first rule in `.sops.yaml`. No process key is a recipient and 
 it, so nothing unattended can decrypt what is here. The operators can also read `vaults/infra/`, for recovery; this
 folder is the one only they can read. Decision 016.
 
+The hov1 site's values, the gateway's CA key and root key pair, are in the `hov1` repository since 2026-11-24, under
+the same rule with the same two recipients (`vaults/operator/` there).
+
 | Folder | What | Filled by |
 |---|---|---|
 | `break-glass/` | What tier 1 falls back on when a login mechanism fails | `docs/plans/2026-09-break-glass.md` |
-| `hov1/` | The hov1 gateway's CA key (`ca.key`) and root key pair (`root`) (`backup/versitygw/`) | A person, from `backup/hov1/` on the site host |
 | `nordhost/` | Each zone's DirectAdmin account password (`<zone, dots as _>`, `value`), for `task admin:dns-keys`; the account's name is in the cluster's `config.json` | A person, from the Nordhost panel |
 | `osl1/` | The osl1 gateway's root key pair (`root`), for the `osl1-s3` model (`artifacts/versitygw/`); the swamp datastore's writer key pair (`swamp-fabrikk-infra`, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`), which every operator host copies once into its AWS profile (decision 030); the site's artifact signing key pair (`cosign`), below; the Zitadel admin account (`zitadel-admin`, `ZITADEL_ADMIN_USER` and `ZITADEL_ADMIN_PASSWORD`), the login that needs no passkey, set by `task admin:zitadel-floor` and copied here by a person; the System API key (`zitadel-system`, `ZITADEL_SYSTEM_KEY`, an RSA private key in PEM), `SYSTEM_OWNER` of the instance, which `task admin:zitadel-domains` decrypts for one run and nothing else reads (decision 032); its public half is in `artifacts/zitadel/release.yaml`; the forge's instance signing key (`forgejo-signing`, `FORGEJO_SIGNING_KEY`, an OpenSSH private key), which signs the forge's merge commits and is put back into the cluster by a person and by nothing else (decision 036, `docs/runbooks/forge-signing-key.md`) | A person, from `artifacts/versitygw/versitygw-root.enc.yaml`, the source of record; `artifacts/versitygw/user.sh` piped into `sops`, born here; a person, at a terminal, once; a person, once, from the forge pod where the key was made (`docs/runbooks/forge-signing-key.md`) |
 
 One secret per file, `<name>.enc.json`. A secret's fields are its values: `root` holds `ROOT_ACCESS_KEY` and
-`ROOT_SECRET_KEY`, `ca.key` holds `value`. Named after the variables a tool reads, the fields go straight into its
+`ROOT_SECRET_KEY`. Named after the variables a tool reads, the fields go straight into its
 environment:
 
 ```sh
-sops exec-env vaults/operator/hov1/root.enc.json 'swamp model method run hov1-s3 inventory'   # one touch
-sops -d --extract '["value"]' vaults/operator/hov1/ca.key.enc.json                          # one touch
+sops exec-env vaults/operator/osl1/root.enc.json 'swamp model method run osl1-s3 inventory'   # one touch
+sops -d --extract '["ZITADEL_SYSTEM_KEY"]' vaults/operator/osl1/zitadel-system.enc.json      # one touch
 jq -n '{NAME: env.NAME}' |
   sops -e --filename-override vaults/operator/<path>.enc.json /dev/stdin > vaults/operator/<path>.enc.json
 ```
@@ -61,4 +63,4 @@ once; before that the next reconcile would refuse the current tag.
 A lost key is not an incident for the cluster: make a new pair, replace both files, push every artifact of the
 site again. A leaked one is: replace the pair the same way, and the old public key leaves `clusters/production/`,
 so nothing it signed is trusted any more. Either way the artifacts are re-pushed from a clean checkout, so the
-revision annotations stay true. hov1 gets `vaults/operator/hov1/cosign.enc.json` the day it has a cluster.
+revision annotations stay true. hov1 gets a pair of its own the day it has a cluster.

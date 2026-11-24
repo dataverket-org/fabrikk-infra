@@ -1,6 +1,6 @@
 #!/bin/sh
 # Mints an account and its buckets on the osl1 gateway and prints the writer's Secret on stdout, for sops --encrypt;
-# never onto disk in clear. The hov1 counterpart is backup/versitygw/bin/user.
+# never onto disk in clear. The hov1 counterpart is s3/bin/user in the hov1 repository.
 #   usage: artifacts/versitygw/user.sh <account> <namespace> <bucket>... [--rotate]
 # Role "user" sees only the buckets it owns; an existing bucket is handed over. --rotate deletes the account first,
 # and the writer fails until the new Secret is applied. Without --rotate an existing account is an error.
