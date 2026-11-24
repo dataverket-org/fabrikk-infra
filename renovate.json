@@ -10,6 +10,7 @@
   "automerge": false,
   "minimumReleaseAge": "7 days",
   "osvVulnerabilityAlerts": true,
+  "prHourlyLimit": 0,
   "semanticCommits": "enabled",
   "semanticCommitScope": "deps",
   "ignorePaths": [
@@ -201,6 +202,29 @@
         "*"
       ],
       "semanticCommitType": "chore"
+    },
+    {
+      "description": "One pull request per artifact: a release is one bin/artifact <name> --push, so what moves under artifacts/<name>/ moves together. A major stays a pull request of its own, and so does a fix for a known vulnerability",
+      "matchFileNames": [
+        "artifacts/**"
+      ],
+      "groupName": "{{{replace '^artifacts/([^/]+).*$' '$1' packageFileDir}}}",
+      "groupSlug": "artifact-{{{replace '^artifacts/([^/]+).*$' '$1' packageFileDir}}}"
+    },
+    {
+      "description": "A database's restore test runs the image the database runs, so it moves in the same pull request",
+      "matchFileNames": [
+        "backup/restore-test/forgejo-*.yaml"
+      ],
+      "groupName": "forgejo",
+      "groupSlug": "artifact-forgejo"
+    },
+    {
+      "matchFileNames": [
+        "backup/restore-test/zitadel-*.yaml"
+      ],
+      "groupName": "zitadel",
+      "groupSlug": "artifact-zitadel"
     },
     {
       "description": "A new Postgres major is a migration, never a pull request",
