@@ -13,7 +13,7 @@ This repository was `flux-bootstrap` until 2026-09-17. The forge redirects the o
 |---|---|---|
 | `clusters/production/` | `flux bootstrap` | The Flux system and the two root Kustomizations below. |
 | `infrastructure/` | Kustomization `infrastructure` | OpenStack cloud controller and Cinder CSI, CNPG, Envoy Gateway, cert-manager and the wildcard certificate, external-dns, Kata. |
-| `backup/` | `docker compose` on a site host, nothing in the cluster | The sources-and-targets table (`backup/README.md`); `versitygw/` is a compose stack, versitygw with the posix backend behind its own private CA, that runs anywhere; `<site>/` is one instance of it, `hov1/` the S3 endpoint the backups are written to. |
+| `backup/` | Nothing in the cluster | The sources-and-targets table (`backup/README.md`), the operator's guide to the Postgres backups and the restore-test manifests; `hov1/` is the cluster's view of the S3 endpoint the backups are written to. The gateway itself is in the `hov1` repository. |
 | `apps/` | Kustomization `apps` (after `infrastructure`) | Forgejo, its runners, Zitadel, and the pointer to zot. |
 | `artifacts/<name>/` | Nobody, from git | Sources of OCI config artifacts. Rendered, checked and pushed with `bin/artifact <name>`, pulled by an `OCIRepository` declared under `apps/`. |
 | `bootstrap/` | `bootstrap.sh` | What must exist before the rest can be applied: the cluster's SOPS key, and zot from git until zot serves its own config. |
@@ -151,7 +151,7 @@ they recognise a former name as ours, mint the new one, and remove what the old 
 | `id.osl1.dvkt.no` | The site's own: its health check, its cluster's API server when 015 is built, the site's services and the tenants they see as organizations | Zitadel at this site; today a second name of the upstream's instance and its primary domain, to become the site's own instance (decisions 031, 032, 034; `docs/plans/2026-11-site-names.md`); kept with `task admin:zitadel-domains` |
 | `dataverket.s3.osl1.dvkt.no` | Zulip, for uploads and avatars; browsers fetching avatars; the `osl1-s3` model | Dataverket's S3 at the osl1 site, path-style, TLS through the gateway; the org is the leftmost label (decision 029) |
 | `versitygw.versitygw.svc.cluster.local:7070` | An in-cluster writer that serves every file itself; none yet | The same gateway without the public path, plain HTTP inside the cluster (decision 029) |
-| `213.128.185.82:443` | CNPG's Barman Cloud plugin, the backup writer; kopia later | The hov1 site's versitygw (`backup/hov1`), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |
+| `213.128.185.82:443` | CNPG's Barman Cloud plugin, the backup writer; kopia later | The hov1 site's versitygw (`backup/hov1`; it runs from the `hov1` repository), by address so no zone is in the backup path; TLS from the site's private CA, its root pinned here |
 
 ## Secrets
 

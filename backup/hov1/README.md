@@ -1,8 +1,9 @@
 # Site: hov1
 
-The first instance of the stack in `../versitygw/`, and the backup target of dataverket-prod. What is written here and
-by whom: `../README.md`. How the stack runs and every runbook: `../versitygw/README.md`. This page holds only what makes
-the site hov1.
+The backup target of dataverket-prod, as the cluster sees it. The gateway is a service of the hov1 site and lives in
+the `hov1` repository, a checkout beside this one (`../hov1` from the repository root): its scripts,
+runbooks and secrets are in `s3/` and `vaults/operator/s3/` there. What is written here and by whom: `../README.md`.
+This page holds what a client of the site needs, and how to check what the gateway holds.
 
 ## Facts
 
@@ -10,51 +11,40 @@ the site hov1.
 |---|---|
 | Endpoint | `https://213.128.185.82:443`, path-style |
 | Region | `us-east-1` |
-| Trust | The site's private CA root in `certs/ca.crt`, made 2026-09-20 with `step`, valid three years; delivered as Secret `hov1-s3` to `forgejo` and `zitadel` |
-| Buckets | `cnpg-forgejo`, `cnpg-zitadel`; one account each, named after the bucket; `kopia-forgejo` when the repositories get a backup of their own |
-| Host | The hov1 site, rootless Podman 6.2 and podman-compose 1.6 from Homebrew (`../versitygw/README.md`, "Rootless Podman, once per host"); port 443 forwarded to the gateway |
-| Data | `DATA_DIR` and `VERSIONS_DIR` per `.env`, on an xattr filesystem |
-| Name | None. `s3.hov1.dvkt.no` through DirectAdmin's DNS API for `dvkt.no` is the day an address change should not touch every client; not needed before |
+| Trust | The site's private CA root in `certs/ca.crt`, made 2026-09-20 with `step`, valid three years; delivered as Secret `hov1-s3` to `forgejo`, `zitadel` and `zulip` |
+| Buckets | `cnpg-forgejo`, `cnpg-zitadel`, `cnpg-zulip`; one account each, named after the bucket; `kopia-forgejo` when the repositories get a backup of their own |
+| Name | None. `s3.hov1.dvkt.no` is for the day an address change should not touch every client; not needed before |
 
 ## Files
 
-| File | Committed | Purpose |
-|---|---|---|
-| `compose.yaml` | yes | Includes `../versitygw/compose.yaml` with this directory as project directory |
-| `.env.example` | yes | Template for `.env` |
-| `.env` | never | The site's values and root key pair; the key pair also in `vaults/operator/hov1/root.enc.json` |
-| `certs/ca.crt` | yes | The CA root every client pins |
-| `certs/ca.key` | never | The CA key; also in `vaults/operator/hov1/ca.key.enc.json`, so a rebuilt host keeps the same root |
-| `certs/tls.*` | never | The gateway's certificate and key, written by `bin/cert` |
+| File | Purpose |
+|---|---|
+| `certs/ca.crt` | The CA root every client pins; a copy of `s3/certs/ca.crt` in the `hov1` repository, read by the model `hov1-s3` |
 
-## Operating it
+The Secrets the writers read are with each writer: `artifacts/<name>/hov1-s3.yaml`, the endpoint, region and CA
+root in plain, and `artifacts/<name>/s3-<bucket>.enc.yaml`, the writer's key pair. Both are made at the site and
+piped into this repository (`s3/README.md` in the `hov1` repository, runbook "Add a writer").
 
-From this directory: `docker compose ps`, `docker compose logs --tail 100`, `docker compose restart`. Accounts and
-certificates are the scripts in `../versitygw/bin`, run from here. A swamp model for the lifecycle is the follow-up
-noted in `../README.md`. What the gateway holds is read from the swamp host by the model `hov1-s3`
-(`models/@dataverket/versitygw/gateway/hov1-s3.yaml`): the admin API on the host's loopback, the S3 API at the
-endpoint above, the CA root from `certs/ca.crt`, and the root key pair from `vaults/operator/hov1/` for one run:
+## Checking what the gateway holds
+
+The model `hov1-s3` (`models/@dataverket/versitygw/gateway/hov1-s3.yaml`) reads the admin API on the site host's
+loopback, the S3 API at the endpoint above and the CA root from `certs/ca.crt`. It runs on the site host. `health`
+needs no key; the rest sign with the root key pair, supplied from the `hov1` repository for one run:
 
 ```sh
-sops exec-env vaults/operator/hov1/root.enc.json 'swamp model method run hov1-s3 inventory'   # one touch
+swamp model method run hov1-s3 health
+sops exec-env ../hov1/vaults/operator/s3/root.enc.json 'swamp model method run hov1-s3 inventory'   # one touch
 swamp model method run hov1-s3 check
 ```
 
-## Bring-up
+## When the address or the root changes
 
-1. `cp .env.example .env`; fill it in.
-2. On the host: create `DATA_DIR` and `VERSIONS_DIR`; forward 443.
-3. `../versitygw/bin/cert`.
-4. Commit `certs/ca.crt`; copy the root key pair and `certs/ca.key` into `vaults/operator/hov1/` (`vaults/operator/README.md`).
-5. Writers: `../versitygw/README.md`, runbook "Add a writer", for `forgejo` and `zitadel`.
-
-## When the address changes
-
-`../versitygw/README.md`, runbook "Change the address": new `S3_ADDR`, `bin/cert`, `bin/site-secret` into
-`apps/forgejo/hov1-s3.yaml` and `artifacts/zitadel/hov1-s3.yaml`, commit. The certificate and two plaintext Secrets change;
-no writer key does.
+The site's runbooks "Change the address" and "Reissue the certificate" (`s3/README.md` in the `hov1` repository) end
+here: `bin/site-secret` per writing namespace into `artifacts/<name>/hov1-s3.yaml`, for a new root also the new
+`certs/ca.crt`, for a new address also `s3Url` in the model, then a commit. Plaintext Secrets change; no writer key
+does.
 
 ## When the host is lost
 
-The cluster keeps running; only the target is gone. `../versitygw/README.md`, runbook "Site host lost". Until the next
+The cluster keeps running; only the target is gone. The site's runbook "Site host lost" rebuilds it. Until the next
 base backup completes there is no restorable copy.

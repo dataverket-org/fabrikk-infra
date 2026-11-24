@@ -36,7 +36,7 @@ same claim.
   root key pair, from the operator's terminal; the `osl1-s3` model reads it that way. No account secret and no root
   key is ever in an argument, a data record or a log line.
 - **Accounts and buckets**: one account per writer, role `user`, owner of its buckets, as on the hov1 site
-  (`backup/versitygw/README.md`, "Security model"). `user.sh` makes them with versitygw's own admin CLI inside the
+  (`s3/README.md` in the `hov1` repository, "Security model"). `user.sh` makes them with versitygw's own admin CLI inside the
   pod, where the root key pair already is, and prints the Secret for `sops --encrypt`:
 
   ```sh

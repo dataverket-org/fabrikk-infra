@@ -28,7 +28,7 @@ also the account `swamp-fabrikk-infra` and its bucket, the swamp datastore (deci
 |---|---|
 | Tool | kopia, as `backup/README.md` already plans for Forgejo's repositories: content-addressed, encrypted before it leaves, deduplicated, with retention in the repository |
 | Where it runs | A CronJob in `versitygw`, pod-affine to `versitygw-0`, mounting the same claim read-only; `ReadWriteOnce` lets two pods on one node share it |
-| Target | A kopia repository in bucket `kopia-osl1` on the hov1 site, its account made by a person at the site with `backup/versitygw/bin/user`, the Secret through `sops --encrypt` into `artifacts/versitygw/s3-kopia-osl1.enc.yaml` with `hov1-s3` beside it |
+| Target | A kopia repository in bucket `kopia-osl1` on the hov1 site, its account made by a person at the site with `s3/bin/user` of the `hov1` repository, the Secret through `sops --encrypt` into `artifacts/versitygw/s3-kopia-osl1.enc.yaml` with `hov1-s3` beside it |
 | Schedule | Nightly; 30 daily and 6 monthly snapshots, kopia's own policy |
 | Key | The kopia repository password, a cluster file, and a person's copy in `vaults/operator/osl1/` for a restore without the cluster (decision 016) |
 | Delivery | In the versitygw artifact, as everything of the gateway's is |
@@ -50,7 +50,7 @@ policy read back over S3.
 
 ## Steps
 
-1. The scratch test above; its result written here, and into `backup/versitygw/README.md`, since it holds for any
+1. The scratch test above; its result written here, and into `s3/README.md` of the `hov1` repository, since it holds for any
    versitygw.
 2. `kopia-osl1` and its account on hov1, by a person at the site; `hov1-s3 check` afterwards.
 3. The CronJob, the Secrets and the repository's first snapshot, in the artifact; a restore of one bucket into a
