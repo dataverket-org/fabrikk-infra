@@ -17,6 +17,7 @@ something: `docs/runbooks/renovate-bring-up.md` and `docs/runbooks/renovate-pull
 | `rendered/` | The Namespace, the CronJob and its ConfigMap, one file each. Written by `render.sh`, never by hand |
 | `bootstrap.yaml` | The Job that makes the bot and its token, with its ServiceAccount and Roles |
 | `guard.mjs` | What runs before Renovate on every run, mounted from the ConfigMap `renovate-guard` |
+| `renovate-github.enc.yaml` | The GitHub token Renovate reads upstream releases with, a cluster file |
 | `kustomization.yaml` | What Flux applies: `rendered/`, the Job and the guard's ConfigMap |
 
 ## What the patch adds
@@ -24,8 +25,12 @@ something: `docs/runbooks/renovate-bring-up.md` and `docs/runbooks/renovate-pull
 - **The guard**, an init container in Renovate's own image, so there is one image to pin.
 - **A security context**: Renovate's own user 12021, no service account token, no added capabilities.
 - **`RENOVATE_GIT_AUTHOR`**, the bot's name and its address on the forge, so its commits are shown as its own.
-- **A second, optional Secret**, `renovate-github`, for `RENOVATE_GITHUB_COM_TOKEN`. Without it Renovate reads
-  GitHub without a login, 60 requests an hour, and writes no release notes into a pull request.
+- **A second Secret**, `renovate-github`, with `RENOVATE_GITHUB_COM_TOKEN`: the cluster file
+  `renovate-github.enc.yaml`, since 2026-11-24. The token is a fine-grained GitHub token with no permissions, for
+  public repositories only. It opens nothing; with it GitHub counts Renovate's reads of upstream releases against an
+  account, 5000 an hour, and without it against the cluster's address, 60 an hour, which skipped every lookup there.
+  The CronJob names the Secret as optional, so a cluster without it still runs. The value is in this file and
+  nowhere else; a lost or expired one is replaced with a new token (`docs/runbooks/renovate-bring-up.md`, step 5).
 
 The version of Renovate is the image tag in the renovate repository's `kube/cronjob.yaml`. A new version is a new
 `RENOVATE_COMMIT` in `recipe/source.env`, rendered and pushed. The image is pulled by tag; who signed a tag is read
