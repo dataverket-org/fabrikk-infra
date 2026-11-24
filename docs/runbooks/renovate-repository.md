@@ -66,4 +66,4 @@ before. The repository has an issue "Dependency Dashboard" by `renovate`.
 
 Adding a repository to the team by hand, in the browser or with `team_repo_ensure` alone: that leaves `main` open to
 the bot until the rule exists. Taking a repository out of the team, which an owner does on the forge. Writing the
-repository's `renovate.json`, which is tried first with `task local` in the renovate repository.
+repository's `renovate.json`, which is tried first with `bin/renovate-local`.

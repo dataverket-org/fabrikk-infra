@@ -246,9 +246,9 @@ diff of `rendered/` is the review of a chart upgrade, and the cluster reads no c
 `artifacts/www/`, the website and the Signal short link, is the fourth, plain manifests again, with the website as
 an image of its own that the pods mount as a volume. `artifacts/forgejo-theme/` is the fifth, rendered: the forge's
 theme as four ConfigMaps, built from a pinned commit of the theme repository and the locale of the Forgejo release
-the chart runs, applied by `apps/forgejo/theme.yaml`. `artifacts/renovate/` is rendered the same way, from a
-pinned commit of the renovate repository: the CronJob that proposes updates on the forge, a Job that makes its
-user and token, and a guard that stops a run when that user could reach a default branch.
+the chart runs, applied by `apps/forgejo/theme.yaml`. `artifacts/renovate/` is plain manifests: the CronJob that
+proposes updates on the forge, a Job that makes its user and token, and a guard that stops a run when that user
+could reach a default branch.
 
 zot hosts its own config artifact. The loop is closed by git: `bootstrap/zot-from-git.yaml` applies the same
 directory straight from the repository, without prune, until zot serves its first artifact, and again whenever a bad
@@ -282,7 +282,7 @@ swamp model method run runner-pods list               # context dataverket-prod-
 swamp model method run runner-events getWarnings      # the same namespace's warning events, same context
 swamp model method run dataverket-prod-helm list      # context dataverket-prod-readers; the -admin twin reconciles
 swamp model method run registry copy --input 'sources:json=["<upstream>:<tag>@sha256:<digest>"]'   # into mirror/<upstream registry>/<path>, @dataverket/crane
-swamp workflow run renovate-image-verified --input ref=ghcr.io/renovatebot/renovate:<tag>   # the tag's digest, its keyless signature and SLSA provenance against renovate-signing-identity, asserted; read-only, run when the renovate repository's pin changes
+swamp workflow run renovate-image-verified --input ref=ghcr.io/renovatebot/renovate:<tag>   # the tag's digest, its keyless signature and SLSA provenance against renovate-signing-identity, asserted; read-only, run when the tag in artifacts/renovate/cronjob.yaml changes
 swamp workflow run fabrikk-runner                     # the release runner; every step is guarded by its record
 swamp workflow run worker-join --input name=dataverket-wrkr-N   # one half of a worker swap, docs/storage.md
 swamp model method run hov1-s3 check                  # the hov1 gateway against its rules; inventory needs the root key, vaults/operator/README.md

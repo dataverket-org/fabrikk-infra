@@ -1,0 +1,217 @@
+#!/usr/bin/env bash
+#
+# Renovate in local mode: the updates Renovate would propose for repositories
+# as they are on disk, uncommitted changes included. It is how a renovate.json
+# is written and tried. The image is the one the cluster runs, read from
+# artifacts/renovate/cronjob.yaml.
+#
+#	bin/renovate-local		every repository in the folder that has a
+#					Renovate configuration
+#	bin/renovate-local --list	print those repositories, run nothing
+#	bin/renovate-local <repo> ...	these repositories
+#
+# The folder is the one this repository is in, or RENOVATE_FOLDER. Reads the
+# registries, writes nothing. Needs podman, git, yq and jq on PATH; no token,
+# no cluster and no key.
+#
+
+# shellcheck source=share/logging.sh
+source "${0%/*}/../share/logging.sh" || exit $?
+
+repo_dir="$(cd "${0%/*}/.." && pwd)" || exit $?
+folder="${RENOVATE_FOLDER:-${repo_dir%/*}}"
+cronjob="$repo_dir/artifacts/renovate/cronjob.yaml"
+action="run"
+repos=()
+status=0
+
+# Where a repository keeps its Renovate configuration:
+# https://docs.renovatebot.com/configuration-options/
+config_names=(
+	renovate.json renovate.json5 .renovaterc .renovaterc.json
+	.renovaterc.json5 .github/renovate.json .github/renovate.json5
+	.gitlab/renovate.json .gitlab/renovate.json5
+	.forgejo/renovate.json .forgejo/renovate.json5
+	.gitea/renovate.json .gitea/renovate.json5
+)
+
+#
+# Prints usage information.
+#
+function usage()
+{
+	cat <<USAGE
+usage: bin/renovate-local [--list] [REPO ...]
+
+Options:
+
+	--list		Print the repositories with a Renovate configuration
+	-D, --debug	Enable debug messages
+	-h, --help	Prints this message
+
+Examples:
+
+	$ bin/renovate-local
+	$ bin/renovate-local fabrikk-infra incusdev-vm
+	$ RENOVATE_FOLDER=~/src bin/renovate-local --list
+USAGE
+}
+
+#
+# Parses the command line.
+#
+function parse_options()
+{
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			--list)		action="list"; shift ;;
+			-D|--debug)	enable_debug=1; shift ;;
+			-h|--help)	usage; exit ;;
+			-*)		echo "renovate-local: unrecognized option $1" >&2
+					return 1 ;;
+			*)		repos+=("${1%%/*}"); shift ;;
+		esac
+	done
+}
+
+#
+# Succeeds when a directory has a Renovate configuration file.
+#
+function has_config()
+{
+	local dir="$1"
+	local name
+
+	for name in "${config_names[@]}"; do
+		[[ -f "$dir/$name" ]] && return
+	done
+
+	return 1
+}
+
+#
+# Prints the name of every repository in the folder that has a Renovate
+# configuration.
+#
+function list_repos()
+{
+	local dir
+
+	for dir in "$folder"/*/; do
+		dir="${dir%/}"
+		[[ -e "$dir/.git" ]] || continue
+		has_config "$dir"    || continue
+		echo "${dir##*/}"
+	done
+}
+
+#
+# Runs Renovate in local mode on a repository directory and prints its log.
+# Git in the container wants the repository owned by its user, 12021.
+#
+function renovate_local()
+{
+	local dir="$1"
+	local common
+	local worktree=()
+
+	# A worktree's .git names its repository by a path outside the directory.
+	if [[ -f "$dir/.git" ]]; then
+		common="$(git -C "$dir" rev-parse --path-format=absolute \
+			--git-common-dir)" || return $?
+		worktree=(--volume "$common:$common:ro")
+	fi
+
+	run podman run --rm --pull=missing \
+		--userns "keep-id:uid=12021" \
+		--volume "$dir:/repo:ro" --workdir /repo "${worktree[@]}" \
+		--env LOG_LEVEL=debug \
+		"$image" --platform=local || return $?
+}
+
+#
+# Reads Renovate's local mode log on stdin and prints one line per update.
+# The log prints the fields of a record without the braces around them.
+#
+function print_updates()
+{
+	local -
+	set -o pipefail
+
+	{
+		echo "{"
+		awk '/^DEBUG: packageFiles with updates/ { on = 1; next }
+		     /^[A-Z]+: / { on = 0 } on'
+		echo "}"
+	} |
+	jq -r '
+		.config | to_entries[] | .value[] | .packageFile as $file |
+		.deps[] | select((.updates | length) > 0) |
+		"  \(.depName)\t\(.currentValue) -> \(.updates[0].newValue)" +
+		"\t\(.updates[0].updateType), \($file)"' |
+	sort -u | column -t -s $'\t'
+}
+
+#
+# Prints the updates for one repository in the folder.
+#
+function updates_of()
+{
+	local repo="$1"
+	local dir="$folder/$repo"
+	local output result updates
+
+	if [[ ! -e "$dir/.git" ]]; then
+		error "No repository in $dir!"
+		return 1
+	fi
+
+	log "$repo: looking up updates for the files on disk ..."
+
+	if ! output="$(renovate_local "$dir")"; then
+		grep -E -A3 '^ *(WARN|ERROR|FATAL): ' <<<"$output" >&2
+		error "$repo: Renovate failed!"
+		return 1
+	fi
+	# Renovate exits 0 on a configuration it refuses, and names the result.
+	if result="$(grep -m1 -o 'Repository result: [^,]*' <<<"$output")"; then
+		grep -E -m3 '"validation(Error|Message)"' <<<"$output" >&2
+		error "$repo: Renovate stopped early. $result!"
+		return 1
+	fi
+	if ! updates="$(print_updates <<<"$output")"; then
+		error "$repo: Renovate's log does not list the updates!"
+		return 1
+	fi
+
+	if [[ -n "$updates" ]]; then echo "$updates"
+	else                         echo "  up to date"
+	fi
+}
+
+parse_options "$@" || exit $?
+
+if [[ "${#repos[*]}" -eq 0 ]]; then
+	mapfile -t repos < <(list_repos)
+fi
+[[ "${#repos[*]}" -gt 0 ]] ||
+	fail "No repository with a Renovate configuration in $folder!"
+
+if [[ "$action" == list ]]; then
+	printf '%s\n' "${repos[@]}"
+	exit
+fi
+
+for tool in podman git yq jq awk column; do
+	command -v "$tool" >/dev/null || fail "$tool is not on PATH!"
+done
+
+image="$(yq '.spec.jobTemplate.spec.template.spec.containers[0].image' \
+	"$cronjob")" || fail "No image read from $cronjob!"
+[[ "$image" != null ]] || fail "$cronjob names no image!"
+
+for repo in "${repos[@]}"; do
+	updates_of "$repo" || status=1
+done
+
+exit "$status"

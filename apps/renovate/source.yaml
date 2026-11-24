@@ -1,5 +1,4 @@
-# Renovate, delivered gitless from artifacts/renovate, rendered in the factory (decisions 013, 028), and fetched
-# through the zot Service, plain HTTP (decision 013).
+# Renovate, delivered gitless from artifacts/renovate and fetched through the zot Service, plain HTTP (decision 013).
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:

@@ -2,7 +2,7 @@ id: d961f9b1-c4a6-4ebe-8654-4f7faf498591
 name: renovate-image-verified
 description: >-
   Is this Renovate image the one Renovate's own CI built and signed, from Renovate's own repository? Run it when
-  the tag pinned in the renovate repository's kube/cronjob.yaml changes, before the image is used. One step: it
+  the tag pinned in artifacts/renovate/cronjob.yaml changes, before the image is used. One step: it
   calls @dataverket/verified-upstream-image (from @dataverket/signed-images) with the identity and issuer that
   renovate-signing-identity states, the provenance type slsaprovenance1 and Renovate's repository as the source
   the provenance must name. That workflow resolves the tag to its digest once, verifies the signature of that

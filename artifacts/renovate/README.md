@@ -25,11 +25,10 @@ This file has the facts ("Reference") and the reasons ("Why it is built this way
 
 | Fact | Value | Where it is set |
 |---|---|---|
-| Schedule | 01, 07, 13 and 19, Oslo time | `kube/cronjob.yaml` in `dataverket/renovate` |
-| Renovate version | The image tag of the CronJob | The same file |
-| Which repositories | Those the team `renovate` holds that have a `renovate.json` | The team on the forge; `kube/config.js` |
-| Commit of `dataverket/renovate` that runs | `RENOVATE_COMMIT` | `recipe/source.env` |
-| Namespace | `renovate` | `kube/` |
+| Schedule | 01, 07, 13 and 19, Oslo time | `cronjob.yaml` |
+| Renovate version | The image tag, written twice: for the guard and for Renovate | `cronjob.yaml` |
+| Which repositories | Those the team `renovate` holds that have a `renovate.json` | The team on the forge; `config.js` |
+| Namespace | `renovate` | `namespace.yaml` |
 | Delivered as | `platform/renovate-config` in zot | `apps/renovate/source.yaml` |
 
 ### What a repository's `renovate.json` sets here
@@ -42,6 +41,7 @@ This file has the facts ("Reference") and the reasons ("Why it is built this way
 | New pull requests per hour | No limit |
 | Open pull requests at a time | Ten |
 | Never proposed | A Postgres major, a Forgejo chart major, a kubectl minor in a Job, our own images |
+| Renovate's own image | A pull request of its own, on Mondays. The newest tag, see "Known limits" |
 | Action versions | Read from the forge's own `actions` org, not from GitHub |
 | Merging | Never by Renovate |
 
@@ -49,14 +49,16 @@ This file has the facts ("Reference") and the reasons ("Why it is built this way
 
 | File | What |
 |---|---|
-| `recipe/source.env` | The renovate repository and the commit of it that runs |
-| `recipe/kustomization.yaml` | What the cluster adds to the CronJob |
-| `render.sh` | Writes `rendered/` from the two above; `--check` proves it true |
-| `rendered/` | The Namespace, the CronJob and its ConfigMap. Written by `render.sh`, never by hand |
+| `cronjob.yaml` | The CronJob: the schedule, the image, the guard, the security context |
+| `config.js` | Renovate's settings for every repository, as the ConfigMap `renovate-config` |
+| `namespace.yaml` | The Namespace |
 | `bootstrap.yaml` | The Job that makes the bot and its token |
 | `guard.mjs` | The guard, mounted from the ConfigMap `renovate-guard` |
 | `renovate-github.enc.yaml` | The GitHub token, a cluster file |
 | `kustomization.yaml` | What Flux applies |
+| `bin/renovate-local` | Renovate on a laptop, for repositories on disk. No token, no changes |
+
+The directory holds plain manifests. Nothing is rendered, so a change to a file is the whole change.
 
 ### Secrets
 
@@ -68,12 +70,27 @@ This file has the facts ("Reference") and the reasons ("Why it is built this way
 The forge token has the scopes `write:repository`, `write:issue`, `read:user` and `read:organization`. The GitHub
 token has no permissions and reads public repositories only.
 
-### What the cluster adds to the CronJob
+### What the CronJob sets
 
 - The guard, as an init container in Renovate's own image.
 - A security context: user 12021, no service account token, no added capabilities.
 - `RENOVATE_GIT_AUTHOR`, so the bot's commits show as its own.
 - The second Secret, `renovate-github`, named as optional.
+
+### Local mode
+
+`bin/renovate-local` runs the image `cronjob.yaml` names, with Podman, on repositories on disk. It prints one line
+per update Renovate would propose; the same update in two places of a file is one line. It reads uncommitted
+changes of tracked files; a new file is seen after `git add`. It needs no token and changes nothing. It fails when
+Renovate refuses the repository's configuration, and prints why.
+
+| Command | What it does |
+|---|---|
+| `bin/renovate-local` | Every repository in the folder that has a Renovate configuration |
+| `bin/renovate-local --list` | Prints those repositories, runs nothing |
+| `bin/renovate-local <repository> ...` | These repositories |
+
+The folder is the one this repository is in, or `RENOVATE_FOLDER`. A worktree works too.
 
 ### What the guard says
 
@@ -108,7 +125,8 @@ A pin missing under "Detected Dependencies" is a pin `renovate.json` does not co
 - The charts of `artifacts/zitadel/release.yaml` and `infrastructure/envoy/release.yaml` are not watched. They come
   from the in-cluster mirror, which Renovate does not read. The dashboard reports the failed lookup.
 - `code.forgejo.org`, `ghcr.io`, `quay.io` and `registry.k8s.io` may give no release time. Then the seven days
-  cannot be counted and the image is proposed at once.
+  cannot be counted and the image is proposed at once. Renovate's own image is one of these: its rule asks for
+  three days, and ghcr.io gives no time to count them from.
 - The Renovate image is pulled by tag. Its signature is checked by a person before a new tag is used.
 
 ## Why it is built this way
@@ -151,6 +169,13 @@ by a new one. A second copy would only be a second place to rotate.
 Renovate changes a pin and nothing else. Here a pin is rarely the whole change: a chart version needs `rendered/`
 made again, and a vendored file needs its checksum. The checks `vendor` and `artifacts` stay red until a person has
 done that on the branch. Decision 028 says why the rendering is kept in git.
+
+### Why Renovate lives in this repository
+
+Until 2026-11-24 the CronJob and `config.js` lived in a repository of their own, `dataverket/renovate`, and this
+artifact pinned one commit of it. A change to the schedule then took a merge there, a new pin here and a push. Now
+it is one pull request and a push, and Renovate's pull request for its own image is the whole change. Local mode
+moved here with it, so a laptop and the cluster still run the same image.
 
 ### What was tested
 

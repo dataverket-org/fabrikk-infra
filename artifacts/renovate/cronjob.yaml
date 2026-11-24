@@ -1,0 +1,83 @@
+# Renovate, four times a day, at 01, 07, 13 and 19 Oslo time. The image is written twice and is the same in both;
+# bin/renovate-local runs the one of the renovate container.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: renovate
+  namespace: renovate
+spec:
+  schedule: "0 1,7,13,19 * * *"
+  timeZone: Europe/Oslo
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 12021
+            runAsGroup: 12021
+            fsGroup: 12021
+            seccompProfile:
+              type: RuntimeDefault
+          initContainers:
+            # Stops the run when the bot could reach a default branch (README.md, "What the guard says").
+            - name: guard
+              image: ghcr.io/renovatebot/renovate:44.251.0
+              command: [node, /guard/guard.mjs]
+              env:
+                - name: FORGEJO_API
+                  value: https://git.dataverket.org/api/v1
+              envFrom:
+                - secretRef:
+                    name: renovate
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              volumeMounts:
+                - name: guard
+                  mountPath: /guard
+                  readOnly: true
+          containers:
+            - name: renovate
+              image: ghcr.io/renovatebot/renovate:44.251.0
+              env:
+                - name: RENOVATE_GIT_AUTHOR
+                  value: Renovate <renovate@noreply.git.dataverket.org>
+                - name: RENOVATE_CONFIG_FILE
+                  value: /config/config.js
+                - name: LOG_LEVEL
+                  value: info
+              envFrom:
+                - secretRef:
+                    name: renovate
+                # RENOVATE_GITHUB_COM_TOKEN, when a person has made it (docs/runbooks/renovate-bring-up.md).
+                - secretRef:
+                    name: renovate-github
+                    optional: true
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+                - name: cache
+                  mountPath: /tmp/renovate
+          volumes:
+            - name: guard
+              configMap:
+                name: renovate-guard
+            - name: config
+              configMap:
+                name: renovate-config
+            - name: cache
+              emptyDir: {}
