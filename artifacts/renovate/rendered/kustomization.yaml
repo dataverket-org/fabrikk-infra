@@ -1,4 +1,4 @@
-# Written by render.sh; do not edit. The renovate repository at 8cb40b0f2d480009a2dbfd8506d30c56dd2bf2a9, image ghcr.io/renovatebot/renovate:44.251.0.
+# Written by render.sh; do not edit. The renovate repository at e21db01552db260e8799ab36dc9dc9638ec6b70d, image ghcr.io/renovatebot/renovate:44.251.0.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

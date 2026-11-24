@@ -1,6 +1,6 @@
 # The renovate artifact
 
-Renovate for the repositories on `git.dataverket.org`: a CronJob that opens pull requests once an hour, as a user of
+Renovate for the repositories on `git.dataverket.org`: a CronJob that opens pull requests four times a day, as a user of
 its own, and can merge none of them. The CronJob and its configuration are the renovate repository's `kube/`,
 `git.dataverket.org/dataverket/renovate`, rendered here in the factory (decision 028) at a pinned commit, pushed by
 `bin/artifact renovate --push` into zot as `platform/renovate-config`, and applied by the Kustomization in
