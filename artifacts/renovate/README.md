@@ -17,6 +17,7 @@ This file has the facts ("Reference") and the reasons ("Why it is built this way
 | Give Renovate a repository | `docs/runbooks/renovate-repository.md` |
 | Take a pull request from Renovate to a deployed change | `docs/runbooks/renovate-pull-request.md` |
 | Change the schedule, the Renovate version or its global settings | `docs/runbooks/renovate-change.md` |
+| Run Renovate now, outside its schedule | `docs/runbooks/renovate-run-now.md` |
 | Make the bot's token again when its Secret is lost | `docs/runbooks/renovate-token-lost.md` |
 
 ## Reference

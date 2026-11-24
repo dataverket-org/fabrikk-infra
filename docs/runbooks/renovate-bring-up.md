@@ -79,12 +79,10 @@ forge, and the GitHub token. Reasons and facts are in `artifacts/renovate/README
 
 ```sh
 kubectl --context dataverket-prod-readers -n renovate get cronjob renovate -o jsonpath='{.spec.schedule} {.spec.timeZone}{"\n"}'
-kubectl --context dataverket-prod-admin -n renovate create job proof --from=cronjob/renovate
-kubectl --context dataverket-prod-readers -n renovate wait --for=condition=complete job/proof --timeout=180s
-kubectl --context dataverket-prod-readers -n renovate logs job/proof -c guard
 ```
 
-The first prints `0 1,7,13,19 * * * Europe/Oslo`. The last prints
+It prints `0 1,7,13,19 * * * Europe/Oslo`. Then start a run as `renovate-run-now.md` says, steps 1 to 4. The guard
+prints
 `guard: renovate can write to 0 repositories and reaches the default branch of none`.
 
 | Seen | Means |

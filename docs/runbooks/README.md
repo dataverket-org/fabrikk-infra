@@ -35,6 +35,7 @@ environment variable, as the operator rules require.
 | [renovate-repository.md](renovate-repository.md) | Give Renovate a repository: the branch rule on `main` first, then the team | decision 036 |
 | [renovate-pull-request.md](renovate-pull-request.md) | Take a pull request from Renovate to a deployed change: finish it on its branch, merge, push the artifact | decisions 028, 035, 036 |
 | [renovate-change.md](renovate-change.md) | Change Renovate's schedule, version or global settings: one pull request, then a push | decision 013 |
+| [renovate-run-now.md](renovate-run-now.md) | Run Renovate now: a look from a laptop, or a real run in the cluster when no run is active | decision 013 |
 | [renovate-token-lost.md](renovate-token-lost.md) | Make the bot's token again when its Secret is lost | decision 001 |
 | [image-scan.md](image-scan.md) | Read a red image scan and answer each finding: an upgrade, an acceptance with a last day, or a service changed | decision 028 |
 | [zitadel-rescue.md](zitadel-rescue.md) | Serve `id.dataverket.org` from another site: the database from the hov1 archive, the new alias in and the old out through the System API user. A draft until a second cluster exists | decisions 031, 032 |

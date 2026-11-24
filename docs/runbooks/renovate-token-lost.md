@@ -43,11 +43,7 @@ in the database.
 
 ## Proof
 
-```sh
-kubectl --context dataverket-prod-admin -n renovate create job proof --from=cronjob/renovate
-kubectl --context dataverket-prod-readers -n renovate wait --for=condition=complete job/proof --timeout=180s
-kubectl --context dataverket-prod-readers -n renovate logs job/proof -c guard
-```
+Start a run as `renovate-run-now.md` says, steps 1 to 4.
 
 The guard prints `guard: renovate can write to <n> repositories and reaches the default branch of none`, with `<n>`
 as before the Secret was lost. In kind the Job made a new Secret and the guard passed with the new token.

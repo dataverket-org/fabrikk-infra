@@ -36,21 +36,22 @@ matters, and `artifacts/renovate/README.md` says why.
      --input 'pushWhitelistTeams=["Owners"]' --input 'mergeWhitelistTeams=["Owners"]'
    ```
 
-4. Start a run, or wait for the next one at 01, 07, 13 or 19 Oslo time.
-
-   ```sh
-   kubectl --context dataverket-prod-admin -n renovate create job by-hand-$(date +%H%M) --from=cronjob/renovate
-   ```
+4. Start a run as `renovate-run-now.md` says, or wait for the next one at 01, 07, 13 or 19 Oslo time.
 
 ## Proof
 
 ```sh
 swamp behavior run forgejo team_get --input org=dataverket --input name=renovate --json | jq '.dataArtifacts[0].attributes.repositories'
+```
+
+It lists the repository. After a scheduled run, read the guard's line (a run by hand showed it in its step 3):
+
+```sh
 kubectl --context dataverket-prod-readers -n renovate get jobs --sort-by=.status.startTime | tail -2
 kubectl --context dataverket-prod-readers -n renovate logs job/<the newest> -c guard
 ```
 
-The first lists the repository. The guard prints
+The guard prints
 `guard: renovate can write to <n> repositories and reaches the default branch of none`, with `<n>` one higher than
 before. The repository has an issue "Dependency Dashboard" by `renovate`.
 
