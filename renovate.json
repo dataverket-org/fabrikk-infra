@@ -212,6 +212,17 @@
       "groupSlug": "artifact-{{{replace '^artifacts/([^/]+).*$' '$1' packageFileDir}}}"
     },
     {
+      "description": "The image Zulip's database runs is built by a person from this base, so its tag is a pull request of its own and never rides with a Zulip release",
+      "matchFileNames": [
+        "artifacts/zulip/postgres-image.sh"
+      ],
+      "groupName": "zulip postgres",
+      "groupSlug": "artifact-zulip-postgres",
+      "prBodyNotes": [
+        "Set `base=` beside the tag on this branch to `crane digest --platform linux/amd64 ghcr.io/cloudnative-pg/postgresql:{{{newValue}}}`, then build the image as `artifacts/zulip/README.md` says; the database moves by `docs/runbooks/postgres-minor-upgrade.md`."
+      ]
+    },
+    {
       "description": "A database's restore test runs the image the database runs, so it moves in the same pull request",
       "matchFileNames": [
         "backup/restore-test/forgejo-*.yaml"
