@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Resolved on the forge's own actions org (decision 022).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install yq
         run: |
           curl -sfL -o /usr/local/bin/yq \
@@ -24,7 +24,7 @@ jobs:
   vendor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check vendored manifests
         env:
           LOG_FILE: ""
@@ -32,7 +32,7 @@ jobs:
   artifacts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install yq, kubectl and helm
         env:
           KUBECTL_VERSION: v1.37.2
