@@ -414,6 +414,8 @@ Small, each its own branch if it turns into work:
 - **The seven members in `Operators`.** If Zitadel cannot move a user, they stay. Making them anew in `dataverket`
   gives each a new user id, which Forgejo keys its link on: a relink per person for a tidier list. Proposed: leave
   them, and say so in 036. With the instance default closed they cannot add an external login.
+  Proposed otherwise since 2026-11-25: `docs/plans/2026-11-zitadel-members-passkey-only.md` makes the members, eight
+  by then, anew in `dataverket` with a passkey only, and lists what else it changes here.
 - **Terms and privacy links** on the registration page, since strangers see it by design. One more key in
   `identity.json` and one more function; needs a page to link to.
 - **MFA.** A GitHub login skips Zitadel's second factor unless `forceMfa` is set. Left off for `dataverket`.
