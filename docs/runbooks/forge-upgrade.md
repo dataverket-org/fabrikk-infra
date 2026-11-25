@@ -1,7 +1,7 @@
 # Runbook: move the forge to a new Forgejo release
 
-Written 2026-11-22. Run that day in a local kind cluster, 15.0.11 to 15.0.12 on a database with repositories in it;
-not yet run on `git.dataverket.org`.
+Written 2026-11-22 from a run in a local kind cluster, 15.0.11 to 15.0.12 on a database with repositories in it.
+Run on `git.dataverket.org` on 2026-11-24 for the same versions.
 
 ## Why
 
@@ -94,7 +94,8 @@ new major is a decision of its own and not this job.
    ```
 
    The Deployment is `Recreate` on one volume: the old pod stops, the volume moves, the new pod starts. In kind the
-   new pod was ready 23 seconds after the apply; on the cluster add the Cinder detach and attach.
+   new pod was ready 23 seconds after the apply; on the cluster on 2026-11-24, with the Cinder detach and attach, it
+   took about 50 seconds.
 
 ## Proof
 

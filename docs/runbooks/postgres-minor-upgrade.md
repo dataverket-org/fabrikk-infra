@@ -1,7 +1,8 @@
 # Runbook: move a database to a new Postgres minor, and CloudNativePG with it
 
-Written 2026-11-22. Run that day in a local kind cluster on the forge's database: operator 1.30.0 to 1.30.2, plugin
-0.15.0 to 0.16.0, Postgres 18.4 to 18.7; not yet run on the cluster.
+Written 2026-11-22 from a run in a local kind cluster. Run on the cluster on 2026-11-24 for the operator, the
+plugin and the forge's database, and on 2026-11-25 for Zulip's and Zitadel's databases: operator 1.30.0 to 1.30.2,
+plugin 0.15.0 to 0.16.0, Postgres 18.4 to 18.7.
 
 ## Why
 
@@ -22,7 +23,7 @@ operator runs, so they are done in one sitting.
 
 ## What a restart costs
 
-Measured in kind on 2026-11-22, one instance, as every cluster here is:
+Measured in kind on 2026-11-22 on a database of one instance:
 
 | Change | What the operator does | The database refuses connections for |
 |---|---|---|
@@ -30,10 +31,19 @@ Measured in kind on 2026-11-22, one instance, as every cluster here is:
 | The plugin's version | Restarts every instance, to replace the sidecar | 40 s with the forge stopped |
 | `imageName` | Restarts the instance on the new image | 25 s with the forge stopped |
 
-The three minutes are Postgres waiting for the forge's idle connections to close, up to `smartShutdownTimeout`, 180
-seconds. With the forge stopped first there is nobody to wait for. The forge came back by itself after every
-restart, with no restart of its own. Zitadel's and Zulip's databases restart with the operator and the plugin too:
-logins at `id.dataverket.org` fail for those minutes, and a kube context already minted keeps working.
+The three minutes are Postgres waiting for its clients' idle connections to close, up to `smartShutdownTimeout`,
+180 seconds. With the client stopped first there is nobody to wait for.
+
+On the cluster the same wait cost each service differently:
+
+| Service | Instances | Seen |
+|---|---|---|
+| The forge, 2026-11-24 | 1 | The operator and the plugin, pushed in one artifact, gave one restart, not two. The forge went on answering over its open connections during the wait and was away for about 25 seconds |
+| Zulip, 2026-11-25 | 1 | A new `imageName` took Zulip away for 3 min 15 s. It answered 500 from the start of the wait, and its container stopped and started again by itself, once |
+| Zitadel, 2026-11-25 | 3 | A new `imageName` restarted the two replicas in 15 seconds each, then the primary in place (`primaryUpdateMethod: restart`), which took a little over three minutes. Logins at `id.dataverket.org` failed for that time. Zitadel's pods failed their readiness probes and came back by themselves, with no restart; a kube context already minted kept working |
+
+So the wait is not downtime for the forge, and it is downtime for Zulip and for logins. Three instances do not
+shorten it while the primary is restarted in place.
 
 ## Steps
 
@@ -58,7 +68,10 @@ logins at `id.dataverket.org` fail for those minutes, and a kube context already
    verb.
 
 3. On the same branch, `imageName` in the database's `postgres.yaml` and in its file under `backup/restore-test/`.
-   Zulip's image is built from the same tag by `artifacts/zulip/postgres-image.sh` (`artifacts/zulip/README.md`).
+   Zulip's image is built from the same tag by `artifacts/zulip/postgres-image.sh` (`artifacts/zulip/README.md`):
+   set `tag=` and `base=` in the script, `base=` to
+   `crane digest --platform linux/amd64 ghcr.io/cloudnative-pg/postgresql:<tag>`, and run it; it writes the new
+   reference into `postgres.yaml`. A `tag=` without its `base=` builds the old Postgres under the new name.
    Commit, push, open the pull request, merge it with the forge's button.
 
 4. `dataverket-prod-admin`. The five-minute check of `backup/cnpg-backups.md` must read healthy, and a base backup
@@ -76,7 +89,7 @@ logins at `id.dataverket.org` fail for those minutes, and a kube context already
    ```
 
    Every `STATUS` passes through `Primary instance is being restarted without a switchover` and returns to
-   `Cluster in healthy state`, once for the operator and once for the plugin.
+   `Cluster in healthy state`. On the cluster on 2026-11-24 this happened once for both together.
 
 6. YubiKey, two touches for each service. The image:
 
@@ -98,7 +111,11 @@ logins at `id.dataverket.org` fail for those minutes, and a kube context already
 
    The resume applies the new image and the forge's replica in one apply, so the forge starts while its database
    restarts a third time and waits for it; whether that restart is the short or the long one was not measured. The
-   scale to zero and each restart were tested in kind; the suspend and the resume were not, since kind ran no Flux.
+   scale to zero and each restart were tested in kind; the suspend and the resume were not, since kind ran no Flux,
+   and they were not used on the cluster either.
+
+   Zulip's image is pushed by `bin/artifact zulip --push` itself, before the manifests. Its Kustomization may first
+   report `dependency 'flux-system/cnpg' is not ready`; on 2026-11-25 it applied by itself 20 seconds later.
 
 7. What the notes of step 1 asked for. 18.7 asks for a `REINDEX` of GIN indexes, of btree indexes on a `bpchar`
    column with no length, and of `gist_trgm_ops` indexes. What a database has of each:
@@ -109,6 +126,12 @@ logins at `id.dataverket.org` fail for those minutes, and a kube context already
      -c "select c.relname from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey) join pg_class c on c.oid = i.indexrelid where a.atttypid = 'bpchar'::regtype and a.atttypmod = -1" \
      -c "select c.relname from pg_index i join pg_opclass o on o.oid = any(i.indclass) join pg_class c on c.oid = i.indexrelid where o.opcname = 'gist_trgm_ops'"
    ```
+
+   Zulip's database, asked on 2026-11-25 with `zulip-postgres -n zulip` and `-d zulip`, had 531 btree indexes and
+   one GIN index, `zulip.zerver_message_search_tsvector`, 16 kB, rebuilt in under a second.
+
+   Zitadel's database, asked the same day with `zitadel-db -n zitadel` and `-d zitadel`, had 259 btree indexes and
+   two GIN indexes, `queue.river_job_args_index` and `queue.river_job_metadata_index`, 24 kB each.
 
    A database Forgejo 15.0.11 made from nothing has 528 btree indexes and none of the three kinds, so nothing to
    rebuild; the forge's own database is older and is asked itself. An index the queries name is rebuilt with
