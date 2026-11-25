@@ -33,7 +33,7 @@ spec:
             readOnlyRootFilesystem: true
             seccompProfile:
               type: RuntimeDefault
-          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.15.0
+          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.18.1
           args:
             - "--csi-address=$(ADDRESS)"
             - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
@@ -57,7 +57,7 @@ spec:
             readOnlyRootFilesystem: true
             seccompProfile:
               type: RuntimeDefault
-          image: registry.k8s.io/sig-storage/livenessprobe:v2.17.0
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.20.1
           args:
             - --csi-address=/csi/csi.sock
           volumeMounts:
@@ -67,7 +67,7 @@ spec:
           securityContext:
             privileged: true
             allowPrivilegeEscalation: true
-          image: registry.k8s.io/provider-os/cinder-csi-plugin:v1.36.0
+          image: registry.k8s.io/provider-os/cinder-csi-plugin:v1.37.1
           args:
             - /bin/cinder-csi-plugin
             - "--endpoint=$(CSI_ENDPOINT)"
