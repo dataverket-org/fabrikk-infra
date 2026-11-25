@@ -86,6 +86,8 @@ helmCharts:
       sources:
         - service
         - gateway-httproute
+      # Required from chart 1.23.0; upsert-only was the chart's default before, and is what runs.
+      policy: upsert-only
       provider:
         name: webhook
         webhook:

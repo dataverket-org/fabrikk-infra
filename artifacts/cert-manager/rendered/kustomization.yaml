@@ -9,6 +9,7 @@ resources:
   - apiextensions.k8s.io_v1_customresourcedefinition_challenges.acme.cert-manager.io.yaml
   - apiextensions.k8s.io_v1_customresourcedefinition_clusterissuers.cert-manager.io.yaml
   - apiextensions.k8s.io_v1_customresourcedefinition_dnsendpoints.externaldns.k8s.io.yaml
+  - apiextensions.k8s.io_v1_customresourcedefinition_dnsrecords.externaldns.k8s.io.yaml
   - apiextensions.k8s.io_v1_customresourcedefinition_issuers.cert-manager.io.yaml
   - apiextensions.k8s.io_v1_customresourcedefinition_orders.acme.cert-manager.io.yaml
   - apiregistration.k8s.io_v1_apiservice_v1alpha1.nordhost-integrator.yaml
@@ -22,9 +23,7 @@ resources:
   - cert-manager_cert-manager.io_v1_issuer_nordhost-webhook-ca.yaml
   - cert-manager_cert-manager.io_v1_issuer_nordhost-webhook-selfsign.yaml
   - cert-manager_policy_v1_poddisruptionbudget_cert-manager-webhook.yaml
-  - cert-manager_rbac.authorization.k8s.io_v1_role_cert-manager-tokenrequest.yaml
   - cert-manager_rbac.authorization.k8s.io_v1_role_cert-manager-webhook:dynamic-serving.yaml
-  - cert-manager_rbac.authorization.k8s.io_v1_rolebinding_cert-manager-tokenrequest.yaml
   - cert-manager_rbac.authorization.k8s.io_v1_rolebinding_cert-manager-webhook:dynamic-serving.yaml
   - cert-manager_v1_configmap_cert-manager.yaml
   - cert-manager_v1_service_cert-manager-cainjector.yaml
