@@ -8,7 +8,7 @@ spec:
   instances: 1
   enablePDB: false
   # The CNPG image plus Zulip's search dictionaries; postgres-image.sh builds it and writes this line.
-  imageName: registry.dataverket.org/dataverket/postgresql-zulip:18.4-system-trixie@sha256:7b6783bbd1ccc457ada03ad050953cd31c31f2fa11c1119fde172771ba7eabb4
+  imageName: registry.dataverket.org/dataverket/postgresql-zulip:18.7-system-trixie@sha256:e05d70098fc00767b084da8abd00131251bde21f4fa3b6eb4843a9172e48b3af
   storage:
     storageClass: csi-cinder-sc-delete
     size: 10Gi
