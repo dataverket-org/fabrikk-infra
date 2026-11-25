@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: zulip
-          image: ghcr.io/zulip/zulip-server:12.3-0@sha256:76a1ecc4ba5470869d9609ef1ec16497b410189918b2daba85862183a59aa275
+          image: ghcr.io/zulip/zulip-server:12.5-0@sha256:9d9913108822c72b8ea2687a3bdb24e2e944e1f0fc4a145f1096936949c8689e
           ports:
             - name: http
               containerPort: 80
