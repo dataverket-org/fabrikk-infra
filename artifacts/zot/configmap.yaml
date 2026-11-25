@@ -30,6 +30,7 @@ data:
         "writeTimeout": "5m",
         "compat": ["docker2s2"],
         "auth": {
+          "apikey": true,
           "htpasswd": { "path": "/secret/htpasswd" },
           "openid": {
             "providers": {
@@ -65,7 +66,6 @@ data:
       "extensions": {
         "search": { "enable": true },
         "scrub": { "enable": true, "interval": "24h" },
-        "ui": { "enable": true },
-        "apikey": { "enable": true }
+        "ui": { "enable": true }
       }
     }
