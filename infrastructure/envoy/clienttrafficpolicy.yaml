@@ -15,3 +15,7 @@ spec:
       name: envoy-gateway
   proxyProtocol:
     optional: true
+  # Forgejo's API takes a branch name in a path as renovate%2F<name>. Envoy Gateway's default redirects to the path
+  # with a plain slash, which Forgejo answers 404. No route here matches on more than a host and a prefix.
+  path:
+    escapedSlashesAction: KeepUnchanged

@@ -2,7 +2,7 @@
 
 Written 2026-11-24. The check of step 1 has run on the cluster, and Jobs were made from the CronJob there on
 2026-11-22 and 2026-11-24. That a scheduled run is skipped while a run by hand is active is how Kubernetes works
-with `concurrencyPolicy: Forbid`; it has not been tested here.
+with `concurrencyPolicy: Forbid`; it has not been tested here. The run at log level debug was made on the cluster on 2026-11-25.
 
 ## Why
 
@@ -72,14 +72,29 @@ dashboard issue of each repository has a new edit time.
 | Seen | Means |
 |---|---|
 | Step 1 prints a name | A run is active. Wait three minutes and do step 1 again |
+| Renovate's log ends `Repository has changed during renovation - aborting`, run after run | A call to the forge failed, and Renovate names it only at log level `debug`. Do the run of "A run at log level debug" below and search its log for `aborting run` |
 | The wait of step 2 ends with `timed out` | The run is slow or has failed. `kubectl ... get job "$job"` shows which; a failed run is read as in step 3 |
 | The pod is `Pending` for half a minute | The Renovate image, 1.4 GB, is being pulled |
 | The guard prints any other line, and Renovate's log is empty | The guard stopped the run. `artifacts/renovate/README.md`, "What the guard says" |
 | `already exists` in step 2 | A Job of that name from the same minute is left. Do step 4, then step 2 |
 | No scheduled run at 01, 07, 13 or 19 | A run by hand was active at that time, so the scheduled one was skipped. The next one runs as usual |
 
+## A run at log level debug
+
+Step 2 with one setting changed, for a run whose log does not say why it stopped. The other steps are the same.
+
+```sh
+job=debug-$(date +%H%M)
+kubectl --context dataverket-prod-admin -n renovate create job "$job" --from=cronjob/renovate --dry-run=client -o yaml |
+  yq '(.spec.template.spec.containers[0].env[] | select(.name == "LOG_LEVEL")).value = "debug"' |
+  kubectl --context dataverket-prod-admin apply -f -
+```
+
+On 2026-11-25 such a run showed a 404 from the forge for a branch's commit statuses: the edge redirected the
+`%2F` in the branch name to a plain slash (`infrastructure/envoy/clienttrafficpolicy.yaml`).
+
 ## Not part of this
 
-A run with other settings than the cluster's, such as a dry run or one repository only: the Job is a copy of the
-CronJob and takes none. `bin/renovate-local` is the dry run. Changing the schedule (`renovate-change.md`). Running
+A run with other settings than the cluster's, such as a dry run or one repository only. `bin/renovate-local` is
+the dry run. Changing the schedule (`renovate-change.md`). Running
 Renovate from a laptop with the bot's token: nobody holds it.
