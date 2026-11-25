@@ -1,8 +1,8 @@
 # Runbook: move a database to a new Postgres minor, and CloudNativePG with it
 
 Written 2026-11-22 from a run in a local kind cluster. Run on the cluster on 2026-11-24 for the operator, the
-plugin and the forge's database, and on 2026-11-25 for Zulip's database: operator 1.30.0 to 1.30.2, plugin 0.15.0 to
-0.16.0, Postgres 18.4 to 18.7. Zitadel's database has not been moved yet.
+plugin and the forge's database, and on 2026-11-25 for Zulip's and Zitadel's databases: operator 1.30.0 to 1.30.2,
+plugin 0.15.0 to 0.16.0, Postgres 18.4 to 18.7.
 
 ## Why
 
@@ -40,9 +40,10 @@ On the cluster the same wait cost each service differently:
 |---|---|---|
 | The forge, 2026-11-24 | 1 | The operator and the plugin, pushed in one artifact, gave one restart, not two. The forge went on answering over its open connections during the wait and was away for about 25 seconds |
 | Zulip, 2026-11-25 | 1 | A new `imageName` took Zulip away for 3 min 15 s. It answered 500 from the start of the wait, and its container stopped and started again by itself, once |
-| Zitadel | 3 | Restarted with the operator and the plugin on 2026-11-24. Logins at `id.dataverket.org` fail while it restarts, and a kube context already minted keeps working |
+| Zitadel, 2026-11-25 | 3 | A new `imageName` restarted the two replicas in 15 seconds each, then the primary in place (`primaryUpdateMethod: restart`), which took a little over three minutes. Logins at `id.dataverket.org` failed for that time. Zitadel's pods failed their readiness probes and came back by themselves, with no restart; a kube context already minted kept working |
 
-So the wait is not downtime for a client that keeps its connections, and it is downtime for Zulip.
+So the wait is not downtime for the forge, and it is downtime for Zulip and for logins. Three instances do not
+shorten it while the primary is restarted in place.
 
 ## Steps
 
@@ -128,6 +129,9 @@ So the wait is not downtime for a client that keeps its connections, and it is d
 
    Zulip's database, asked on 2026-11-25 with `zulip-postgres -n zulip` and `-d zulip`, had 531 btree indexes and
    one GIN index, `zulip.zerver_message_search_tsvector`, 16 kB, rebuilt in under a second.
+
+   Zitadel's database, asked the same day with `zitadel-db -n zitadel` and `-d zitadel`, had 259 btree indexes and
+   two GIN indexes, `queue.river_job_args_index` and `queue.river_job_metadata_index`, 24 kB each.
 
    A database Forgejo 15.0.11 made from nothing has 528 btree indexes and none of the three kinds, so nothing to
    rebuild; the forge's own database is older and is asked itself. An index the queries name is rebuilt with
