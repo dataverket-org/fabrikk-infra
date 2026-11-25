@@ -20,7 +20,7 @@ resources:
 helmCharts:
   - name: cert-manager
     repo: https://charts.jetstack.io
-    version: v1.20.3
+    version: v1.21.3
     releaseName: cert-manager
     namespace: cert-manager
     includeCRDs: true
@@ -70,7 +70,7 @@ helmCharts:
             effect: NoSchedule
   - name: external-dns
     repo: https://kubernetes-sigs.github.io/external-dns
-    version: 1.21.1
+    version: 1.23.0
     releaseName: external-dns
     namespace: cert-manager
     includeCRDs: true
@@ -86,6 +86,8 @@ helmCharts:
       sources:
         - service
         - gateway-httproute
+      # Required from chart 1.23.0; upsert-only was the chart's default before, and is what runs.
+      policy: upsert-only
       provider:
         name: webhook
         webhook:
