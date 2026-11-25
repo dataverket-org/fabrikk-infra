@@ -21,8 +21,8 @@ done
 repo=registry.dataverket.org/dataverket/postgresql-zulip
 # CNPG reads the Postgres version from the tag and refuses a reference by digest alone.
 tag=18.7-system-trixie
-# ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie, its linux/amd64 manifest; the major is in tsearch below.
-base=ghcr.io/cloudnative-pg/postgresql@sha256:e6e1f467b52112f7e08aa380de81473106ff54b1834d90bcb4265a2a018e1921
+# ghcr.io/cloudnative-pg/postgresql:18.7-system-trixie, its linux/amd64 manifest; the major is in tsearch below.
+base=ghcr.io/cloudnative-pg/postgresql@sha256:6ebbabac7feb9da3490278b77cbbe2c412ebcf1ecde8278a156e1b86d554feb5
 tsearch=usr/share/postgresql/18/tsearch_data
 deb_url=https://deb.debian.org/debian/pool/main/s/scowl/hunspell-en-us_2020.12.07-4_all.deb
 deb_sha=962d774fd74f94ea8e781291319706fc5172d7d02c806e4c3a0c6af3ec9ccdc7
@@ -88,7 +88,7 @@ case "${1:-}" in
     elif [ "$committed" = "$ref" ]; then
       echo "postgres.yaml already names $ref"
     else
-      sed -i.bak "s#^\( *imageName: \)$repo:$tag@sha256:[0-9a-f]*\$#\1$ref#" postgres.yaml
+      sed -i.bak "s#^\( *imageName: \)$repo:[^@]*@sha256:[0-9a-f]*\$#\1$ref#" postgres.yaml
       rm -f postgres.yaml.bak
       grep -q "imageName: $ref\$" postgres.yaml || { echo "no imageName for $repo in postgres.yaml" >&2; exit 1; }
       echo "postgres.yaml now names $ref; commit it"
