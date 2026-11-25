@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/instance: local-static-provisioner
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: local-static-provisioner
-    helm.sh/chart: local-static-provisioner-2.8.0
+    helm.sh/chart: local-static-provisioner-2.10.0
   name: local-static-provisioner
   namespace: kube-system
 spec:
@@ -16,7 +16,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 6142d22e409e4b99091464a9d11be4b92ec8cbc94cbcd5aae1af34ce5aab9980
+        checksum/config: 38cca57857a0eece2c17b3bf333690b5254bc7d32b5ca9ea27867325c14fed3c
       labels:
         app.kubernetes.io/instance: local-static-provisioner
         app.kubernetes.io/name: local-static-provisioner
@@ -39,8 +39,15 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: JOB_CONTAINER_IMAGE
-          value: registry.k8s.io/sig-storage/local-volume-provisioner:v2.8.0
-        image: registry.k8s.io/sig-storage/local-volume-provisioner:v2.8.0
+          value: registry.k8s.io/sig-storage/local-volume-provisioner:v2.10.0
+        image: registry.k8s.io/sig-storage/local-volume-provisioner:v2.10.0
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 60
+          tcpSocket:
+            port: metrics
+          timeoutSeconds: 5
         name: provisioner
         ports:
         - containerPort: 8080

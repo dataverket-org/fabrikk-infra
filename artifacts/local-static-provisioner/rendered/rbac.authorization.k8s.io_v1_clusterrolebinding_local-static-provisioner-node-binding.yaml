@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/instance: local-static-provisioner
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: local-static-provisioner
-    helm.sh/chart: local-static-provisioner-2.8.0
+    helm.sh/chart: local-static-provisioner-2.10.0
   name: local-static-provisioner-node-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
