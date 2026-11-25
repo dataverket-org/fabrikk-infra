@@ -13,8 +13,9 @@
 #
 # A push reads the fabrikk-ci credential from artifacts/zot with your
 # YubiKey, one touch, and a second for the signature when the key exists.
-# Run it from a clean checkout of the commit to ship. What the directory may
-# hold is in share/artifact.sh.
+# Run it from a clean checkout at the tip of main on the forge; a push from
+# any other commit is refused, and ARTIFACT_NOT_MAIN=1 pushes it anyway. What
+# the directory may hold is in share/artifact.sh.
 #
 
 # shellcheck source=share/artifact.sh

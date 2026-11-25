@@ -208,6 +208,33 @@ function require_clean()
 }
 
 #
+# Fails when the checkout is not at the tip of main on the forge, so that
+# what is pushed is what was merged last. ARTIFACT_NOT_MAIN=1 pushes anyway.
+#
+function require_main_tip()
+{
+	local dir="$1"
+	local head refs tip
+
+	[[ "${ARTIFACT_NOT_MAIN:-}" == 1 ]] && return 0
+
+	head="$(git -C "$dir" rev-parse HEAD)" || return $?
+	refs="$(run git -C "$dir" ls-remote origin refs/heads/main)" || {
+		error "Cannot read main from origin; ARTIFACT_NOT_MAIN=1" \
+		      "pushes without the check!"
+		return 1
+	}
+	tip="${refs%%[[:space:]]*}"
+
+	if [[ "$head" != "$tip" ]]; then
+		error "The checkout is at ${head:0:7} and main on the forge is at" \
+		      "${tip:0:7}; git pull --ff-only first, or" \
+		      "ARTIFACT_NOT_MAIN=1 to push this commit anyway!"
+		return 1
+	fi
+}
+
+#
 # Reads the push credential into $user and $password: one sops run, one
 # YubiKey touch, nothing written anywhere.
 #
@@ -252,6 +279,7 @@ function artifact_push()
 
 	dir="$(artifact_dir "$name")" || return $?
 	require_clean "$dir" || return $?
+	require_main_tip "$dir" || return $?
 	artifact_check "$name" || return $?
 
 	rev="$(git -C "$dir" rev-parse HEAD)" || return $?
