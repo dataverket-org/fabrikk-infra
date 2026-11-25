@@ -20,7 +20,7 @@ done
 
 repo=registry.dataverket.org/dataverket/postgresql-zulip
 # CNPG reads the Postgres version from the tag and refuses a reference by digest alone.
-tag=18.4-system-trixie
+tag=18.7-system-trixie
 # ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie, its linux/amd64 manifest; the major is in tsearch below.
 base=ghcr.io/cloudnative-pg/postgresql@sha256:e6e1f467b52112f7e08aa380de81473106ff54b1834d90bcb4265a2a018e1921
 tsearch=usr/share/postgresql/18/tsearch_data
