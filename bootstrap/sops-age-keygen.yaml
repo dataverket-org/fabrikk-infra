@@ -67,9 +67,9 @@ spec:
               drop: [ALL]
           env:
             - name: AGE_VERSION
-              value: v1.2.1
+              value: v1.3.2
             - name: AGE_SHA256
-              value: 7df45a6cc87d4da11cc03a539a7470c15b1041ab2b396af088fe9990f7c79d50
+              value: cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10
             - name: KUBECTL_VERSION
               value: v1.36.4
             - name: KUBECTL_SHA256
