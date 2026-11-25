@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Resolved on the forge's own actions org (decision 022).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install grype and jq
         env:
           GRYPE_VERSION: v0.122.1
