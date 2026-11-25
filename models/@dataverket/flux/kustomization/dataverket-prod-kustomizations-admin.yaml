@@ -1,5 +1,5 @@
 type: '@dataverket/flux/kustomization'
-typeVersion: 2026.11.10.1
+typeVersion: 2026.11.12.1
 id: 8ef33801-0e9b-48af-816b-e6110fdfb518
 name: dataverket-prod-kustomizations-admin
 version: 1
